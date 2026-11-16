@@ -279,7 +279,7 @@ const WPN={
 let RW=800,RH=390,rot=false,DPR=1,S=1,VW=500,VH=250;
 let time=0,last=0,shake=0,hs=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,ctxKey='',ugS=0;
 const input={jx:0,jy:0,wx:0,wz:0,ku:false,kd:false,kl:false,kr:false,cl:false,cr:false,atkDown:false,hold:0,hv:false,camDown:false,block:false};
-const stats={lvl:1,vig:0,end:0,str:0,embers:0,wpn:'shield',glaive:false,tod:1,q:0,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:null,boat:false,ended:0};
+const stats={lvl:1,vig:0,end:0,str:0,embers:0,seals:0,wpn:'shield',glaive:false,tod:1,q:0,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:null,boat:false,ended:0};
 const world={shrine:0,lit:[true],bossDead:false,minis:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
 const RS={};   // saved state of every region visited
 const seen=new Uint8Array(GI*GJ);
@@ -330,7 +330,7 @@ function applyWorld(){const w=RS[REG]||{};   // call after loadRegion
   seen.fill(0);if(w.seen&&w.seen.length===seen.length)seen.set(w.seen);}
 function hasSave(){try{return !!localStorage.getItem(SAVE);}catch(_){return false;}}
 function wipe(){try{localStorage.removeItem(SAVE);}catch(_){}for(const k in RS)delete RS[k];
-  Object.assign(stats,{lvl:1,vig:0,end:0,str:0,embers:0,wpn:'shield',glaive:false,tod:1,q:stats.q,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:pickGuardians(),boat:false,ended:0});REG='duhok';}
+  Object.assign(stats,{lvl:1,vig:0,end:0,str:0,embers:0,seals:0,wpn:'shield',glaive:false,tod:1,q:stats.q,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:pickGuardians(),boat:false,ended:0});REG='duhok';}
 function pickGuardians(){const c=ORDER.filter(id=>id!=='basra'&&id!=='baghdad'&&id!=='muthanna'),o=[];while(o.length<4){const id=c[Math.floor(Math.random()*c.length)];if(!o.includes(id))o.push(id);}return o;}
 function travel(id){save();loadRegion(id);applyWorld();setEnvironment(REG);updateBtns();respawn();say(RNAME,'#d9cbb0',3.5);if(id==='baghdad'&&!stats.boat){stats.boat=true;save();boatFilm();}}
 
@@ -383,7 +383,7 @@ function critTarget(){for(const e of enemies){if(e.dead||(e.state!=='stag'&&e.st
   const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<e.T.r+P.r+(e.boss?60:34))return e;}return null;}
 function ownW(w){return w==='shield'||w==='dual'||(w==='glaive'?stats.glaive:!!(stats.own&&stats.own[w]));}
 let lootT=0,lootS='';
-const LOOTN={sh:'شظية معدن',dsh:'شظية سوداء',arrows:'سهم'};
+const LOOTN={sh:'شظية معدن',dsh:'شظية سوداء',arrows:'سهم',seals:'ختم حارس'};
 function loot(k,n){stats[k]=(stats[k]||0)+n;if(k==='arrows')stats.arrows=Math.min(40,stats.arrows);lootS='+'+n+' '+LOOTN[k];lootT=2.6;}
 function takeItem(i){const it=ITEMS[i];world.items[i]=1;snd('rest');
   if(it.k==='letter'){readLetter(it.id);return;}
@@ -420,7 +420,7 @@ function strike(a){
 function hurtE(e,d,heavy,crit){
   e.hp-=d;e.flash=.12;burst(e.x,e.y+e.j+e.T.h*.6,e.z,e.boss?'#8a1424':'#b01c28',heavy?12:7,120,e.y);
   if(e.hp<=0){e.hp=0;e.dead=true;puff(e.x,e.y,e.z,7,9,55);setE(e,'dead');e.j=0;stats.embers+=Math.round(e.T.embers*((ARM[stats.arm]||{}).emb||1));
-    if(e.T.mini){world.minis=true;loot('dsh',2);loot('sh',3);say('سقط '+e.T.name,'#e8c66a',3);save();}
+    if(e.T.mini){world.minis=true;loot('dsh',2);loot('sh',3);loot('seals',1);say('سقط '+e.T.name+' · حصلت على ختم الحارس','#e8c66a',3.4);save();}
     if(!e.boss){if(e.k==='brute'||Math.random()<.22)loot('sh',1);if(e.k==='archer')loot('arrows',3+Math.floor(Math.random()*3));}
     else{loot('sh',e.k==='erra'?4:5);loot('dsh',e.k==='erra'?2:3);}
     if(e.k==='guard'){world.key=true;say('أخذت مفتاح العالم السفلي','#e8c66a',4);snd('rest');save();}burst(e.x,e.y+e.T.h*.5,e.z,'#f0a040',e.boss?60:10,e.boss?260:120,e.y);
@@ -1096,7 +1096,7 @@ function renderShrine(){
   {const S_=$('spl');S_.textContent='';const tb=Object.keys(stats.tabs||{});if(!tb.length){const p=document.createElement('small');p.textContent='ما لگيت ألواح بعد';S_.appendChild(p);}
     for(const k of tb){const b=document.createElement('button');b.textContent=TAB[k].n;b.classList.toggle('sel',stats.spell===k);b.addEventListener('click',()=>{stats.spell=k;save();renderShrine();updateBtns();});S_.appendChild(b);}
     const A_=$('armr');A_.textContent='';for(const k of ['robe',...Object.keys(stats.arms||{})]){const b=document.createElement('button');b.textContent=ARM[k].n;b.classList.toggle('sel',(stats.arm||'robe')===k);b.addEventListener('click',()=>{stats.arm=k;save();renderShrine();snd('draw');});A_.appendChild(b);}}
-  $('fMat').textContent='جمرات: '+stats.embers+' · شظايا معدن: '+(stats.sh||0)+' · شظايا سوداء: '+(stats.dsh||0)+' · سهام: '+(stats.arrows||0);
+  $('fMat').textContent='جمرات: '+stats.embers+' · شظايا معدن: '+(stats.sh||0)+' · شظايا سوداء: '+(stats.dsh||0)+' · أختام الحراس: '+(stats.seals||0)+' · سهام: '+(stats.arrows||0);
   const F=$('forge');F.textContent='';
   for(const [k,n] of [['tab','الألواح'],['sword','السيف'],['shield','الترس'],['dual','السيفين'],['axe','الفأس'],['dagger','الخنجر'],['bow','القوس'],['glaive','مطرد نمتار']]){
     if(k!=='sword'&&k!=='shield'&&k!=='dual'&&!ownW(k))continue;const L=wlv(k),c=upCost(L),ok=L<10&&stats.embers>=c.e&&stats.sh>=c.sh&&stats.dsh>=c.dsh;
