@@ -346,7 +346,7 @@ function spawnAll(){
   waves=[];shots=[];world.locked=false;if(GATE)GATE.off=world.gate;if(MGATE)MGATE.off=world.mgate;for(const d of DOORS){d.o=0;d.t=0;d.blk.off=false;}
 }
 function setP(s){P.state=s;P.t=0;P.hit=false;}
-function setE(e,s){e.state=s;e.t=0;e.hit=false;e.blinked=false;e.j=0;if(e.boss)e.vsaid=false;}
+function setE(e,s){e.state=s;e.t=0;e.hit=false;e.blinked=false;e.feintMoved=false;e.j=0;if(e.boss)e.vsaid=false;}
 function respawn(){bossMusic(false);setTimeout(()=>regionMusic(true),600);P.grab=null;
   const s=SHR[world.shrine];
   P.x=s.x+34;P.z=s.z+4;P.y=s.y;P.vy=0;P.a=s.yaw||0;P.hp=maxHp();P.st=maxSt();P.flasks=maxFl();P.inv=1;P.buf=null;P.combo=0;P.ry=P.y;P.spd=0;setP('idle');
@@ -619,6 +619,12 @@ function upEnemy(e,dt){
       if(e.t<windDur*.6){
         const aim=mini==='crocK'&&e.p2?ang+(e.sx||1)*.34:ang;
         e.a=turn(e.a,aim,6*dt);
+      }
+      // Phase-two wolves feint backwards during the tell, then commit to a longer leap.
+      if(mini==='wolfK'&&e.p2&&!e.feintMoved&&e.t>=windDur*.42){
+        e.feintMoved=true;
+        moveEnt(e,e.x-Math.cos(ang)*42,e.z-Math.sin(ang)*42,T.r*.9,true);
+        burst(e.x,e.y+5,e.z,'#c7e4f5',8,65,e.y);
       }
       // The ghost leaves a readable afterimage before its short flank teleport.
       if(mini==='ghostK'&&!e.blinked&&e.t>=windDur*.65){
