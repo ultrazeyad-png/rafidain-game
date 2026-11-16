@@ -491,7 +491,12 @@ async function loadGLB(url){
 
 
 /* ---------- GLB -> existing WebGL renderer bridge ---------- */
-let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';
+let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='',gltfHeroLoadSerial=0;
+function disposeGLBResources(gpu,textures){
+  if(!glOK)return;
+  for(const item of gpu||[])if(item.buffer)gl.deleteBuffer(item.buffer);
+  for(const texture of textures||[])if(texture)gl.deleteTexture(texture);
+}
 let gltfHeroPlayback=gltfCreatePlaybackState({animations:[]});
 function gltfNormals(positions,indices){
   const n=new Float32Array(positions.length);
@@ -541,17 +546,20 @@ function gltfTransformExpanded(data,m){
 }
 function prepareGLBHero(asset){
   const entries=[],instances=asset.instances||asset.meshes.map((_,mesh)=>({mesh,node:-1,skin:null,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
-  for(const instance of instances){
-    const mesh=asset.meshes[instance.mesh];
-    for(const p of mesh.primitives){
-      let data=gltfExpandPrimitive(p);
-      if(instance.skin!=null){const palette=gltfBuildJointMatrices(asset,instance.skin,instance.node);data=gltfExpandPrimitive(gltfSkinPrimitiveCPU(p,palette));}
-      gltfTransformExpanded(data,instance.matrix);
-      const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,instance.skin!=null?gl.DYNAMIC_DRAW:gl.STATIC_DRAW);
-      entries.push({buffer,count:p.indices.length,material:p.material,primitive:p,node:instance.node,skin:instance.skin,matrix:instance.matrix,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents,hasUVs:!!p.uvs});
+  try{
+    for(const instance of instances){
+      const mesh=asset.meshes[instance.mesh];
+      for(const p of mesh.primitives){
+        let data=gltfExpandPrimitive(p);
+        if(instance.skin!=null){const palette=gltfBuildJointMatrices(asset,instance.skin,instance.node);data=gltfExpandPrimitive(gltfSkinPrimitiveCPU(p,palette));}
+        gltfTransformExpanded(data,instance.matrix);
+        const buffer=gl.createBuffer();if(!buffer)gltfFail('could not allocate GLB vertex buffer');
+        gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,instance.skin!=null?gl.DYNAMIC_DRAW:gl.STATIC_DRAW);
+        entries.push({buffer,count:p.indices.length,material:p.material,primitive:p,node:instance.node,skin:instance.skin,matrix:instance.matrix,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents,hasUVs:!!p.uvs});
+      }
     }
-  }
-  return entries;
+    return entries;
+  }catch(error){disposeGLBResources(entries,[]);throw error;}
 }
 function setGLBHeroAnimation(options={}){
   if(!gltfHero)gltfFail('no GLB hero is loaded');
@@ -573,48 +581,67 @@ function updateGLBHeroSkinning(now){
 }
 async function prepareGLBTextures(asset){
   const out=[];
-  for(const spec of asset.textures||[]){
-    const image=asset.images[spec.source],sampler=spec.sampler;
-    const blob=new Blob([image.bytes],{type:image.mimeType});
-    let bitmap=null;
-    if(typeof createImageBitmap==='function')bitmap=await createImageBitmap(blob);
-    else bitmap=await new Promise((resolve,reject)=>{
-      const objectUrl=URL.createObjectURL(blob),img=new Image();
-      img.onload=()=>{URL.revokeObjectURL(objectUrl);resolve(img);};
-      img.onerror=()=>{URL.revokeObjectURL(objectUrl);reject(new Error('GLB: embedded image decode failed'));};
-      img.src=objectUrl;
-    });
-    const texture=gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D,texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
-    const pot=(n)=>(n&(n-1))===0;
-    const isPOT=pot(bitmap.width)&&pot(bitmap.height);
-    const wrap=(v)=>v===33071?gl.CLAMP_TO_EDGE:v===33648?gl.MIRRORED_REPEAT:gl.REPEAT;
-    const filter=(v)=>v===9728?gl.NEAREST:v===9729?gl.LINEAR:v===9984?gl.NEAREST_MIPMAP_NEAREST:v===9985?gl.LINEAR_MIPMAP_NEAREST:v===9986?gl.NEAREST_MIPMAP_LINEAR:gl.LINEAR_MIPMAP_LINEAR;
-    const wantsMip=sampler.minFilter>=9984;
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,wantsMip&&!isPOT?gl.LINEAR:filter(sampler.minFilter));
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,sampler.magFilter===9728?gl.NEAREST:gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,isPOT?wrap(sampler.wrapS):gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,isPOT?wrap(sampler.wrapT):gl.CLAMP_TO_EDGE);
-    if(wantsMip&&isPOT)gl.generateMipmap(gl.TEXTURE_2D);
-    bitmap.close?.();
-    out.push(texture);
-  }
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
-  gl.activeTexture(gl.TEXTURE0);
-  return out;
+  try{
+    for(const spec of asset.textures||[]){
+      const image=asset.images[spec.source],sampler=spec.sampler;
+      const blob=new Blob([image.bytes],{type:image.mimeType});
+      let bitmap=null;
+      if(typeof createImageBitmap==='function')bitmap=await createImageBitmap(blob);
+      else bitmap=await new Promise((resolve,reject)=>{
+        const objectUrl=URL.createObjectURL(blob),img=new Image();
+        img.onload=()=>{URL.revokeObjectURL(objectUrl);resolve(img);};
+        img.onerror=()=>{URL.revokeObjectURL(objectUrl);reject(new Error('GLB: embedded image decode failed'));};
+        img.src=objectUrl;
+      });
+      try{
+        const texture=gl.createTexture();if(!texture)gltfFail('could not allocate GLB texture');
+        gl.bindTexture(gl.TEXTURE_2D,texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
+        const pot=(n)=>(n&(n-1))===0;
+        const isPOT=pot(bitmap.width)&&pot(bitmap.height);
+        const wrap=(v)=>v===33071?gl.CLAMP_TO_EDGE:v===33648?gl.MIRRORED_REPEAT:gl.REPEAT;
+        const filter=(v)=>v===9728?gl.NEAREST:v===9729?gl.LINEAR:v===9984?gl.NEAREST_MIPMAP_NEAREST:v===9985?gl.LINEAR_MIPMAP_NEAREST:v===9986?gl.NEAREST_MIPMAP_LINEAR:gl.LINEAR_MIPMAP_LINEAR;
+        const wantsMip=sampler.minFilter>=9984;
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,wantsMip&&!isPOT?gl.LINEAR:filter(sampler.minFilter));
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,sampler.magFilter===9728?gl.NEAREST:gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,isPOT?wrap(sampler.wrapS):gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,isPOT?wrap(sampler.wrapT):gl.CLAMP_TO_EDGE);
+        if(wantsMip&&isPOT)gl.generateMipmap(gl.TEXTURE_2D);
+        out.push(texture);
+      }catch(error){if(typeof texture!=='undefined'&&texture)gl.deleteTexture(texture);throw error;}
+      finally{bitmap.close?.();}
+    }
+    return out;
+  }catch(error){disposeGLBResources([],out);throw error;}
+  finally{gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.activeTexture(gl.TEXTURE0);}
 }
 async function setGLBHero(url,scale=60){
-  gltfHero=null;gltfHeroGPU=null;gltfHeroTextures=[];gltfHeroError='';
+  if(typeof url!=='string'||!url.trim())return {ok:false,error:'GLB: model URL must be a non-empty string'};
+  if(!Number.isFinite(scale)||scale<=0)return {ok:false,error:'GLB: hero scale must be a positive finite number'};
+  const request=++gltfHeroLoadSerial;gltfHeroError='';
+  let textures=[],gpu=[];
   try{
     const asset=await loadGLB(url);
+    if(request!==gltfHeroLoadSerial)return {ok:false,reason:'superseded'};
     if(!asset.meshes.length)gltfFail('model contains no meshes');
-    gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true,transition:null,currentPose:new Map()};
-    gltfHero={asset,scale};
-    if(glOK){gltfHeroTextures=await prepareGLBTextures(asset);gltfHeroGPU=prepareGLBHero(asset);}
-    return {ok:true,meshes:asset.meshes.length,primitives:asset.bounds};
-  }catch(e){gltfHeroError=String(e&&e.message||e);return {ok:false,error:gltfHeroError};}
+    const inspection=inspectGLBAsset(asset);
+    if(glOK){
+      textures=await prepareGLBTextures(asset);
+      if(request!==gltfHeroLoadSerial){disposeGLBResources([],textures);return {ok:false,reason:'superseded'};}
+      gpu=prepareGLBHero(asset);
+    }
+    if(request!==gltfHeroLoadSerial){disposeGLBResources(gpu,textures);return {ok:false,reason:'superseded'};}
+    const previousGPU=gltfHeroGPU,previousTextures=gltfHeroTextures;
+    gltfHero={asset,scale};gltfHeroGPU=gpu;gltfHeroTextures=textures;
+    gltfHeroPlayback=gltfCreatePlaybackState(asset,{clip:0,speed:1,paused:false,position:0,loop:true});
+    disposeGLBResources(previousGPU,previousTextures);
+    return {ok:true,meshes:asset.meshes.length,primitives:asset.bounds,inspection};
+  }catch(e){
+    disposeGLBResources(gpu,textures);
+    if(request!==gltfHeroLoadSerial)return {ok:false,reason:'superseded'};
+    gltfHeroError=String(e&&e.message||e);return {ok:false,error:gltfHeroError};
+  }
 }
 if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
   if(gltfHero){
