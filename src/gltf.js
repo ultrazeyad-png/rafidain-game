@@ -715,6 +715,21 @@ const gltfModelCategory=(entity)=>{
   if(entity.k==='sling'||entity.k==='archer')return 'husk';
   return String(entity.k||'');
 };
+const gltfBossProfiles=new Map();
+function registerGLBBossProfile(profileId,profile={}){
+  if(typeof profileId!=='string'||!/^boss:[a-z0-9_-]+$/i.test(profileId))gltfFail('boss profile id must use boss:<region-id>');
+  if(!profile||typeof profile!=='object'||Array.isArray(profile))gltfFail('boss profile must be an object');
+  for(const key of ['name','region','modelCategory'])if(profile[key]!=null&&(typeof profile[key]!=='string'||!profile[key].trim()))gltfFail('boss profile '+key+' must be a non-empty string');
+  if(profile.scale!=null&&(!Number.isFinite(profile.scale)||profile.scale<=0))gltfFail('boss profile scale must be positive and finite');
+  if(profile.animation!=null&&(typeof profile.animation!=='object'||Array.isArray(profile.animation)))gltfFail('boss profile animation must be an object');
+  const value={name:profile.name||'',region:profile.region||'',modelCategory:profile.modelCategory||'gb',scale:profile.scale??null,animation:profile.animation||{}};
+  gltfBossProfiles.set(profileId,value);return {ok:true,profileId,...value};
+}
+function getGLBBossProfiles(){return Array.from(gltfBossProfiles,([profileId,profile])=>({profileId,...profile}));}
+function gltfBossProfileForEntity(entity){
+  if(!entity?.boss)return null;
+  return gltfBossProfiles.get(entity.profileId||('boss:'+String(entity.regionId||'')))||null;
+}
 function registerGLBModelCatalog(catalog={}){
   if(!catalog||typeof catalog!=='object'||Array.isArray(catalog))gltfFail('model catalog must be an object');
   const next=new Map();
@@ -746,12 +761,11 @@ async function inspectGLBModelCatalog(){
   }));
 }
 async function bindGLBModelForEntity(gameEntity,overrides={}){
-  const category=gltfModelCategory(gameEntity),entry=gltfModelCatalog.get(category);
+  const profile=gltfBossProfileForEntity(gameEntity),category=profile?.modelCategory||gltfModelCategory(gameEntity),entry=gltfModelCatalog.get(category);
   if(!entry)return {ok:false,reason:'no-model-for-category',category};
-  const options={scale:entry.scale,animation:entry.animation,requireAnimatedCharacter:entry.requireAnimatedCharacter,...overrides};
+  const options={scale:profile?.scale||entry.scale,animation:profile?.animation||entry.animation,requireAnimatedCharacter:entry.requireAnimatedCharacter,...overrides};
   return bindGLBModel(gameEntity,entry.url,options);
 }
-
 const gltfEntityIds=new WeakMap();
 let gltfEntitySerial=0;
 function getGLBEntityId(gameEntity){
