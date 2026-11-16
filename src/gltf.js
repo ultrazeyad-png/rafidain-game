@@ -197,7 +197,14 @@ async function prepareGLBTextures(asset){
   const out=[];
   for(const image of asset.images||[]){
     const blob=new Blob([image.bytes],{type:image.mimeType});
-    const bitmap=await createImageBitmap(blob);
+    let bitmap=null;
+    if(typeof createImageBitmap==='function')bitmap=await createImageBitmap(blob);
+    else bitmap=await new Promise((resolve,reject)=>{
+      const objectUrl=URL.createObjectURL(blob),img=new Image();
+      img.onload=()=>{URL.revokeObjectURL(objectUrl);resolve(img);};
+      img.onerror=()=>{URL.revokeObjectURL(objectUrl);reject(new Error('GLB: embedded image decode failed'));};
+      img.src=objectUrl;
+    });
     const texture=gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
@@ -245,5 +252,6 @@ function drawGLBHero(){
     gl.drawArrays(gl.TRIANGLES,0,item.count);
   }
   gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.activeTexture(gl.TEXTURE0);
+  const uvLoc=gl.getAttribLocation(prog,'uv');if(uvLoc>=0)gl.disableVertexAttribArray(uvLoc);
   pop();bindMesh();gAlpha=1;return true;
 }
