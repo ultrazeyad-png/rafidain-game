@@ -81,20 +81,13 @@ async def run_suite(base_url: str) -> None:
         page.on("pageerror", lambda error: page_errors.append(str(error)))
 
         async def reload_and_start() -> None:
-            previous_document = await page.evaluate("() => performance.timeOrigin")
-            await page.evaluate("() => window.location.reload()")
-            # Detect the new document directly. Corrupt-save recovery may
-            # already have started the fresh session, so only click Start
-            # when the title button is actually visible.
-            await page.wait_for_function(
-                "(previous) => performance.timeOrigin !== previous && document.readyState === 'complete'",
-                arg=previous_document,
-                timeout=30000,
-            )
+            # Navigate explicitly to a fresh document while retaining localStorage.
+            # This avoids races between JS-triggered reload and Playwright's
+            # execution-context lifecycle.
+            await page.goto(f"{base_url}/dist/index.html?regression_reload=1", wait_until="domcontentloaded")
             if await page.locator("#go").is_visible():
                 await page.click("#go")
             await page.wait_for_function("!!window.__g", timeout=30000)
-
 
         try:
             await page.goto(f"{base_url}/dist/index.html", wait_until="load")
