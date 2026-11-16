@@ -121,3 +121,10 @@ await window.__g.bindGLBModelForEntity(enemy);
 - The runtime profile registry stores validated boss name, region, model category, optional scale, and animation overrides.
 - Boss profiles route through the existing GLB model catalog (default category `gb`); no model URLs or assets are fabricated.
 - Exposed through `window.__g.registerGLBBossProfile` and `window.__g.getGLBBossProfiles`.
+
+
+### أصوات الزعماء حسب المنطقة
+- يوفّر `src/audio.js` سجلّ ملفات صوتية قابلة للتسجيل والتحقق، مع pitch/rate/volume ضمن حدود آمنة.
+- `voiceBoss(entity, line)` ينشئ بصمة صوتية كلامية ثابتة لكل منطقة اعتماداً على معرّف المنطقة، ويستخدم صوت العربية المتاح في الجهاز.
+- حوارات الزعيم الرئيسي في المقدمة والانتقال للطور الثاني وتهديدات الهجوم وردة فعل الصدّ المثالي تمر عبر ملف المنطقة.
+- هذا نظام TTS محلي يعتمد على أصوات النظام، وليس تسجيلات ممثلين صوتيين أو ملفات حوار احترافية مسجلة.
