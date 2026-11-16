@@ -218,7 +218,9 @@ function drawBossCore(e){
   }
 }
 function drawMob(e){
-  if(window.__g&&window.__g.getGLBEntityId){
+  // Keep the existing death dissolve and distance culling on the procedural path.
+  // GLB models replace only living, nearby entities until equivalent fade support exists.
+  if(!e.dead&&Math.hypot(e.x-P.x,e.z-P.z)<=DR&&window.__g&&window.__g.getGLBEntityId){
     const glbId=window.__g.getGLBEntityId(e);
     if(glbId){
       window.__g.syncGLBEntityAction(glbId,e);
