@@ -34,9 +34,9 @@ function parseGLB(buffer){
     if(a.sparse)gltfFail('sparse accessors are not supported yet');
     const view=json.bufferViews?.[a.bufferView];if(!view||view.buffer!==0)gltfFail('invalid bufferView');
     const spec=GLTF_COMPONENTS[a.componentType],width=GLTF_WIDTH[a.type];if(!spec||!width)gltfFail('unsupported accessor type');
-    const [bytes,Ctor]=spec,stride=view.byteStride||bytes*width,base=(view.byteOffset||0)+(a.byteOffset||0),count=a.count;
-    if(!Number.isInteger(count)||count<1||stride<bytes*width)gltfFail('invalid accessor layout');
-    const end=base+(count-1)*stride+bytes*width;if(end>bin.byteLength||base<0)gltfFail('accessor exceeds BIN bounds');
+    const [bytes,Ctor]=spec,stride=view.byteStride||bytes*width,viewStart=view.byteOffset||0,viewLength=view.byteLength,accessorOffset=a.byteOffset||0,base=viewStart+accessorOffset,count=a.count;
+    if(!Number.isInteger(count)||count<1||!Number.isInteger(viewStart)||viewStart<0||!Number.isInteger(viewLength)||viewLength<0||!Number.isInteger(accessorOffset)||accessorOffset<0||stride<bytes*width||stride%bytes)gltfFail('invalid accessor layout');
+    const end=base+(count-1)*stride+bytes*width;if(end>bin.byteLength||base<viewStart||end>viewStart+viewLength)gltfFail('accessor exceeds bufferView bounds');
     const out=new Float32Array(count*width),src=new DataView(bin);
     const get=(p)=>a.componentType===5126?src.getFloat32(p,true):a.componentType===5125?src.getUint32(p,true):a.componentType===5123?src.getUint16(p,true):a.componentType===5122?src.getInt16(p,true):a.componentType===5121?src.getUint8(p):src.getInt8(p);
     const signed=a.componentType===5120||a.componentType===5122,unsigned=a.componentType===5121||a.componentType===5123||a.componentType===5125;
@@ -54,10 +54,10 @@ function parseGLB(buffer){
       const pos=readAccessor(p.attributes?.POSITION);if(pos.width!==3)gltfFail('POSITION must be VEC3');
       const nor=p.attributes.NORMAL==null?null:readAccessor(p.attributes.NORMAL);
       const uv=p.attributes.TEXCOORD_0==null?null:readAccessor(p.attributes.TEXCOORD_0);
-      if(nor&&nor.count!==pos.count)gltfFail('NORMAL count mismatch');
+      if(nor&&(nor.width!==3||nor.count!==pos.count))gltfFail('NORMAL must be a matching VEC3 accessor');
       if(uv&&(uv.width!==2||uv.count!==pos.count))gltfFail('TEXCOORD_0 count mismatch');
       let indices;
-      if(p.indices!=null){const q=readAccessor(p.indices);if(q.width!==1)gltfFail('indices must be SCALAR');indices=q.data;}
+      if(p.indices!=null){const q=readAccessor(p.indices);if(q.width!==1||![5121,5123,5125].includes(q.componentType))gltfFail('indices must use an unsigned integer SCALAR accessor');indices=q.data;}
       else{indices=new Uint32Array(pos.count);for(let i=0;i<pos.count;i++)indices[i]=i;}
       if(indices.length%3)gltfFail('triangle index count is not divisible by 3');
       for(const n of indices)if(n>=pos.count)gltfFail('index is outside POSITION range');
