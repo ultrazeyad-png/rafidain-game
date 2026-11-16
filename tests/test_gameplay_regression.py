@@ -303,10 +303,12 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.reload(wait_until="load")
+            # DOM readiness is sufficient; wait explicitly for the game runtime because
+            # media/animation resources may keep the full load event open.
+            await page.reload(wait_until="domcontentloaded")
             await page.wait_for_function(
                 "window.__g && window.__g.ok() && window.__g.chunks > 0",
-                timeout=15000,
+                timeout=20000,
             )
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
