@@ -660,10 +660,15 @@ function inspectGLBAsset(asset){
   if(primitives.length&&uvs!==primitives.length)warnings.push('Some primitives are missing TEXCOORD_0 UVs.');
   if(!asset.images?.length)warnings.push('No embedded images were found; materials may rely on factors or external workflows.');
   if(unskinnedCharacterInstances.length)warnings.push('Some skinned mesh instances are not attached to a skin.');
-  if(skinned&&asset.animations?.length&&!asset.animations.some(clip=>clip.channels?.some(channel=>asset.skins?.some(skin=>skin.joints.includes(channel.node)))))warnings.push('No animation channel targets a joint used by the model skins.');
-  return {valid:primitives.length>0,readyForAnimatedCharacter:primitives.length>0&&skinned>0&&skinnedInstances.length>0&&(asset.animations?.length||0)>0&&unskinnedCharacterInstances.length===0,
-    summary:{meshes:asset.meshes.length,primitives:primitives.length,nodes:asset.nodes.length,instances:asset.instances.length,skins:asset.skins?.length||0,skinnedPrimitives:skinned,skinnedInstances:skinnedInstances.length,animationClips:asset.animations?.length||0,images:asset.images?.length||0,textures:asset.textures?.length||0,texturedPrimitives:textured,normalMappedPrimitives:primitives.filter(p=>p.material?.normalTexture!=null).length,primitivesWithNormals:normals,primitivesWithUVs:uvs},
-    warnings};
+  const animationCoverage={};
+  for(const action of ['idle','walk','run','dodge','attack','heavy','hurt','death'])animationCoverage[action]=gltfResolveAnimationClip(asset,action)>=0;
+  const animatedJointTargets=(asset.animations||[]).some(clip=>clip.channels?.some(channel=>asset.skins?.some(skin=>skin.joints.includes(channel.node))));
+  if(skinned&&asset.animations?.length&&!animatedJointTargets)warnings.push('No animation channel targets a joint used by the model skins.');
+  const missingCore=['idle','walk','run','attack','death'].filter(action=>!animationCoverage[action]);
+  if(missingCore.length)warnings.push('Missing core gameplay animation clips: '+missingCore.join(', ')+'.');
+  return {valid:primitives.length>0,readyForAnimatedCharacter:primitives.length>0&&skinned>0&&skinnedInstances.length>0&&animatedJointTargets&&unskinnedCharacterInstances.length===0&&missingCore.length===0,
+    summary:{meshes:asset.meshes.length,primitives:primitives.length,nodes:asset.nodes.length,instances:asset.instances.length,skins:asset.skins?.length||0,skinnedPrimitives:skinned,skinnedInstances:skinnedInstances.length,animationClips:asset.animations?.length||0,animationNames:(asset.animations||[]).map(clip=>clip.name||'unnamed'),images:asset.images?.length||0,textures:asset.textures?.length||0,texturedPrimitives:textured,normalMappedPrimitives:primitives.filter(p=>p.material?.normalTexture!=null).length,primitivesWithNormals:normals,primitivesWithUVs:uvs},
+    animationCoverage,warnings};
 }
 async function inspectGLB(url){return inspectGLBAsset(await loadGLB(url));}
 
