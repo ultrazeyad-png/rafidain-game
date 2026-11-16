@@ -658,17 +658,21 @@ async function loadGLBEntity(id,url,options={}){
   if(typeof id!=='string'||!id.trim())gltfFail('entity id must be a non-empty string');
   if(gltfEntityInstances.has(id))return {ok:false,reason:'duplicate-id',id};
   const scale=options.scale??60;if(!Number.isFinite(scale)||scale<=0)gltfFail('entity scale must be a positive finite number');
-  const entity={id,url,asset:null,playback:null,gpu:null,textures:[],scale,error:'',action:'idle'};
+  const entity={id,url,asset:null,playback:null,gpu:null,textures:[],scale,error:'',action:'idle',disposed:false};
   gltfEntityInstances.set(id,entity);
   try{
     entity.asset=await loadGLB(url);
+    if(entity.disposed||gltfEntityInstances.get(id)!==entity)return {ok:false,id,reason:'disposed'};
     if(!entity.asset.meshes.length)gltfFail('entity model contains no meshes');
     entity.playback=gltfCreatePlaybackState(entity.asset,options.animation||{});
-    if(glOK){entity.textures=await prepareGLBTextures(entity.asset);entity.gpu=prepareGLBHero(entity.asset);}
+    if(glOK){entity.textures=await prepareGLBTextures(entity.asset);
+      if(entity.disposed||gltfEntityInstances.get(id)!==entity){for(const texture of entity.textures)gl.deleteTexture(texture);entity.textures=[];return {ok:false,id,reason:'disposed'};}
+      entity.gpu=prepareGLBHero(entity.asset);}
+    if(entity.disposed||gltfEntityInstances.get(id)!==entity)return {ok:false,id,reason:'disposed'};
     return {ok:true,id,meshes:entity.asset.meshes.length,primitives:entity.asset.bounds};
   }catch(error){
     entity.error=String(error&&error.message||error);
-    gltfEntityInstances.delete(id);
+    if(gltfEntityInstances.get(id)===entity)gltfEntityInstances.delete(id);
     return {ok:false,id,error:entity.error};
   }
 }
@@ -705,6 +709,7 @@ function syncGLBEntityAction(id,gameEntity){
 }
 function removeGLBEntity(id){
   const entity=gltfEntityInstances.get(id);if(!entity)return false;
+  entity.disposed=true;
   if(glOK){for(const item of entity.gpu||[])gl.deleteBuffer(item.buffer);for(const texture of entity.textures||[])gl.deleteTexture(texture);}
   gltfEntityInstances.delete(id);return true;
 }
