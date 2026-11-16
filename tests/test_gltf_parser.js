@@ -238,7 +238,7 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 }
 {
   const d=baseDocument();
-  d.accessors.push({bufferView:1,componentType:5126,count:3,type:'VEC4'});
+  d.accessors.push({bufferView:0,componentType:5126,count:3,type:'VEC3'});
   d.meshes[0].primitives[0].attributes.TANGENT=2;
   expectInvalid(d,baseBin(),/TANGENT must be a matching VEC4/);
 }
@@ -249,7 +249,8 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   d.images=[{bufferView:2,mimeType:'image/png'}];
   d.bufferViews.push({buffer:0,byteOffset:44,byteLength:4});
   d.textures=[{source:0}];
-  const parsed=parse(makeGLB(d,baseBin()));
+  const bin=Buffer.alloc(48);baseBin().copy(bin,0);
+  const parsed=parse(makeGLB(d,bin));
   assert.equal(parsed.meshes[0].primitives[0].material.normalTexture,0);
   assert.equal(parsed.meshes[0].primitives[0].material.normalScale,0.65);
 }
