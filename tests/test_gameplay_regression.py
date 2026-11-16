@@ -339,8 +339,33 @@ async def run_suite(base_url: str) -> None:
             await browser.close()
 
 
+def verify_regional_mini_bosses() -> None:
+    roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
+    regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    required = (
+        "const MINI_GUARDS=",
+        "nineveh:{k:'ghostK'",
+        "duhok:{k:'wolfK'",
+        "muthanna:{k:'scorpK'",
+        "baghdad:{k:'ghostK'",
+        "SPAWN.push(['gmini',b1[0]+70,b1[1]+70,b1[3]])",
+    )
+    missing = [item for item in required if item not in roster]
+    if missing:
+        raise AssertionError(f"Regional mini-boss roster is incomplete: {missing}")
+    for spawn in ("['gmini',1560,640,120]", "['gmini',2450,500,-200]"):
+        if spawn not in regions:
+            raise AssertionError(f"Special-region mini-boss spawn missing: {spawn}")
+    for item in ("minis:world.minis", "minis:!!w.minis", "world.minis=true;save()", "s[0]==='gmini'&&world.minis"):
+        if item not in game:
+            raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
+    print("PASS: 19 regional mini-boss identities are assigned, spawned, rewarded, and persisted")
+
+
 def main() -> int:
     verify_adapa_visual_design()
+    verify_regional_mini_bosses()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
