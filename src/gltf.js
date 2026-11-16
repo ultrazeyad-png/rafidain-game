@@ -123,9 +123,9 @@ function parseGLB(buffer){
     const view=json.bufferViews?.[a.bufferView];if(!view||view.buffer!==0)gltfFail('invalid bufferView');
     const spec=GLTF_COMPONENTS[a.componentType],width=GLTF_WIDTH[a.type];if(!spec||!width)gltfFail('unsupported accessor type');
     const [bytes,Ctor]=spec,stride=view.byteStride||bytes*width,viewStart=view.byteOffset||0,viewLength=view.byteLength,accessorOffset=a.byteOffset||0,base=viewStart+accessorOffset,count=a.count;
-    if(!Number.isInteger(count)||count<1||!Number.isInteger(viewStart)||viewStart<0||!Number.isInteger(viewLength)||viewLength<0||!Number.isInteger(accessorOffset)||accessorOffset<0||stride<bytes*width||stride%bytes||accessorOffset%bytes||base%bytes)gltfFail('invalid accessor layout');
     if(view.byteStride!=null&&(!Number.isInteger(view.byteStride)||view.byteStride<4||view.byteStride>252||view.byteStride%4))gltfFail('invalid bufferView byteStride');
     if(view.byteStride!=null&&view.byteStride<bytes*width)gltfFail('bufferView byteStride is smaller than accessor element');
+    if(!Number.isInteger(count)||count<1||!Number.isInteger(viewStart)||viewStart<0||!Number.isInteger(viewLength)||viewLength<0||!Number.isInteger(accessorOffset)||accessorOffset<0||stride<bytes*width||stride%bytes||accessorOffset%bytes||base%bytes)gltfFail('invalid accessor layout');
     const end=base+(count-1)*stride+bytes*width;if(end>bin.byteLength||base<viewStart||end>viewStart+viewLength)gltfFail('accessor exceeds bufferView bounds');
     const out=new Float32Array(count*width),src=new DataView(bin);
     const get=(p)=>a.componentType===5126?src.getFloat32(p,true):a.componentType===5125?src.getUint32(p,true):a.componentType===5123?src.getUint16(p,true):a.componentType===5122?src.getInt16(p,true):a.componentType===5121?src.getUint8(p):src.getInt8(p);
