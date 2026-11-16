@@ -48,3 +48,6 @@ jobs:
 
       - name: Verify WebGL context recovery in Chromium
         run: python tests/test_webgl_recovery.py
+
+      - name: Verify combat, region loading, and save/load
+        run: python tests/test_gameplay_regression.py
