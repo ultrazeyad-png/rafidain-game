@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__gltfModelCategory=gltfModelCategory; globalThis.__registerGLBModelCatalog=registerGLBModelCatalog; globalThis.__getGLBModelCatalog=getGLBModelCatalog; globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__createAnimatedEntity=gltfCreateAnimatedEntity; globalThis.__setEntityAction=gltfSetEntityAction; globalThis.__updateAnimatedEntity=gltfUpdateAnimatedEntity; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__inspectGLBAsset=inspectGLBAsset; globalThis.__gltfModelCategory=gltfModelCategory; globalThis.__registerGLBModelCatalog=registerGLBModelCatalog; globalThis.__getGLBModelCatalog=getGLBModelCatalog; globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__createAnimatedEntity=gltfCreateAnimatedEntity; globalThis.__setEntityAction=gltfSetEntityAction; globalThis.__updateAnimatedEntity=gltfUpdateAnimatedEntity; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -558,4 +558,26 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
   assert.equal(context.__getGLBModelCatalog().length, 2);
   assert.throws(() => context.__registerGLBModelCatalog({wolf:{url:'',scale:1}}), /catalog entry/);
   assert.throws(() => context.__registerGLBModelCatalog({wolf:{url:'wolf.glb',scale:0}}), /positive and finite/);
+}
+
+{
+  const report = context.__inspectGLBAsset({
+    meshes:[{primitives:[
+      {joints:new Uint16Array(4),weights:new Float32Array(4),normals:new Float32Array(3),uvs:new Float32Array(2),material:{baseColorTexture:0,normalTexture:1}},
+      {normals:null,uvs:null,material:{}}
+    ]}],
+    nodes:[{}],skins:[{}],animations:[{}],images:[{}],textures:[{},{}]
+  });
+  assert.equal(report.valid,true);
+  assert.equal(report.readyForAnimatedCharacter,true);
+  assert.equal(report.summary.primitives,2);
+  assert.equal(report.summary.skinnedPrimitives,1);
+  assert.equal(report.summary.animationClips,1);
+  assert.equal(report.summary.normalMappedPrimitives,1);
+  assert.equal(report.warnings.some(w=>w.includes('missing normals')),true);
+  assert.equal(report.warnings.some(w=>w.includes('UVs')),true);
+  const staticOnly = context.__inspectGLBAsset({meshes:[{primitives:[{material:{}}]}],nodes:[],skins:[],animations:[],images:[],textures:[]});
+  assert.equal(staticOnly.readyForAnimatedCharacter,false);
+  assert.equal(staticOnly.warnings.length>=3,true);
+  assert.throws(()=>context.__inspectGLBAsset(null),/requires a parsed GLB asset/);
 }
