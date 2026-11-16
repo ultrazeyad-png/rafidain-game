@@ -79,6 +79,14 @@ async def run_suite(base_url: str) -> None:
         page_errors: list[str] = []
         page.on("pageerror", lambda error: page_errors.append(str(error)))
 
+        async def reload_and_start() -> None:
+            async with page.expect_navigation(wait_until="domcontentloaded", timeout=30000):
+                await page.evaluate("() => window.location.reload()")
+            # Reload returns to the title screen; the debug runtime is exposed
+            # when the player starts the game, just as in the initial boot.
+            await page.click("#go")
+            await page.wait_for_function("!!window.__g", timeout=30000)
+
 
         try:
             await page.goto(f"{base_url}/dist/index.html", wait_until="load")
@@ -368,19 +376,7 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.evaluate("() => window.location.reload()")
-            # Wait for game startup, then assert persistence explicitly below.
-            # Do not turn a wrong restored region into a 30-second opaque timeout.
-            try:
-                await page.wait_for_function("!!window.__g", timeout=12000)
-            except Exception as error:
-                diagnostics = await page.evaluate(
-                    "() => ({ready: document.readyState, title: document.title, body: document.body.innerText.slice(0, 500)})"
-                )
-                raise AssertionError(
-                    f"Game did not expose its runtime after save/reload: "
-                    f"{error}; page_errors={page_errors}; diagnostics={diagnostics}"
-                ) from error
+            await reload_and_start()
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
             )
@@ -403,12 +399,9 @@ async def run_suite(base_url: str) -> None:
                 }""",
                 legacy_raw,
             )
-            await page.evaluate("() => window.location.reload()")
-                        # Migration correctness is asserted below; WebGL health is covered by its dedicated test.
-            await page.wait_for_function(
-                "window.__g && window.__g.REG === 'muthanna'",
-                timeout=30000,
-            )
+            await reload_and_start()
+            # Migration correctness is independent of asynchronous world baking.
+            await page.wait_for_function("window.__g.REG === 'muthanna'", timeout=30000)
             migrated = await page.evaluate(
                 """() => ({
                     live: JSON.parse(localStorage.getItem("ashes-rafidain-v1")),
@@ -429,10 +422,10 @@ async def run_suite(base_url: str) -> None:
             await page.evaluate(
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
-            await page.evaluate("() => window.location.reload()")
-            # Corrupt-save recovery only needs the game world to boot; WebGL
+            await reload_and_start()
+            # Corrupt-save recovery only needs the new campaign state; WebGL
             # context health is independently covered by test_webgl_recovery.py.
-            await page.wait_for_function("window.__g && window.__g.chunks > 0 && window.__g.REG === 'duhok'", timeout=30000)
+            await page.wait_for_function("window.__g.REG === 'duhok'", timeout=30000)
             recovered = await page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
