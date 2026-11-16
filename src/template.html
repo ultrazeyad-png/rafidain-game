@@ -691,7 +691,7 @@ function ambient(dt){
 
 /*@GL@*/
 /* ---------- static world ---------- */
-const ST=[];
+const ST=[];let DUKHOK_DETAIL_COUNT=0;
 function st(mesh,col,sx,sy,sz,x,y,z,o){
   ident();T(x,y,z);if(o){if(o.ry)RY(o.ry);if(o.rx)RX(o.rx);if(o.rz)RZ(o.rz);if(o.off)T(o.off[0],o.off[1],o.off[2]);}Sc(sx,sy,sz);
   const m=MS[mesh];
@@ -840,9 +840,11 @@ function decoDuhok(){
   sheep(2250,130,505,.4);sheep(2285,130,470,2.1);sheep(2262,130,545,4);sheep(2310,130,520,5.2);
   // a ring of standing stones marks the storm bird's ground
   for(let k=0;k<26;k++){const a=k/26*2*PI;sb(10,3,10,'#8a8478',AC.x+Math.cos(a)*(AC.r+6),AC.y+1.5,AC.z+Math.sin(a)*(AC.r+6));}
+  // Preserve the pre-bake detail count for QA; ST is intentionally compacted after baking.
+  DUKHOK_DETAIL_COUNT=ST.length;
 }
 function buildWorld(){
-  ST.length=0;bakeClear();
+  ST.length=0;DUKHOK_DETAIL_COUNT=0;bakeClear();
   if(HG){terrain();grass();}
   else{
   const GC=['#3a2f36','#41343a','#372c33'],PC=['#2a2228','#2f262c','#262026'];
@@ -1313,7 +1315,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length};
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>
