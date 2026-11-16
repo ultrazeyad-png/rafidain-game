@@ -124,6 +124,23 @@ function drawHero(){dressHero();
   sph(1.3,34,1.5,HC.gold,.7,-17,8.6);sph(1.3,34,1.5,HC.gold,.7,-17,-8.6);pop();
   sph(11.2,17.5,14.8,HC.vest,0,37.5,0);sph(4.2,11.5,7.2,HC.cloth,3.7,38.6,0);
   cyl(11.8,3.4,14.8,HC.red,0,31,0);sph(2.6,3.8,3.6,HC.gold,5.6,31,0);
+  // Furat's travel-worn leather harness, bronze shoulder guards and belt kit
+  push();T(8.8,38.2,0);RY(.12);
+  box(2.2,17.5,3.1,'#302019',0,0,0);
+  for(let q=0;q<4;q++)sph(1.15,1.15,1.15,HC.gold,1.25,-6.2+q*4.1,0);
+  pop();
+  for(const sd of[-1,1]){
+    push();T(1.2,43.5,sd*10.1);RZ(sd*.12);
+    sph(5.8,5.1,5.3,'#493023',0,0,0);
+    sph(4.4,1.1,4.1,HC.gold,1.2,1.8,0);
+    sph(1.15,1.15,1.15,HC.gold,4.4,-.2,sd*1.1);
+    pop();
+  }
+  push();T(10.9,31,0);sph(2.4,3.2,3.4,HC.gold,0,0,0);
+  sph(1.2,1.8,1.8,'#6b3328',1.5,0,0);pop();
+  push();T(1.4,29.5,10.2);RZ(-.12);
+  box(4.2,5.8,3.2,'#38251c',0,-1.5,0);
+  box(4.5,.9,3.5,HC.gold,0,1.1,0);pop();
   push();T(5.2,29.6,-3.4);RZ(.18+.14*mk+sw*.1*mk);sph(1.7,9.5,3.2,HC.red,0,-4.2,0);pop();
   // head (turns a little against the torso so the eyes stay forward)
   push();T(.3,45,0);RY(-twist*.6);RZ(-upLean*.5+tilt);T(-.3,-45,0);
