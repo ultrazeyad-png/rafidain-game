@@ -646,7 +646,10 @@ async function bindGLBModel(gameEntity,url,options={}){
   if(id&&gltfEntityInstances.has(id))return {ok:false,reason:'already-bound',id};
   id='game-entity-'+(++gltfEntitySerial);
   gltfEntityIds.set(gameEntity,id);
-  const result=await loadGLBEntity(id,url,options);
+  const pending=loadGLBEntity(id,url,options);
+  const record=gltfEntityInstances.get(id);
+  if(record)record.gameEntity=gameEntity;
+  const result=await pending;
   if(!result.ok)gltfEntityIds.delete(gameEntity);
   return {...result,id};
 }
@@ -704,6 +707,17 @@ function removeGLBEntity(id){
   const entity=gltfEntityInstances.get(id);if(!entity)return false;
   if(glOK){for(const item of entity.gpu||[])gl.deleteBuffer(item.buffer);for(const texture of entity.textures||[])gl.deleteTexture(texture);}
   gltfEntityInstances.delete(id);return true;
+}
+function releaseGLBEntities(keepEntities=[]){
+  const keep=new Set(keepEntities.filter(e=>e&&typeof e==='object'));
+  let released=0;
+  for(const [id,entity] of gltfEntityInstances){
+    if(entity.gameEntity&&!keep.has(entity.gameEntity)){
+      if(removeGLBEntity(id))released++;
+      gltfEntityIds.delete(entity.gameEntity);
+    }
+  }
+  return released;
 }
 function drawGLBEntity(id,x,y,z,yaw=0,scale){
   const entity=gltfEntityInstances.get(id);
