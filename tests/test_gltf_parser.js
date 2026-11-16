@@ -166,4 +166,14 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.throws(()=>parse(makeGLB(d,baseBin())),/unsupported or invalid embedded image/);
 }
 
+
+{
+  const d=baseDocument();
+  d.materials=[{pbrMetallicRoughness:{metallicFactor:0.25,roughnessFactor:0.7}}];
+  d.meshes[0].primitives[0].material=0;
+  const parsed=parse(makeGLB(d,baseBin()));
+  assert.equal(parsed.meshes[0].primitives[0].material.metallicFactor,0.25);
+  assert.equal(parsed.meshes[0].primitives[0].material.roughnessFactor,0.7);
+}
+
 console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
