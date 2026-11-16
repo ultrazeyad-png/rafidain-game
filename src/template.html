@@ -993,7 +993,7 @@ function drawHUD0(){
   if(banner){const k=banner.t/banner.dur,al=Math.min(1,k*5,(1-k)*3);
     ctx.fillStyle='rgba(0,0,0,'+(.55*al).toFixed(3)+')';ctx.fillRect(0,VH*.26-22,VW,44);
     ctx.globalAlpha=Math.max(0,al);ctx.font='700 25px '+FONT;ctx.textAlign='center';ctx.fillStyle=banner.col;ctx.fillText(banner.txt,VW/2,VH*.26);ctx.globalAlpha=1;}
-  if(!glOK){ctx.font='600 16px '+FONT;ctx.textAlign='center';ctx.fillStyle='#e6d8c0';ctx.fillText('جهازك ما يدعم WebGL، اللعبة ما تگدر ترسم الثري دي.',VW/2,VH/2);}
+  if(!glOK){ctx.font='600 16px '+FONT;ctx.textAlign='center';ctx.fillStyle='#e6d8c0';ctx.fillText(glLost?'انقطع اتصال الرسوميات. نحاول استعادته…':'جهازك ما يدعم WebGL، اللعبة ما تگدر ترسم الثري دي.',VW/2,VH/2);}
 }
 
 /* ================= shrine menu ================= */
@@ -1165,6 +1165,31 @@ $('rise').addEventListener('click',()=>{$('shrine').classList.remove('on');pause
 $('cont').addEventListener('click',()=>{$('win').classList.remove('on');paused=false;});
 document.querySelectorAll('#shrine [data-k]').forEach(b=>b.addEventListener('click',()=>lvlUp(b.getAttribute('data-k'))));
 document.querySelectorAll('#shrine [data-w]').forEach(b=>b.addEventListener('click',()=>setWpn(b.getAttribute('data-w'))));
+
+/* ================= WebGL context recovery ================= */
+let resumeAfterGLRestore=false;
+glc.addEventListener('webglcontextlost',e=>{
+  e.preventDefault();
+  glLost=true;glOK=false;
+  resumeAfterGLRestore=!paused;paused=true;
+  input.jx=input.jy=input.wx=input.wz=0;
+  say('انقطع اتصال الرسوميات. نحاول استعادته…','#f0b060',10);
+});
+glc.addEventListener('webglcontextrestored',()=>{
+  try{
+    resetGLAfterContextRestore();
+    initGL();
+    glOK=true;
+    buildWorld();
+    glLost=false;
+    paused=!resumeAfterGLRestore;
+    resumeAfterGLRestore=false;
+    say('تمت استعادة الرسوميات','#e8c66a',2.5);
+  }catch(err){
+    glOK=false;glLost=true;
+    console.error('WebGL context restoration failed',err);
+  }
+});
 
 /* ================= boot ================= */
 function layout(){
