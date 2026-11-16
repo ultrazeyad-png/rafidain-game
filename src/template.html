@@ -734,6 +734,10 @@ function update(dt){
   input.wx=fx*my-fz*mx;input.wz=fz*my+fx*mx;
   if(input.atkDown){input.hold+=dt;if(input.hold>.3&&!input.hv){input.hv=true;act('heavy');}}
   upPlayer(dt);
+  if(window.__g?.setGLBHeroAction){
+    const action=P.state==='dead'?'death':P.state==='roll'?'dodge':P.state==='atk'?'attack':P.air?'jump':P.spd>95?'run':P.spd>20?'walk':'idle';
+    window.__g.setGLBHeroAction(action);
+  }
   for(const e of enemies)upEnemy(e,dt);
   for(let i=0;i<enemies.length;i++){const a=enemies[i];if(a.dead||a.boss)continue;
     for(let j=i+1;j<enemies.length;j++){const b=enemies[j];if(b.dead||b.boss||Math.abs(a.y-b.y)>40)continue;
