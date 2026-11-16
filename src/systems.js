@@ -30,8 +30,8 @@ function nearNPC(){for(let i=0;i<NPCS.length;i++){const n=NPCS[i];if(Math.abs(P.
 function addNote(t){if(!stats.notes)stats.notes=[];if(!stats.notes.includes(t))stats.notes.push(t);}
 function talk(i){const n=NPCS[i],sets=DLG[n.id];let s=world.npc[n.id]?1:0;if(n.id==='derv'&&world.mgate)s=2;
   dlg={n,lines:sets[Math.min(s,sets.length-1)],i:0};paused=true;n.a=Math.atan2(P.z-n.z,P.x-n.x);showDlg();}
-function showDlg(){const l=dlg.lines[dlg.i];$('dN').textContent=dlg.n.name;$('dT').textContent=typeof l==='string'?l:l.t;if(l.note)addNote(l.note);$('dlg').classList.add('on');voice(dlg.n.id,(typeof l==='string'?l:l.t).length);}
-function nextDlg(){if(!dlg)return;dlg.i++;if(dlg.i>=dlg.lines.length&&dlg.done){const cb=dlg.done;dlg=null;$('dlg').classList.remove('on');cb();return;}
+function showDlg(){const l=dlg.lines[dlg.i],line=typeof l==='string'?l:l.t;$('dN').textContent=dlg.n.name;$('dT').textContent=line;if(l.note)addNote(l.note);$('dlg').classList.add('on');voice(dlg.n.id,line);}
+function nextDlg(){if(!dlg)return;voiceStop();dlg.i++;if(dlg.i>=dlg.lines.length&&dlg.done){const cb=dlg.done;dlg=null;$('dlg').classList.remove('on');cb();return;}
   if(dlg.i>=dlg.lines.length){world.npc[dlg.n.id]=1;dlg=null;$('dlg').classList.remove('on');paused=false;save();}else showDlg();}
 /* ================= the three fire bowls ================= */
 function nearBrz(){for(let i=0;i<BRZ.length;i++){const b=BRZ[i];if(Math.abs(P.y-b.y)<30&&Math.hypot(P.x-b.x,P.z-b.z)<52&&!brzLit(b))return i;}return -1;}
@@ -112,7 +112,7 @@ function cineRegion(id){   // swap the world under the film without touching the
   if(id==='duhok'){setP('sleep');P.x=475;P.z=-915;P.y=floorAt(475,-915,20);P.ry=P.y;P.a=2.82;P.inv=99;}
   else{P.x=-1800;P.z=-1800;P.y=0;P.ry=0;}ugS=0;}
 function startCine(){cine={i:0,t:0};DR=4000;paused=true;root.classList.add('cine');setP('sleep');P.inv=99;cineShot();music(true);}
-function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}if(s.v)snd('voice');}
+function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}voice('narrator',s.t);}
 function upCine(dt){cine.t+=dt;const L=cine.shots||CINE,s=L[cine.i];
   if(cine.boss&&cine.boss.k==='boss'&&cine.i===0){const b=cine.boss;b.t+=dt;b.state='trans';if(b.t>1.6)b.state='intro';}
   if(cine.t>=s.d){cine.i++;cine.t=0;if(cine.i>=L.length){endCine();return;}cineShot();}}
