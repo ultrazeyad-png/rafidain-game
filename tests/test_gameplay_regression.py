@@ -399,6 +399,31 @@ def verify_major_boss_weakpoints() -> None:
     print("PASS: major-boss armour plates, perfect-parry breaks, exposed weakpoint damage, HUD and core visuals")
 
 
+def verify_boss_finisher() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+    for item in (
+        "e.weakT>0))",
+        "e.weakT>0&&e.armor===0&&e.hp<=e.T.hp*.28",
+        "اضغط هجوم لتنفيذ الضربة القاضية",
+        "startBossFinisher(e)",
+    ):
+        if item not in game:
+            raise AssertionError(f"Boss finisher trigger or HUD prompt missing: {item}")
+    for item in (
+        "function startBossFinisher(e)",
+        "finisher:true,shots",
+        "فرات: هذا الطريق ينتهي هنا.",
+        "الضربة الأخيرة!",
+        "if(cine.finisher){P.t+=dt",
+        "if(cine&&cine.finisher)",
+        "hurtE(b,b.hp,true,true)",
+    ):
+        if item not in systems:
+            raise AssertionError(f"Boss finisher cinematic lifecycle missing: {item}")
+    print("PASS: exposed-core critical finisher trigger, three-shot cinematic, and standard boss reward/death flow")
+
+
 def verify_regional_mini_bosses() -> None:
     roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
@@ -441,6 +466,7 @@ def verify_regional_mini_bosses() -> None:
 def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
+    verify_boss_finisher()
     verify_regional_mini_bosses()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
