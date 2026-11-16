@@ -41,6 +41,19 @@ function gltfSampleAnimationSampler(sampler,time,path){
   if(path==='rotation')return gltfQuatSlerp(a,b,t);
   return a.map((v,i)=>v+(b[i]-v)*t);
 }
+function gltfAnimationLocalTime(animation,elapsed,loop=true){
+  if(!Number.isFinite(elapsed))gltfFail('animation elapsed time must be finite');
+  let first=Infinity,last=-Infinity;
+  for(const sampler of animation.samplers||[]){
+    if(!sampler.input?.length)continue;
+    first=Math.min(first,sampler.input[0]);last=Math.max(last,sampler.input[sampler.input.length-1]);
+  }
+  if(!Number.isFinite(first)||!Number.isFinite(last))gltfFail('animation has no keyframe times');
+  const duration=last-first;
+  if(duration<=0)return first;
+  if(loop)return first+(((elapsed%duration)+duration)%duration);
+  return Math.max(first,Math.min(last,first+elapsed));
+}
 function gltfEvaluateAnimation(animation,time){
   const pose=new Map();
   for(const channel of animation.channels){
@@ -347,7 +360,7 @@ async function loadGLB(url){
 
 
 /* ---------- GLB -> existing WebGL renderer bridge ---------- */
-let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';
+let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';\nlet gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true};
 function gltfNormals(positions,indices){
   const n=new Float32Array(positions.length);
   for(let i=0;i<indices.length;i+=3){
@@ -408,14 +421,26 @@ function prepareGLBHero(asset){
   }
   return entries;
 }
+function setGLBHeroAnimation(options={}){
+  if(!gltfHero)gltfFail('no GLB hero is loaded');
+  const next={...gltfHeroPlayback};
+  if(options.clip!=null){if(!Number.isInteger(options.clip)||options.clip<0||options.clip>=gltfHero.asset.animations.length)gltfFail('animation clip index is out of range');next.clip=options.clip;}
+  if(options.speed!=null){if(!Number.isFinite(options.speed)||options.speed<0||options.speed>4)gltfFail('animation speed must be between 0 and 4');next.speed=options.speed;}
+  if(options.paused!=null){if(typeof options.paused!=='boolean')gltfFail('animation paused must be boolean');next.paused=options.paused;}
+  if(options.loop!=null){if(typeof options.loop!=='boolean')gltfFail('animation loop must be boolean');next.loop=options.loop;}
+  if(options.position!=null){if(!Number.isFinite(options.position)||options.position<0)gltfFail('animation position must be a non-negative finite number');next.elapsed=options.position;next.lastTime=null;}
+  gltfHeroPlayback=next;
+  return {clip:next.clip,speed:next.speed,paused:next.paused,loop:next.loop,position:next.elapsed};
+}
 function updateGLBHeroSkinning(now){
+
   if(!gltfHero||!gltfHeroGPU||!gltfHero.asset.animations?.length)return;
-  const asset=gltfHero.asset,animation=asset.animations[0];
-  if(!animation.channels.length)return;
-  let first=Infinity,last=0;
-  for(const sampler of animation.samplers){if(sampler.input.length){first=Math.min(first,sampler.input[0]);last=Math.max(last,sampler.input[sampler.input.length-1]);}}
-  if(!Number.isFinite(first)||last<=first)return;
-  const duration=last-first,clipTime=first+(((now||0)%duration)+duration)%duration,pose=gltfEvaluateAnimation(animation,clipTime);
+  const asset=gltfHero.asset,playback=gltfHeroPlayback,animation=asset.animations[playback.clip];
+  if(!animation?.channels.length)return;
+  const clock=Number.isFinite(now)?now:0;
+  if(playback.lastTime==null)playback.lastTime=clock;
+  else{if(!playback.paused)playback.elapsed+=Math.max(0,clock-playback.lastTime)*playback.speed;playback.lastTime=clock;}
+  const clipTime=gltfAnimationLocalTime(animation,playback.elapsed,playback.loop),pose=gltfEvaluateAnimation(animation,clipTime);
   const palettes=new Map();
   for(const item of gltfHeroGPU){
     if(item.skin==null)continue;
