@@ -634,6 +634,23 @@ if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
 });
 
 const gltfEntityInstances=new Map();
+const gltfEntityIds=new WeakMap();
+let gltfEntitySerial=0;
+function getGLBEntityId(gameEntity){
+  if(!gameEntity||typeof gameEntity!=='object')return null;
+  return gltfEntityIds.get(gameEntity)||null;
+}
+async function bindGLBModel(gameEntity,url,options={}){
+  if(!gameEntity||typeof gameEntity!=='object')gltfFail('game entity must be an object');
+  let id=gltfEntityIds.get(gameEntity);
+  if(id&&gltfEntityInstances.has(id))return {ok:false,reason:'already-bound',id};
+  id='game-entity-'+(++gltfEntitySerial);
+  gltfEntityIds.set(gameEntity,id);
+  const result=await loadGLBEntity(id,url,options);
+  if(!result.ok)gltfEntityIds.delete(gameEntity);
+  return {...result,id};
+}
+
 async function loadGLBEntity(id,url,options={}){
   if(typeof id!=='string'||!id.trim())gltfFail('entity id must be a non-empty string');
   if(gltfEntityInstances.has(id))return {ok:false,reason:'duplicate-id',id};
