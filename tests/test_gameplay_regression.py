@@ -415,7 +415,7 @@ def verify_boss_finisher() -> None:
         "finisher:true,shots",
         "فرات: هذا الطريق ينتهي هنا.",
         "الضربة الأخيرة!",
-        "if(cine.finisher){P.t+=dt",
+        "if(cine.finisher){P.t=Math.min(.65,P.t+dt)",
         "if(cine&&cine.finisher)",
         "hurtE(b,b.hp,true,true)",
     ):
