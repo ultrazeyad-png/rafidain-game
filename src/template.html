@@ -280,7 +280,7 @@ let RW=800,RH=390,rot=false,DPR=1,S=1,VW=500,VH=250;
 let time=0,last=0,shake=0,hs=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,ctxKey='',ugS=0;
 const input={jx:0,jy:0,wx:0,wz:0,ku:false,kd:false,kl:false,kr:false,cl:false,cr:false,atkDown:false,hold:0,hv:false,camDown:false,block:false};
 const stats={lvl:1,vig:0,end:0,str:0,embers:0,wpn:'shield',glaive:false,tod:1,q:0,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:null,boat:false,ended:0};
-const world={shrine:0,lit:[true],bossDead:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
+const world={shrine:0,lit:[true],bossDead:false,minis:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
 const RS={};   // saved state of every region visited
 const seen=new Uint8Array(GI*GJ);
 const P={x:226,z:0,y:0,ry:0,spd:0,vy:0,a:0,r:13,hp:100,st:100,sd:0,state:'idle',t:0,inv:0,combo:0,comboT:0,atk:SW[0],hit:false,buf:null,rd:0,kb:0,walk:0,flasks:3,guard:false,gt:0,stepN:0,mdir:0,mvk:0,air:false,mv:false,ma:0};
@@ -295,7 +295,7 @@ const cost=()=>120+(stats.lvl-1)*70;
 
 /*@AUDIO@*/
 /* ================= save ================= */
-function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
+function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,minis:world.minis,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
   localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}}
 function saveRecord(v){return !!v&&typeof v==='object'&&!Array.isArray(v)&&(Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);}
 function validSaveShape(d){
@@ -325,7 +325,7 @@ function load(){let raw=null;try{
   if(!stats.gk)stats.gk=pickGuardians();if(stats.unl&&!stats.prog)stats.prog=1;if(!WPN[stats.wpn]||!ownW(stats.wpn))stats.wpn='shield';return true;
 }catch(_){try{if(raw&&!localStorage.getItem(SAVE_CORRUPT_BACKUP))localStorage.setItem(SAVE_CORRUPT_BACKUP,raw);}catch(__){}return false;}}
 function applyWorld(){const w=RS[REG]||{};   // call after loadRegion
-  Object.assign(world,{shrine:clamp(w.shrine|0,0,SHR.length-1),lit:w.lit&&w.lit.length===SHR.length?w.lit:SHR.map((q,i)=>i===0),bossDead:!!w.bossDead,stain:w.stain&&w.stain.amt?w.stain:null,locked:false,
+  Object.assign(world,{shrine:clamp(w.shrine|0,0,SHR.length-1),lit:w.lit&&w.lit.length===SHR.length?w.lit:SHR.map((q,i)=>i===0),bossDead:!!w.bossDead,minis:!!w.minis,stain:w.stain&&w.stain.amt?w.stain:null,locked:false,
     door:!!w.door,frags:w.frags?[!!w.frags[0],!!w.frags[1]]:[false,false],key:!!w.key,gate:!!w.gate,brz:w.brz||[],mgate:!!w.mgate,sec:!!w.sec,secSeen:false,npc:w.npc||{},items:w.items||{}});
   seen.fill(0);if(w.seen&&w.seen.length===seen.length)seen.set(w.seen);}
 function hasSave(){try{return !!localStorage.getItem(SAVE);}catch(_){return false;}}
@@ -337,7 +337,8 @@ function travel(id){save();loadRegion(id);applyWorld();setEnvironment(REG);updat
 /* ================= setup ================= */
 function mk(k,x,z,h){const T=TYPES[k];let y=floorAt(x,z,(h||0)+6);if(y<-900)y=h||0;return {k,T,x,z,y,j:0,hx:x,hz:z,a:PI,hp:Math.round(T.hp*(T.boss0?1:REGS.hs)),dm:T.boss0?1:REGS.ds,state:'idle',t:0,cd:0,flash:0,pd:0,pt:0,hit:false,dead:false,walk:0,boss:false,recT:0,tx:0,tz:0,sx:0,sz:0,ka:0,kv:0,n:0};}
 function spawnAll(){
-  enemies=SPAWN.filter(s=>!(s[0]==='guard'&&world.key)).map(s=>mk(s[0],s[1],s[2],s[3]));boss=null;lock=null;setLockBtn();
+  const mini=MINI_GUARDS[REG];if(mini)TYPES.gmini=Object.assign({},TYPES[mini.k],{name:mini.n});
+  enemies=SPAWN.filter(s=>!(s[0]==='guard'&&world.key)&&!(s[0]==='gmini'&&world.minis)).map(s=>mk(s[0],s[1],s[2],s[3]));boss=null;lock=null;setLockBtn();
   if(!world.bossDead){if(REG==='muthanna'){boss=mk('boss',1840,900,AY);boss.a=-PI/2;boss.elem='shadow';}
     else if(REG==='duhok'){boss=mk('erra',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem='storm';boss.spd=1.12;}
     else{const g=GOVM[REG],B_=g.boss;TYPES.gb={hp:Math.round(B_.hp*(1+regIdx(REG)*.03)),r:B_.fem?22:26,h:110,embers:1200+regIdx(REG)*120,poise:14+Math.floor(regIdx(REG)/4),name:B_.n,boss0:1};
@@ -419,7 +420,7 @@ function strike(a){
 function hurtE(e,d,heavy,crit){
   e.hp-=d;e.flash=.12;burst(e.x,e.y+e.j+e.T.h*.6,e.z,e.boss?'#8a1424':'#b01c28',heavy?12:7,120,e.y);
   if(e.hp<=0){e.hp=0;e.dead=true;puff(e.x,e.y,e.z,7,9,55);setE(e,'dead');e.j=0;stats.embers+=Math.round(e.T.embers*((ARM[stats.arm]||{}).emb||1));
-    if(e.T.mini){loot('dsh',2);loot('sh',3);say('سقط '+e.T.name,'#e8c66a',3);}
+    if(e.T.mini){world.minis=true;save();loot('dsh',2);loot('sh',3);say('سقط '+e.T.name,'#e8c66a',3);}
     if(!e.boss){if(e.k==='brute'||Math.random()<.22)loot('sh',1);if(e.k==='archer')loot('arrows',3+Math.floor(Math.random()*3));}
     else{loot('sh',e.k==='erra'?4:5);loot('dsh',e.k==='erra'?2:3);}
     if(e.k==='guard'){world.key=true;say('أخذت مفتاح العالم السفلي','#e8c66a',4);snd('rest');save();}burst(e.x,e.y+e.T.h*.5,e.z,'#f0a040',e.boss?60:10,e.boss?260:120,e.y);
