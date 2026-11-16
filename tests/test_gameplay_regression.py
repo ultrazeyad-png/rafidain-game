@@ -550,6 +550,28 @@ def verify_glb_hero_load_is_transactional() -> None:
     print("PASS: GLB hero replacement is race-safe, preserves the previous model on failure, and cleans partial GPU resources")
 
 
+
+def verify_glb_enemy_boss_asset_acceptance() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    required = (
+        "readyForEnemyOrBoss",
+        "missingEnemyCoreAnimations",
+        "entry.requireAnimatedCharacter!==false",
+        "requireAnimatedCharacter:entry.requireAnimatedCharacter",
+        "entity.inspection=inspectGLBAsset(entity.asset)",
+        "entity is not ready for animated gameplay",
+        "options.requireAnimatedCharacter!==false&&!entity.inspection.readyForEnemyOrBoss",
+        "inspection:entity.inspection",
+        "catalog animation options must be an object",
+        "requireAnimatedCharacter must be boolean",
+    )
+    missing = [item for item in required if item not in gltf]
+    if missing:
+        raise AssertionError(f"Enemy/boss GLB acceptance checks missing: {missing}")
+    print("PASS: enemy/boss GLB assets require skinned meshes, joint-targeted core clips, and expose an inspection report")
+
+
+
 def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
@@ -558,6 +580,7 @@ def main() -> int:
     verify_regional_mini_bosses()
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
+    verify_glb_enemy_boss_asset_acceptance()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
