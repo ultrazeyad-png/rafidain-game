@@ -254,7 +254,7 @@ async def run_suite(base_url: str) -> None:
                     e.state = "strike"; e.t = 0; e.hit = false;
                     const hpBeforeParry = p.hp;
                     g.step(0.02);
-                    const perfectParry = {hp: p.hp, enemyState: e.state, stamina: p.st};
+                    const perfectParry = {hp: p.hp, enemyState: e.state, stamina: p.st, flash: g.parryFlash};
 
                     // Hold guard beyond the perfect-parry window, then receive another strike.
                     for (let i = 0; i < 20; i++) g.step(0.02);
@@ -268,7 +268,7 @@ async def run_suite(base_url: str) -> None:
                     return {hpBeforeParry, perfectParry, normalBlock, staminaBeforeBlock};
                 }"""
             )
-            if defense["perfectParry"]["hp"] != defense["hpBeforeParry"] or defense["perfectParry"]["enemyState"] != "stun":
+            if defense["perfectParry"]["hp"] != defense["hpBeforeParry"] or defense["perfectParry"]["enemyState"] != "stun" or defense["perfectParry"]["flash"] <= 0:
                 raise AssertionError(f"Perfect parry did not stun the attacker without damage: {defense}")
             if defense["normalBlock"]["hp"] != defense["hpBeforeParry"] or not defense["normalBlock"]["stamina"] < defense["staminaBeforeBlock"]:
                 raise AssertionError(f"Normal guard did not trade stamina for blocked damage: {defense}")
