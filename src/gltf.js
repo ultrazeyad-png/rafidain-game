@@ -730,7 +730,7 @@ function drawGLBEntity(id,x,y,z,yaw=0,scale){
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBMetallic'),m.metallicFactor??1);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBRoughness'),m.roughnessFactor??1);
     if(tex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBTex'),2);}
-    const normalTex=item.normalTexture==null?null:entity.textures[item.normalTexture]||null,useNormal=!!(normalTex&&item.hasTangents&&item.hasUVs);
+    const normalIndex=item.normalTexture==null?-1:entity.asset.textures[item.normalTexture]?.source??-1;const normalTex=normalIndex>=0?entity.textures[normalIndex]||null:null,useNormal=!!(normalTex&&item.hasTangents&&item.hasUVs);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalMap'),useNormal?1:0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalScale'),m.normalScale??1);
     if(useNormal){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,normalTex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBNormalTex'),3);}
     gl.drawArrays(gl.TRIANGLES,0,item.count);
