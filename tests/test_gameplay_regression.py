@@ -80,10 +80,14 @@ async def run_suite(base_url: str) -> None:
         page.on("pageerror", lambda error: page_errors.append(str(error)))
 
         async def reload_and_start() -> None:
-            async with page.expect_navigation(wait_until="domcontentloaded", timeout=30000):
-                await page.evaluate("() => window.location.reload()")
-            # Reload returns to the title screen; the debug runtime is exposed
-            # when the player starts the game, just as in the initial boot.
+            await page.evaluate("() => window.location.reload()")
+            # The page intentionally returns to the title screen on reload.
+            # Wait for that new document before pressing Continue/New Journey.
+            await page.wait_for_function(
+                "document.readyState === 'complete' && "
+                "document.querySelector('#title')?.classList.contains('on')",
+                timeout=30000,
+            )
             await page.click("#go")
             await page.wait_for_function("!!window.__g", timeout=30000)
 
