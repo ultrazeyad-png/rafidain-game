@@ -565,11 +565,17 @@ function upEnemy(e,dt){
   if(e.dead)return;
   if(e.boss){upNamtar(e,dt);return;}
   const T=e.T,dx=P.x-e.x,dz=P.z-e.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),alive=P.state!=='dead',dy=Math.abs(P.y-e.y);
+  if(e.k==='gmini'&&!e.p2&&e.hp<=T.hp*.5){
+    e.p2=true;e.cd=.65;setE(e,'miniTrans');
+    const m=MINI_GUARDS[REG];if(m){say(m.n+'… أطلق طوره الأخير!','#c66cff',2.6);voice('boss','هسه تشوف قوتي الحقيقية!');}
+    burst(e.x,e.y+T.h*.55,e.z,'#c66cff',34,190,e.y);shake=8;return;
+  }
   if(ad>1100)return;
   e.cd-=dt;
   switch(e.state){
     case 'idle':{const hx=e.hx-e.x,hz=e.hz-e.z;if(Math.hypot(hx,hz)>6){e.a=Math.atan2(hz,hx);stepE(e,T.speed*.7,dt);}
       if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m&&!world.miniFilm){world.miniFilm=true;save();miniBossFilm(e,m);return;}if(m){say(m.n,'#d6b7ff',2.8);voice('boss',m.line);}}setE(e,'chase');}break;}
+    case 'miniTrans':e.a=turn(e.a,ang,2.5*dt);if(e.t>=1.05){setE(e,'chase');e.cd=.25;}break;
     case 'chase':
       if(!alive||ad>T.aggro*2.2||dy>150||Math.hypot(e.x-e.hx,e.z-e.hz)>650){setE(e,'idle');break;}
       if(T.ranged){   // keeps its distance and throws
@@ -577,11 +583,11 @@ function upEnemy(e,dt){
         else{e.a=turn(e.a,ang,5.5*dt);if(ad>T.range)stepE(e,T.speed,dt);else if(e.cd<=0&&adiff(e.a,ang)<.4)setE(e,'wind');}
         break;}
       e.a=turn(e.a,ang,5.5*dt);
-      if(ad>T.range){e.sp=lerp(e.sp||0,T.speed*(adiff(e.a,ang)<.9?1:.35),1-Math.exp(-dt*4));stepE(e,e.sp,dt);}else{e.sp=0;if(e.cd<=0&&dy<40&&adiff(e.a,ang)<.5)setE(e,'wind');}
+      if(ad>T.range){e.sp=lerp(e.sp||0,T.speed*(e.k==='gmini'&&e.p2?1.18:1)*(adiff(e.a,ang)<.9?1:.35),1-Math.exp(-dt*4));stepE(e,e.sp,dt);}else{e.sp=0;if(e.cd<=0&&dy<40&&adiff(e.a,ang)<.5)setE(e,'wind');}
       break;
-    case 'wind':if(e.t<T.wind*.6)e.a=turn(e.a,ang,6*dt);if(e.k==='gmini'&&MINI_GUARDS[REG].k==='ghostK'&&!e.blinked&&e.t>=T.wind*.65){const side=(e.sx||1),bx=P.x-Math.cos(P.a)*86+Math.cos(P.a+PI/2)*side*58,bz=P.z-Math.sin(P.a)*86+Math.sin(P.a+PI/2)*side*58;if(!blocked(bx,bz,e.y,T.r)){e.x=bx;e.z=bz;e.a=Math.atan2(P.z-e.z,P.x-e.x);e.blinked=true;burst(e.x,e.y+24,e.z,'#b9a0ff',12,100,e.y);}}if(e.t>=T.wind){setE(e,'strike');if(ad<420)snd('ewh');}break;
+    case 'wind':if(e.t<T.wind*(e.k==='gmini'&&e.p2 ? .82 : 1)*.6)e.a=turn(e.a,ang,6*dt);if(e.k==='gmini'&&MINI_GUARDS[REG].k==='ghostK'&&!e.blinked&&e.t>=T.wind*.65){const side=(e.sx||1),bx=P.x-Math.cos(P.a)*86+Math.cos(P.a+PI/2)*side*58,bz=P.z-Math.sin(P.a)*86+Math.sin(P.a+PI/2)*side*58;if(!blocked(bx,bz,e.y,T.r)){e.x=bx;e.z=bz;e.a=Math.atan2(P.z-e.z,P.x-e.x);e.blinked=true;burst(e.x,e.y+24,e.z,'#b9a0ff',12,100,e.y);}}if(e.t>=T.wind*(e.k==='gmini'&&e.p2 ? .82 : 1)){setE(e,'strike');if(ad<420)snd('ewh');}break;
     case 'strike':if(T.ranged){if(!e.hit){e.hit=true;(e.k==='archer'?shootArrow:sling)(e);}if(e.t>=T.act)setE(e,'rec');break;}
-      if(e.k==='gmini'&&MINI_GUARDS[REG].k==='wolfK')e.j=Math.sin(clamp(e.t/T.act,0,1)*PI)*42;const lung=T.lunge*(e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'?1.32:1);stepE(e,lung,dt);if(!e.hit&&hitP(e,T.reach,T.arc,T.dmg)){e.hit=true;if(e.k==='gmini'&&MINI_GUARDS[REG].k==='scorpK')burst(e.x,e.y+18,e.z,'#a5d64b',18,130,e.y);}if(e.t>=T.act)setE(e,'rec');break;
+      if(e.k==='gmini'&&MINI_GUARDS[REG].k==='wolfK')e.j=Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42);const lung=T.lunge*(e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'?1.32:1)*(e.k==='gmini'&&e.p2?1.18:1);stepE(e,lung,dt);if(!e.hit&&hitP(e,T.reach,T.arc,T.dmg*(e.k==='gmini'&&e.p2?1.15:1))){e.hit=true;if(e.k==='gmini'){const mk=MINI_GUARDS[REG].k,col={scorpK:'#a5d64b',crocK:'#55c9bb',ghostK:'#b9a0ff',wolfK:'#c7e4f5'}[mk]||'#c66cff';if(mk==='scorpK')burst(e.x,e.y+18,e.z,'#a5d64b',18,130,e.y);if(e.p2){burst(e.x,e.y+22,e.z,col,22,165,e.y);waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col});}}}if(e.t>=T.act)setE(e,'rec');break;
     case 'rec':if(e.t>=T.rec){setE(e,'chase');e.cd=T.cool*(.6+Math.random()*.8);}break;
     case 'stun':moveEnt(e,e.x+Math.cos(e.ka)*e.kv*dt,e.z+Math.sin(e.ka)*e.kv*dt,T.r*.9,true);e.kv*=Math.pow(.02,dt);if(e.t>=.45)setE(e,'chase');break;
   }
