@@ -519,7 +519,7 @@ def verify_regional_mini_bosses() -> None:
             raise AssertionError(f"Regional mini-boss phase-two behavior missing: {behavior}")
     if "T(e.x,e.y+e.j,e.z)" not in characters:
         raise AssertionError("Wolf mini-boss leap pose is not rendered")
-    for cue in ("e.k==='gmini'&&e.state==='wind'", "pulse=.72+.28*Math.sin(time*13)", "if(kind==='scorpK')", "else if(kind==='crocK')", "else if(kind==='ghostK')", "ctx.moveTo(p[0]-2.5,p[1]-12)"):
+    for cue in ("e.k==='gmini'&&e.state==='wind'", "pulse=.72+.28*Math.sin(time*13)", "if(kind==='scorpK')", "else if(kind==='crocK')", "else if(kind==='ghostK')", "ctx.moveTo(p[0]-2.5,p[1]-12)", "snd(kind==='scorpK'?'miniScorp'", "case 'miniScorp'", "case 'miniCroc'", "case 'miniGhost'", "case 'miniWolf'"):
         if cue not in game:
             raise AssertionError(f"Mini-boss attack telegraph cue missing: {cue}")
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, persistence, and wind-up telegraph")
