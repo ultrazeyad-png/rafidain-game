@@ -7,6 +7,43 @@ const GLB_MAGIC=0x46546c67,GLB_VERSION=2;
 const GLTF_COMPONENTS={5120:[1,Int8Array],5121:[1,Uint8Array],5122:[2,Int16Array],5123:[2,Uint16Array],5125:[4,Uint32Array],5126:[4,Float32Array]};
 const GLTF_WIDTH={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT2:4,MAT3:9,MAT4:16};
 function gltfFail(message){throw new Error('GLB: '+message);}
+function gltfMatMul(a,b){
+  const o=new Float32Array(16);
+  for(let c=0;c<4;c++)for(let r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];
+  return o;
+}
+function gltfNodeMatrix(n){
+  if(n.matrix){if(n.matrix.length!==16)gltfFail('node matrix must contain 16 values');return new Float32Array(n.matrix);}
+  const t=n.translation||[0,0,0],q=n.rotation||[0,0,0,1],s=n.scale||[1,1,1];
+  if(t.length!==3||q.length!==4||s.length!==3)gltfFail('invalid node TRS');
+  const [x,y,z,w]=q,xx=x*x,yy=y*y,zz=z*z,xy=x*y,xz=x*z,yz=y*z,wx=w*x,wy=w*y,wz=w*z;
+  return new Float32Array([
+    (1-2*(yy+zz))*s[0],(2*(xy+wz))*s[0],(2*(xz-wy))*s[0],0,
+    (2*(xy-wz))*s[1],(1-2*(xx+zz))*s[1],(2*(yz+wx))*s[1],0,
+    (2*(xz+wy))*s[2],(2*(yz-wx))*s[2],(1-2*(xx+yy))*s[2],0,
+    t[0],t[1],t[2],1
+  ]);
+}
+function gltfSceneInstances(json,meshCount){
+  const nodes=json.nodes||[],scenes=json.scenes||[],instances=[];
+  if(!nodes.length)return Array.from({length:meshCount},(_,mesh)=>({mesh,node:-1,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
+  const scene=scenes[json.scene||0];
+  const roots=scene?.nodes||nodes.map((_,i)=>i).filter(i=>!nodes.some(n=>(n.children||[]).includes(i)));
+  const active=new Set(),visited=new Set();
+  const walk=(index,parent)=>{
+    const n=nodes[index];if(!n)gltfFail('scene references missing node '+index);
+    if(active.has(index))gltfFail('node hierarchy contains a cycle');
+    active.add(index);visited.add(index);
+    const world=gltfMatMul(parent,gltfNodeMatrix(n));
+    if(n.mesh!=null){if(!Number.isInteger(n.mesh)||n.mesh<0||n.mesh>=meshCount)gltfFail('node references missing mesh '+n.mesh);instances.push({mesh:n.mesh,node:index,matrix:world});}
+    for(const child of n.children||[])walk(child,world);
+    active.delete(index);
+  };
+  const I=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
+  for(const root of roots)walk(root,I);
+  if(!instances.length&&meshCount)gltfFail('selected scene contains no mesh instances');
+  return instances;
+}
 function parseGLB(buffer){
   if(!(buffer instanceof ArrayBuffer))gltfFail('expected an ArrayBuffer');
   if(buffer.byteLength<20)gltfFail('file is too small');
@@ -69,7 +106,8 @@ function parseGLB(buffer){
           alphaMode:mat.alphaMode||'OPAQUE',doubleSided:!!mat.doubleSided}};
     })
   }));
-  return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,
+  const instances=gltfSceneInstances(json,meshes.length);
+  return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,instances,
     bounds:meshes.reduce((n,m)=>n+m.primitives.length,0),extensionsUsed:json.extensionsUsed||[]};
 }
 async function loadGLB(url){
@@ -104,10 +142,22 @@ function gltfExpandPrimitive(p){
 }
 function prepareGLBHero(asset){
   const entries=[];
-  for(const mesh of asset.meshes)for(const p of mesh.primitives){
-    const data=gltfExpandPrimitive(p),buffer=gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
-    entries.push({buffer,count:p.indices.length,material:p.material});
+  const instances=asset.instances||asset.meshes.map((_,mesh)=>({mesh,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
+  for(const instance of instances){
+    const mesh=asset.meshes[instance.mesh],m=instance.matrix;
+    for(const p of mesh.primitives){
+      const data=gltfExpandPrimitive(p);
+      for(let i=0;i<data.length;i+=6){
+        const x=data[i],y=data[i+1],z=data[i+2],nx=data[i+3],ny=data[i+4],nz=data[i+5];
+        data[i]=m[0]*x+m[4]*y+m[8]*z+m[12];
+        data[i+1]=m[1]*x+m[5]*y+m[9]*z+m[13];
+        data[i+2]=m[2]*x+m[6]*y+m[10]*z+m[14];
+        const tx=m[0]*nx+m[4]*ny+m[8]*nz,ty=m[1]*nx+m[5]*ny+m[9]*nz,tz=m[2]*nx+m[6]*ny+m[10]*nz,l=Math.hypot(tx,ty,tz)||1;
+        data[i+3]=tx/l;data[i+4]=ty/l;data[i+5]=tz/l;
+      }
+      const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+      entries.push({buffer,count:p.indices.length,material:p.material});
+    }
   }
   return entries;
 }
