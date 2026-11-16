@@ -170,7 +170,33 @@ function regGen(g){
         st('box','#d59a4f',2.4,13,1.2,roofX+18,24,roofZ+C/2-1,{em:.18});
       }}
     const G=D[n-2],a=Math.atan2(A[1]-G[1],A[0]-G[0]),gx=lerp(G[0],A[0],.55),gz=lerp(G[1],A[1],.55);
-    const ax=Math.abs(A[0]-G[0])>Math.abs(A[1]-G[1]);MGATE=ax?blk(gx-14,gz-270,gx+14,gz+270,G[3],G[3]+190,'#4a4038','mgate'):blk(gx-270,gz-14,gx+270,gz+14,G[3],G[3]+190,'#4a4038','mgate');MGATE.ax2=ax;REGC.gate={x:gx,z:gz};}
+    const ax=Math.abs(A[0]-G[0])>Math.abs(A[1]-G[1]);MGATE=ax?blk(gx-14,gz-270,gx+14,gz+270,G[3],G[3]+190,'#4a4038','mgate'):blk(gx-270,gz-14,gx+270,gz+14,G[3],G[3]+190,'#4a4038','mgate');MGATE.ax2=ax;REGC.gate={x:gx,z:gz};
+    // Adapa's arena: a broken ceremonial court framing the Talisman Gate.
+    // Decorative meshes only; the combat floor and navigation remain unchanged.
+    const sideX=ax?0:1,sideZ=ax?1:0;
+    for(let q=0;q<6;q++){
+      const side=q%2?1:-1,depth=150+Math.floor(q/2)*105;
+      const px=gx+(ax?side*depth:side*depth),pz=gz+(ax?side*depth:side*depth);
+      const h= q<2?118: q<4?86:58;
+      st('cyl','#76634e',13,h,13,px, h/2,pz);
+      st('cyl','#b59a70',18,9,18,px,h+3,pz);
+      if(q===1||q===4){st('box','#4b3b30',38,12,18,px+24,h+10,pz-8,{rz:.35});}
+      st('sph','#9a7b54',5,5,5,px,h+12,pz,{em:.12});
+    }
+    // Five weathered oath-stones echo the five keys carried by Adapa.
+    for(let q=0;q<5;q++){
+      const t=q-2,px=gx+(ax?t*54:0),pz=gz+(ax?0:t*54);
+      sb(34,7,24,'#74634f',px,4,pz);
+      sb(22,46,16,'#8f795c',px,28,pz);
+      st('sph',q===2?'#c49b45':'#6e8790',5,7,4,px,54,pz+10,{em:q===2?.32:.08});
+    }
+    // Fallen lintels and fractured paving at the edge of the duelling court.
+    for(let q=0;q<4;q++){
+      const px=gx+(q-1.5)*92,pz=gz+(ax?250:-250);
+      sb(74,9,18,'#655746',px,3,pz, q%2?.12:-.16);
+      st('box','#514438',26,8,20,px+30,8,pz+18,{rz:.28});
+    }
+  }
 }
 let REGS={hs:1,ds:1};
 /* ---------- landmarks ---------- */
