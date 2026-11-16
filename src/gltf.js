@@ -724,7 +724,7 @@ function drawGLBEntity(id,x,y,z,yaw=0,scale){
     if(uvLoc>=0){gl.enableVertexAttribArray(uvLoc);gl.vertexAttribPointer(uvLoc,2,gl.FLOAT,false,48,24);}
     gl.disableVertexAttribArray(aC);gl.vertexAttrib4f(aC,1,1,1,0);
     const tangentLoc=gl.getAttribLocation(prog,'tangent');if(tangentLoc>=0){gl.enableVertexAttribArray(tangentLoc);gl.vertexAttribPointer(tangentLoc,4,gl.FLOAT,false,48,32);}
-    const tex=item.texture==null?null:entity.textures[item.texture]||null;
+    const texIndex=item.texture==null?-1:entity.asset.textures[item.texture]?.source??-1;const tex=texIndex>=0?entity.textures[texIndex]||null:null;
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),tex?1:0);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),1);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBMetallic'),m.metallicFactor??1);
