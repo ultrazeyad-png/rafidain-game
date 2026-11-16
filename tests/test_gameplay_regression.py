@@ -147,6 +147,55 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError(f"Save/load round trip mismatch: {save_state}")
             print("PASS: Muthanna save/load round trip preserves region and player progression")
 
+            # Legacy v1 saves are migrated in place only after preserving their exact bytes.
+            legacy = {
+                "stats": {"lvl": 1, "vig": 3, "end": 2, "str": 1, "embers": 777, "wpn": "shield"},
+                "reg": "muthanna",
+                "rs": {},
+            }
+            legacy_raw = __import__("json").dumps(legacy, separators=(",", ":"))
+            await page.evaluate(
+                """raw => {
+                    localStorage.removeItem("ashes-rafidain-v1.backup-v1");
+                    localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
+                    localStorage.setItem("ashes-rafidain-v1", raw);
+                }""",
+                legacy_raw,
+            )
+            await page.reload(wait_until="load")
+            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            migrated = await page.evaluate(
+                """() => ({
+                    live: JSON.parse(localStorage.getItem("ashes-rafidain-v1")),
+                    backup: localStorage.getItem("ashes-rafidain-v1.backup-v1"),
+                    region: __g.REG,
+                    embers: __g.stats.embers,
+                    vigor: __g.stats.vig
+                })"""
+            )
+            if migrated["live"].get("schemaVersion") != 2 or migrated["backup"] != legacy_raw:
+                raise AssertionError(f"Legacy save migration/backup failed: {migrated}")
+            if (migrated["region"], migrated["embers"], migrated["vigor"]) != ("muthanna", 777, 3):
+                raise AssertionError(f"Legacy save progress was not preserved: {migrated}")
+            print("PASS: legacy v1 save migrates to schema v2 with byte-for-byte backup")
+
+            # A structurally incomplete save must not be loaded as valid progress.
+            partial_raw = '{"stats":{"lvl":99},"reg":"muthanna","rs":{}}'
+            await page.evaluate(
+                "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
+            )
+            await page.reload(wait_until="load")
+            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            recovered = await page.evaluate(
+                """() => ({
+                    level: __g.stats.lvl,
+                    backup: localStorage.getItem("ashes-rafidain-v1.backup-corrupt")
+                })"""
+            )
+            if recovered["level"] != 1 or recovered["backup"] != partial_raw:
+                raise AssertionError(f"Partial save recovery/backup failed: {recovered}")
+            print("PASS: partial save rejected, preserved, and fresh game booted safely")
+
             if page_errors:
                 raise AssertionError("Uncaught browser errors: " + " | ".join(page_errors))
             print("PASS: no uncaught browser page errors")
