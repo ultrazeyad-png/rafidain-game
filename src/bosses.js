@@ -12,15 +12,15 @@ function arY(){return REG==='muthanna'?AY:AC.y;}
 function arClamp(x,z,m){if(REG==='muthanna')return [clamp(x,AX0+m,AX1-m),clamp(z,AZ0+m,AZ1-m)];return inArena(x,z,m);}
 function bossHalf(b){return b.hp<b.T.hp*.5;}
 function upNamtar(b,dt){
-  const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9;
+  const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
   b.cd-=dt;let mvs=0;
-  if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');return;}
-  const atk=(m,next)=>{const A=NM[m];if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
+  if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&b.state!=='parried'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');if(isAdapa){voice('boss','المفاتيح الخمسة ما تنطيك بغداد!');say('المفاتيح الخمسة ما تنطيك بغداد!','#c0242e',2.6);}return;}
+  const atk=(m,next)=>{const A=NM[m];if(isAdapa&&!b.vsaid&&['c3','sp','sl'].includes(m)){b.vsaid=true;voice('boss',m==='sl'?'اركع أمام باب الطلسم!':m==='sp'?'لا تدير ظهرك إليّ!':'هذا حدّك يا فرات!');}if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
     const k=b.t-A.w/sp;if(k<A.a){mvs=A.step;if(!b.hit&&hitP(b,A.reach,A.arc,A.dmg))b.hit=true;if(k<dt*1.5)snd('swingH');return;}
     if(k>=A.a+A.r/sp){if(next){setE(b,next);}else bRec(b,ph2?.3:.55);}};
   switch(b.state){
     case 'sleep':if(world.locked)setE(b,'intro');break;
-    case 'intro':b.a=turn(b.a,ang,3*dt);if(b.t>1.4){setE(b,'chase');b.cd=.5;}break;
+    case 'intro':b.a=turn(b.a,ang,3*dt);if(b.t>1.4){if(isAdapa)voice('boss','أنا أدابا… وحارس هذا الباب.');setE(b,'chase');b.cd=.5;}break;
     case 'trans':b.a=turn(b.a,ang,2*dt);shake=Math.max(shake,b.t<1.6?4:0);
       if(Math.random()<dt*40)parts.push({x:b.x+(Math.random()-.5)*60,y:b.y+Math.random()*150,z:b.z+(Math.random()-.5)*60,vx:(Math.random()-.5)*60,vz:(Math.random()-.5)*60,vy:60+Math.random()*80,l:.9,m:.9,col:Math.random()<.5?'#2a0c14':'#c0242e',s:2.6,g:-30,f:-999});
       if(b.t>.9&&!b.hit){b.hit=true;elemHit(b,5);waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.2});if(Math.hypot(dx,dz)<120)hurtP(Math.round(18*(b.dm||1)),b.x,b.z);}
@@ -67,6 +67,7 @@ function upNamtar(b,dt){
     case 'held':if(b.t>1.5){P.inv=0;P.grab=null;setP('idle');hurtP(Math.round(52*(b.dm||1)),b.x,b.z);P.kbs=300;shake=14;snd('land');burst(P.x,P.y+5,P.z,'#8a7a70',16,150,P.y);bRec(b,.9);}break;
     case 'rec':if(b.t>=b.recT){setE(b,'chase');b.cd=ph2?.25:.6;}break;
     case 'stag':if(b.t>=2.4){setE(b,'chase');b.cd=.2;}break;
+    case 'parried':b.a=turn(b.a,ang,2*dt);if(b.t>=.72){setE(b,'chase');b.cd=.55;}break;
   }
   if(mvs){const ca=mvs<0?b.a:b.a;moveBossBy(b,Math.cos(ca)*mvs*dt,Math.sin(ca)*mvs*dt);}
   {const q=arClamp(b.x,b.z,30);b.x=q[0];b.z=q[1];}b.y=arY();
@@ -125,6 +126,7 @@ function drawNamtar(e){
   else if(st==='stomp'){key=null;lean=-.1;}
   else if(st==='charge'){lean=e.t<.6?.15:-.4;}
   else if(st==='stag'){lean=.6;crouch=-14;}
+  else if(st==='parried'){lean=.62;crouch=-10;}
   else if(st==='trans'){lean=-.35+Math.sin(e.t*9)*.04;}
   else if(st==='grab'||st==='held'){lean=st==='grab'?-.25:-.05;}
   const p=key?keyPose(key,u):{t:.45,y:.25,e:.4,w:-.25,r:0,ln:0};if(key)lean+=p.ln;
@@ -155,6 +157,11 @@ function drawNamtar(e){
     m={t:lerp(1.3,2.9,rise),y:lerp(-.1,.25,rise),e:lerp(.5,.08,rise),w:lerp(.2,.85,rise)};
     o={t:lerp(.8,2.35,rise),y:lerp(.1,-.45,rise),e:lerp(.6,.18,rise),w:.2};
     crouch=-pulse*rise*1.2;
+  }else if(isAdapa&&st==='parried'){
+    const recoil=1-clamp(e.t/.72,0,1);
+    m={t:lerp(.82,1.42,recoil),y:lerp(-.32,.82,recoil),e:lerp(.98,.16,recoil),w:lerp(-.2,.95,recoil)};
+    o={t:lerp(.62,1.05,recoil),y:-.48,e:lerp(.82,.22,recoil),w:.1};
+    lean=.48*recoil;
   }else if(isAdapa&&st==='rec'){
     const settle=clamp(e.t/.65,0,1);
     m={t:lerp(1.3,.82,settle),y:-.24,e:lerp(.3,.9,settle),w:lerp(.4,-.18,settle)};
