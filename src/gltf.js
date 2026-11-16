@@ -82,8 +82,10 @@ function gltfBlendAnimationPoses(asset,fromPose,toPose,alpha){
 function gltfResolveAnimationClip(asset,action){
   const patterns={
     idle:/idle|stand|breath/i,walk:/walk|move|locomotion/i,run:/run|sprint/i,
-    dodge:/dodge|roll|evade/i,attack:/attack|slash|strike|combat/i,
-    heavy:/heavy|strong|power/i,jump:/jump|leap/i,death:/death|die|dead/i
+    dodge:/dodge|roll|evade/i,attack:/attack|slash|strike|combat|critical|crit/i,
+    heavy:/heavy|strong|power/i,jump:/jump|leap|plunge/i,death:/death|die|dead/i,
+    hurt:/hurt|hit|damage/i,block:/block|guard|parry/i,cast:/cast|spell|magic/i,
+    aim:/aim|bow|shoot/i,heal:/heal|drink|potion/i
   };
   const pattern=patterns[action];if(!pattern)return -1;
   return (asset.animations||[]).findIndex(clip=>pattern.test(clip.name||''));
@@ -539,6 +541,7 @@ async function setGLBHero(url,scale=60){
   try{
     const asset=await loadGLB(url);
     if(!asset.meshes.length)gltfFail('model contains no meshes');
+    gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true,transition:null,currentPose:new Map()};
     gltfHero={asset,scale};
     if(glOK){gltfHeroTextures=await prepareGLBTextures(asset);gltfHeroGPU=prepareGLBHero(asset);}
     return {ok:true,meshes:asset.meshes.length,primitives:asset.bounds};
