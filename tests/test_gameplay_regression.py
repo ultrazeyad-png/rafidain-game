@@ -23,6 +23,9 @@ def verify_adapa_visual_design() -> None:
         "if(isAdapa&&st==='sleep')",
         "if(isAdapa&&st==='trans')",
         "p2?'#ff563d':'#287f91'",
+        "const isAdapa=b.T&&b.T.name&&b.T.name.includes('أدابا')",
+        "باب الطلسم… آخر أبواب بغداد.",
+        "أدابا… معلم الحراس، وحارس المفاتيح الخمسة.",
     )
     missing = [item for item in required if item not in source]
     if missing:
