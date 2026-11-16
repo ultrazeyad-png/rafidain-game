@@ -30,6 +30,9 @@ def verify_adapa_visual_design() -> None:
         "c3:{t:.2,y:-.05,e:2.05,w:.5,r:0}",
         "sp:{t:.95,y:.98,e:1.65,w:-.95,r:.65}",
         "sl:{t:.2,y:.05,e:2.2,w:.9,r:0}",
+        "case 'parried':b.a=turn(b.a,ang,2*dt)",
+        "if(isAdapa&&st==='parried')",
+        "voice('boss',m==='sl'?",
         "const isAdapa=b.T&&b.T.name&&b.T.name.includes('أدابا')",
         "باب الطلسم… آخر أبواب بغداد.",
         "أدابا… معلم الحراس، وحارس المفاتيح الخمسة.",
@@ -37,7 +40,7 @@ def verify_adapa_visual_design() -> None:
     missing = [item for item in required if item not in source]
     if missing:
         raise AssertionError(f"Adapa's royal visual identity is incomplete: {missing}")
-    print("PASS: Adapa has his own royal crown, ivory armor, sash, ceremonial sword, and five bespoke attack poses")
+    print("PASS: Adapa has royal visuals, five bespoke sword attacks, voiced taunts, and a dedicated perfect-parry reaction")
 
 
 async def run_suite(base_url: str) -> None:
