@@ -318,11 +318,11 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 
 {
   const linear={input:new Float32Array([0,2]),output:new Float32Array([0,0,0, 10,4,2]),outputWidth:3,interpolation:'LINEAR'};
-  assert.deepEqual(context.__sampleAnimation(linear,1,'translation'),[5,2,1]);
-  assert.deepEqual(context.__sampleAnimation(linear,-1,'translation'),[0,0,0]);
-  assert.deepEqual(context.__sampleAnimation(linear,3,'translation'),[10,4,2]);
+  assert.deepEqual(Array.from(context.__sampleAnimation(linear,1,'translation')),[5,2,1]);
+  assert.deepEqual(Array.from(context.__sampleAnimation(linear,-1,'translation')),[0,0,0]);
+  assert.deepEqual(Array.from(context.__sampleAnimation(linear,3,'translation')),[10,4,2]);
   const step={...linear,interpolation:'STEP'};
-  assert.deepEqual(context.__sampleAnimation(step,1.9,'translation'),[0,0,0]);
+  assert.deepEqual(Array.from(context.__sampleAnimation(step,1.9,'translation')),[0,0,0]);
 }
 {
   const rotation={input:new Float32Array([0,1]),output:new Float32Array([0,0,0,1, 0,1,0,0]),outputWidth:4,interpolation:'LINEAR'};
@@ -332,11 +332,11 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 }
 {
   const cubic={input:new Float32Array([0,1]),output:new Float32Array([0,0,0, 2,0,0, 0,0,0, 0,0,0, 4,0,0, 0,0,0]),outputWidth:3,interpolation:'CUBICSPLINE'};
-  assert.deepEqual(context.__sampleAnimation(cubic,.5,'translation'),[3,0,0]);
+  assert.deepEqual(Array.from(context.__sampleAnimation(cubic,.5,'translation')),[3,0,0]);
 }
 {
   const animation={samplers:[{input:new Float32Array([0,1]),output:new Float32Array([0,0,0, 2,0,0]),outputWidth:3,interpolation:'LINEAR'}],channels:[{sampler:0,node:4,path:'translation'}]};
-  assert.deepEqual(context.__evaluateAnimation(animation,.25).get(4).translation,[.5,0,0]);
+  assert.deepEqual(Array.from(context.__evaluateAnimation(animation,.25).get(4).translation),[.5,0,0]);
 }
 
 
