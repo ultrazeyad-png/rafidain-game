@@ -262,7 +262,7 @@ function drawWolf(e){
   if(Math.hypot(e.x-P.x,e.z-P.z)>DR)return;const fall=mobFx(e,1.1);if(fall<0)return;
   const st=e.state,run=(st==='chase'||st==='strike'||st==='idle')?1:0,wk=e.walk*1.7,c='#47474e',d='#232327',awake=st!=='idle';
   const leap=st==='strike'?11*Math.sin(Math.min(1,e.t/e.T.act)*PI):0,crouch=st==='wind'?-4*Math.min(1,e.t/.2):0;
-  push();T(e.x,e.y,e.z);RY(-e.a);if(fall)RX(fall);if(e.T.sc)Sc(e.T.sc,e.T.sc,e.T.sc);
+  push();T(e.x,e.y+e.j,e.z);RY(-e.a);if(fall)RX(fall);if(e.T.sc)Sc(e.T.sc,e.T.sc,e.T.sc);
   T(0,leap+crouch+Math.abs(Math.sin(wk))*1.2*run,0);RZ(st==='wind'?.16:st==='strike'?-.22:st==='stun'?.3:0);
   sph(36,14,12.5,c,0,19,0);sph(20,18,14.5,d,10,21.5,0);sph(16,12,11.5,c,-13,18.5,0);
   for(let q=0;q<7;q++){push();T(15-q*5,27-q*.7,0);RZ(.5);con(4,7.5-q*.5,3,d,0,3,0);pop();}
