@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -430,3 +430,14 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 }
 
 console.log('GLB parser fixtures passed: skinned mesh world transform application,  CPU vertex skinning and joint palette validation,  CPU skinning weighted translation and identity,  CPU skinning vertex deformation,  animated node world transforms and inverse-bind joint matrices,  linear/step/cubic animation sampling, quaternion interpolation and pose evaluation,  skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
+
+{
+  const animation={samplers:[{input:new Float32Array([2,3,5])}]};
+  assert.equal(context.__animationLocalTime(animation,0,true),2);
+  assert.equal(context.__animationLocalTime(animation,1,true),3);
+  assert.equal(context.__animationLocalTime(animation,4,true),3);
+  assert.equal(context.__animationLocalTime(animation,8,true),4);
+  assert.equal(context.__animationLocalTime(animation,8,false),5);
+  assert.throws(()=>context.__animationLocalTime(animation,NaN,true),/elapsed time must be finite/);
+  assert.throws(()=>context.__animationLocalTime({samplers:[]},0,true),/no keyframe times/);
+}
