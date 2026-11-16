@@ -89,4 +89,24 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   expectInvalid(d, baseBin(), /NORMAL must be a matching VEC3/);
 }
 
-console.log('GLB parser fixtures passed: valid mesh, header checks, bufferView bounds, index type, and NORMAL validation');
+// The active scene's node transforms must be composed and applied to mesh instances.
+{
+  const d = baseDocument();
+  d.nodes = [
+    {translation:[2,0,0], children:[1]},
+    {mesh:0, translation:[0,3,0], scale:[2,2,2]}
+  ];
+  d.scenes = [{nodes:[0]}];
+  d.scene = 0;
+  const parsed = parse(makeGLB(d, baseBin()));
+  assert.equal(parsed.instances.length, 1);
+  assert.deepEqual(Array.from(parsed.instances[0].matrix.slice(12,15)), [2,3,0]);
+  assert.equal(parsed.instances[0].matrix[0], 2);
+}
+{
+  const d = baseDocument();
+  d.nodes = [{mesh:0, children:[0]}];
+  d.scenes = [{nodes:[0]}];
+  assert.throws(() => parse(makeGLB(d, baseBin())), /node hierarchy contains a cycle/);
+}
+console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
