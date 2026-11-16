@@ -413,9 +413,9 @@ def verify_boss_finisher() -> None:
     for item in (
         "function startBossFinisher(e)",
         "finisher:true,shots",
-        "فرات: هذا الطريق ينتهي هنا.",
-        "الضربة الأخيرة!",
-        "if(cine.finisher){P.t=Math.min(.65,P.t+dt)",
+        "name+'… حان وقت الحساب.'",
+        "weaponStyle.line",
+        "if(cine.finisher){const a=cine.boss&&cine.boss.finisherPose;P.t=Math.min(a||1.45,P.t+dt)",
         "if(cine&&cine.finisher)",
         "hurtE(b,b.hp,true,true)",
     ):
