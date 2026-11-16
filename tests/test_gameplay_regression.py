@@ -324,7 +324,7 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.reload(wait_until="commit")
+            await page.evaluate("() => window.location.reload()")
             await page.wait_for_function(
                 "window.__g && window.__g.ok() && window.__g.chunks > 0",
                 timeout=15000,
@@ -351,7 +351,7 @@ async def run_suite(base_url: str) -> None:
                 }""",
                 legacy_raw,
             )
-            await page.reload(wait_until="commit")
+            await page.evaluate("() => window.location.reload()")
             await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
             migrated = await page.evaluate(
                 """() => ({
@@ -373,7 +373,7 @@ async def run_suite(base_url: str) -> None:
             await page.evaluate(
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
-            await page.reload(wait_until="commit")
+            await page.evaluate("() => window.location.reload()")
             await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
             recovered = await page.evaluate(
                 """() => ({
