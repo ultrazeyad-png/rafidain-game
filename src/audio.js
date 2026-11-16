@@ -36,6 +36,10 @@ function snd(k){
   if(!AUC)return;
   switch(k){
     case 'swing':nz(.17,.17,'bandpass',480,2700,1.3);nz(.09,.045,'highpass',3200,6500);break;
+    case 'miniScorp':nz(.2,.055,'highpass',2400,5200,2.2);tone(1180,620,.16,'sine',.025);break;
+    case 'miniCroc':nz(.2,.075,'lowpass',420,105,1.1);tone(96,54,.17,'triangle',.045);break;
+    case 'miniGhost':tone(880,1320,.24,'sine',.025);tone(660,990,.28,'sine',.018);break;
+    case 'miniWolf':nz(.22,.065,'bandpass',180,760,1.4);tone(138,78,.19,'triangle',.04);break;
     case 'swingH':nz(.27,.22,'bandpass',280,2000,1.1);nz(.12,.05,'highpass',2600,6000);break;
     case 'ewh':nz(.2,.08,'bandpass',260,1300,1);break;
     case 'hit':ring([1740,2630,3910,5230,6850],.34,.065);nz(.05,.24,'highpass',2600,5200);tone(150,48,.14,'sine',.22);nz(.13,.13,'lowpass',950,280);break;
