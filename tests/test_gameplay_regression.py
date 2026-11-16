@@ -42,6 +42,17 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError(f"Zakho opening film is missing the bridge or village establishing shots: {opening_film}")
             print("PASS: opening cinematic includes Dalal bridge and mountain village establishing shots")
 
+            ambience = await page.evaluate("""() => {
+                __g.setEnvironment("duhok");
+                const river = __g.environment;
+                __g.setEnvironment("baghdad");
+                const city = __g.environment;
+                return {river, city};
+            }""")
+            if ambience["river"]["region"] != "duhok" or ambience["city"]["region"] != "baghdad":
+                raise AssertionError(f"Regional ambience did not follow world changes: {ambience}")
+            print("PASS: regional ambience profile switches with world transitions")
+
             speech = await page.evaluate("""() => {
                 const spoken = [];
                 class FakeUtterance { constructor(text) { this.text = text; } }
