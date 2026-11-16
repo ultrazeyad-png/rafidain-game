@@ -38,11 +38,14 @@ async def run_suite(base_url: str) -> None:
             )
 
             opening_film = await page.evaluate("""() => __g.cineShots""")
+            opening_plan = await page.evaluate("""() => __g.cinePlan""")
             if len(opening_film) < 6 or not any("أدابا" in line and "بغداد" in line for line in opening_film):
                 raise AssertionError(f"Opening film must establish Baghdad and reveal Adapa, its final leader: {opening_film}")
             if not any("باب الطلسم" in line for line in opening_film):
                 raise AssertionError(f"Opening film is missing Baghdad's Talisman Gate: {opening_film}")
-            print("PASS: opening cinematic establishes Baghdad, the Talisman Gate, and Adapa before the Zakho transition")
+            if [shot["region"] for shot in opening_plan[:4]] != ["baghdad"] * 4 or opening_plan[4]["region"] != "duhok":
+                raise AssertionError(f"Opening film must stay in Baghdad for its first four shots, then transition to Zakho: {opening_plan}")
+            print("PASS: opening film stays in Baghdad for four shots, reveals the Talisman Gate and Adapa, then transitions to Zakho")
 
             ambience = await page.evaluate("""() => {
                 __g.setEnvironment("duhok");
