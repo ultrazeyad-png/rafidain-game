@@ -427,9 +427,8 @@ async def run_suite(base_url: str) -> None:
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
             await reload_and_start()
-            # Corrupt-save recovery only needs the new campaign state; WebGL
-            # context health is independently covered by test_webgl_recovery.py.
-            await page.wait_for_function("window.__g.REG === 'duhok'", timeout=30000)
+            # The restart helper has already waited for the game runtime.
+            # Snapshot recovery immediately; renderer/chunk readiness is separate.
             recovered = await page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
