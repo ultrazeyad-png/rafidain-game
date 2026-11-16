@@ -13,6 +13,20 @@ from playwright.async_api import async_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def verify_adapa_visual_design() -> None:
+    source = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    required = (
+        "isAdapa=!!(e.T&&e.T.name&&e.T.name.includes('أدابا'))",
+        "function adapaSword()",
+        "stepped gold crown",
+        "royal vertical sash",
+    )
+    missing = [item for item in required if item not in source]
+    if missing:
+        raise AssertionError(f"Adapa's royal visual identity is incomplete: {missing}")
+    print("PASS: Adapa has his own royal crown, ivory armor, sash, and ceremonial sword")
+
+
 async def run_suite(base_url: str) -> None:
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(
