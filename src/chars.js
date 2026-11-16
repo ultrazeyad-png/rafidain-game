@@ -68,7 +68,7 @@ function drawTrail(){
   ribbon(q,.6);
 }
 
-function drawHero(){dressHero();
+function drawHero(){if(gltfHero&&drawGLBHero())return;dressHero();
   const wpn=stats.wpn,st=P.state;
   gAlpha=1;gFlash=false;
   if(cam.d<44)gAlpha=.3;
