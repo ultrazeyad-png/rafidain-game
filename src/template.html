@@ -735,7 +735,7 @@ function update(dt){
   if(input.atkDown){input.hold+=dt;if(input.hold>.3&&!input.hv){input.hv=true;act('heavy');}}
   upPlayer(dt);
   if(window.__g?.setGLBHeroAction){
-    const action=P.state==='dead'?'death':P.state==='roll'?'dodge':P.state==='atk'?'attack':P.air?'jump':P.spd>95?'run':P.spd>20?'walk':'idle';
+    const action=P.state==='dead'?'death':P.state==='roll'?'dodge':P.state==='atk'?(P.atk?.heavy?'heavy':'attack'):P.state==='hurt'?'hurt':P.state==='plunge'?'jump':P.state==='cast'?'cast':P.state==='aim'?'aim':P.state==='heal'?'heal':P.guard?'block':P.air?'jump':P.spd>95?'run':P.spd>20?'walk':'idle';
     window.__g.setGLBHeroAction(action);
   }
   for(const e of enemies)upEnemy(e,dt);
