@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Assertion-based gameplay, region-loading, and save/load regression tests."""
+from __future__ import annotations
+
+import asyncio
+import functools
+import threading
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+from playwright.async_api import async_playwright
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+async def run_suite(base_url: str) -> None:
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--use-gl=angle",
+                "--use-angle=swiftshader",
+                "--enable-unsafe-swiftshader",
+                "--ignore-gpu-blocklist",
+            ],
+        )
+        page = await browser.new_page(viewport={"width": 960, "height": 540})
+        page_errors: list[str] = []
+        page.on("pageerror", lambda error: page_errors.append(str(error)))
+
+        try:
+            await page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await page.click("#go")
+            await page.wait_for_function(
+                "window.__g && window.__g.ok() && window.__g.chunks > 0",
+                timeout=15000,
+            )
+
+            combat = await page.evaluate(
+                """() => {
+                    const g = window.__g;
+                    g.start();
+                    const p = g.P;
+                    const target = g.enemies.find(e => !e.boss && !e.dead);
+                    if (!target) throw new Error("No standard enemy available for combat test");
+
+                    // Put a stationary test target in front of the player, away from level geometry.
+                    target.x = p.x + 30;
+                    target.z = p.z;
+                    target.y = p.y;
+                    target.hx = target.x;
+                    target.hz = target.z;
+                    target.a = Math.PI;
+                    target.kv = 0;
+                    target.state = "stun";
+                    target.t = 0;
+                    target.dead = false;
+                    target.hp = target.T.hp;
+                    p.a = 0;
+                    p.st = 100;
+                    const beforeHp = target.hp;
+                    const beforeStamina = p.st;
+
+                    g.act("atk");
+                    for (let i = 0; i < 24; i++) g.step(0.02);
+                    const afterAttackHp = target.hp;
+                    const attackState = p.state;
+
+                    // Finish the attack recovery before testing the dodge action.
+                    for (let i = 0; i < 60; i++) g.step(0.02);
+                    const staminaBeforeRoll = p.st;
+                    g.act("roll");
+                    g.step(0.02);
+                    const rollState = p.state;
+                    const invulnerability = p.inv;
+                    const staminaAfterRoll = p.st;
+
+                    return {
+                        beforeHp,
+                        afterAttackHp,
+                        attackState,
+                        beforeStamina,
+                        staminaBeforeRoll,
+                        staminaAfterRoll,
+                        rollState,
+                        invulnerability
+                    };
+                }"""
+            )
+            if not combat["afterAttackHp"] < combat["beforeHp"]:
+                raise AssertionError(f"Light attack did not damage the target: {combat}")
+            if combat["rollState"] != "roll":
+                raise AssertionError(f"Dodge did not enter roll state: {combat}")
+            if combat["invulnerability"] <= 0:
+                raise AssertionError(f"Dodge did not grant an invulnerability window: {combat}")
+            if not combat["staminaAfterRoll"] < combat["staminaBeforeRoll"]:
+                raise AssertionError(f"Dodge did not consume stamina: {combat}")
+            print("PASS: light attack damage, dodge state, invulnerability, and stamina cost")
+
+            region_results = await page.evaluate(
+                """() => {
+                    const g = window.__g;
+                    g.stats.boat = true; // Skip the one-time Baghdad boat cinematic in this test.
+                    const ids = ["duhok", "muthanna", "nineveh", "anbar", "baghdad"];
+                    return ids.map(id => {
+                        g.travel(id);
+                        return {
+                            id,
+                            actual: g.REG,
+                            blocks: g.B.length,
+                            chunks: g.chunks,
+                            enemies: g.enemies.length,
+                            boss: !!g.boss
+                        };
+                    });
+                }"""
+            )
+            for result in region_results:
+                if result["actual"] != result["id"]:
+                    raise AssertionError(f"Travel loaded the wrong region: {result}")
+                if result["blocks"] <= 0 or result["chunks"] <= 0:
+                    raise AssertionError(f"Region did not build world geometry: {result}")
+                if not result["boss"]:
+                    raise AssertionError(f"Expected region boss was not spawned: {result}")
+            print("PASS: Duhok, Muthanna, Nineveh, Anbar, and Baghdad load with geometry and bosses")
+
+            await page.evaluate(
+                """() => {
+                    const g = window.__g;
+                    g.stats.embers = 321;
+                    g.stats.vig = 2;
+                    g.travel("muthanna");
+                }"""
+            )
+            await page.reload(wait_until="load")
+            await page.wait_for_function(
+                "window.__g && window.__g.ok() && window.__g.chunks > 0",
+                timeout=15000,
+            )
+            save_state = await page.evaluate(
+                "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
+            )
+            if save_state != {"region": "muthanna", "embers": 321, "vigor": 2}:
+                raise AssertionError(f"Save/load round trip mismatch: {save_state}")
+            print("PASS: Muthanna save/load round trip preserves region and player progression")
+
+            if page_errors:
+                raise AssertionError("Uncaught browser errors: " + " | ".join(page_errors))
+            print("PASS: no uncaught browser page errors")
+        finally:
+            await browser.close()
+
+
+def main() -> int:
+    handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        asyncio.run(run_suite(f"http://127.0.0.1:{server.server_port}"))
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
