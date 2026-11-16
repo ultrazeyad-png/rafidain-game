@@ -495,12 +495,40 @@ def verify_regional_mini_bosses() -> None:
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
 
 
+
+def verify_glb_gameplay_entity_render_binding() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    chars = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in (
+        "const gltfEntityInstances=new Map()",
+        "const gltfEntityIds=new WeakMap()",
+        "async function bindGLBModel(gameEntity,url,options={})",
+        "function syncGLBEntityAction(id,gameEntity)",
+        "function drawGLBEntity(id,x,y,z,yaw=0,scale)",
+        "function removeGLBEntity(id)",
+        "entity.asset.textures[item.texture]?.source",
+        "entity.asset.textures[item.normalTexture]?.source",
+    ):
+        if item not in gltf:
+            raise AssertionError(f"GLB entity runtime binding missing: {item}")
+    for item in ("bindGLBModel, getGLBEntityId", "drawGLBEntity, removeGLBEntity"):
+        if item not in game:
+            raise AssertionError(f"GLB entity API is not exposed to gameplay: {item}")
+    for item in ("getGLBEntityId(e)", "syncGLBEntityAction(glbId,e)",
+        "drawGLBEntity(glbId,e.x,e.y+(e.j||0),e.z,e.a)",
+        "if(e.k==='gmini')"):
+        if item not in chars:
+            raise AssertionError(f"Enemy/boss GLB draw integration or fallback missing: {item}")
+    print("PASS: GLB entity binding API, animation sync, model draw path, texture source mapping, and procedural fallback")
+
 def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
     verify_boss_finisher()
     verify_weapon_and_boss_specific_finishers()
     verify_regional_mini_bosses()
+    verify_glb_gameplay_entity_render_binding()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
