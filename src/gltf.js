@@ -459,7 +459,7 @@ async function loadGLB(url){
 
 /* ---------- GLB -> existing WebGL renderer bridge ---------- */
 let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';
-let gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true,transition:null,currentPose:new Map()};
+let gltfHeroPlayback=gltfCreatePlaybackState(asset);
 function gltfNormals(positions,indices){
   const n=new Float32Array(positions.length);
   for(let i=0;i<indices.length;i+=3){
