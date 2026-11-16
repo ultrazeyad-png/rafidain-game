@@ -20,6 +20,9 @@ def verify_adapa_visual_design() -> None:
         "function adapaSword()",
         "stepped gold crown",
         "royal vertical sash",
+        "if(isAdapa&&st==='sleep')",
+        "if(isAdapa&&st==='trans')",
+        "p2?'#ff563d':'#287f91'",
     )
     missing = [item for item in required if item not in source]
     if missing:
