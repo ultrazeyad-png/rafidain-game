@@ -163,7 +163,7 @@ function regDuhok(){
     ['wolf',1060,-205,35],['wolf',1130,-105,40],['wolf',1240,-150,45],['sling',1565,165,90],['husk',1470,70,80],
     ['husk',2260,170,130],['wolf',1520,585,120],['wolf',1190,815,105],['wolf',1075,985,105],['sling',1245,960,105],
     ['archer',1655,215,100],['archer',2350,470,130],['archer',2585,1005,215],
-    ['husk',2110,705,150],['husk',2165,865,160],['sling',2130,790,160],['brute',2290,905,180],['wolf',2400,935,190],['sling',2455,975,198],['gmini',1560,640,120]];
+    ['husk',2110,705,150],['husk',2165,865,160],['sling',2130,790,160],['brute',2290,905,180],['wolf',2400,935,190],['sling',2455,975,198],['gmini',1900,500,130]];
   // pines, oaks and boulders: on the land you walk they are solid, on the slopes they are scenery
   mkCW();
   for(let k=0;k<420;k++){const x=40+hash(k*1.37+2)*(WX-80),z=WZ0+40+hash(k*2.91+11)*(WZ1-WZ0-80),c=cellOf(x,z);if(c<0)continue;
