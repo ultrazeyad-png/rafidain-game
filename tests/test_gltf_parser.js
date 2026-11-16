@@ -416,7 +416,7 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 }
 {
   const primitive={positions:new Float32Array([0,0,0]),joints:new Float32Array([1,0,0,0]),weights:new Float32Array([1,0,0,0])};
-  assert.throws(()=>context.__skinCPU(primitive,new Float32Array(16)),/missing joint matrix/);
+  assert.throws(()=>context.__skinCPU(primitive,new Float32Array(16)),/invalid CPU skin joint influence/);
 }
 
 
