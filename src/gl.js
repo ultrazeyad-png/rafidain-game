@@ -27,11 +27,11 @@ function lookAt(o,e,c){
 const HEXC={};
 function hex(h){let c=HEXC[h];if(!c){const n=parseInt(h.slice(1),16);c=HEXC[h]=[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}return c;}
 function initGL(){
-  const vs='attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute vec2 uv;varying vec2 vGLBUV;uniform mat4 uVP,uM,uLVP;uniform vec3 uNS;uniform float uTime;varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;'+
+  const vs='attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute vec2 uv;uniform mat4 uVP,uM,uLVP;uniform vec3 uNS;uniform float uTime;varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;'+
     'void main(){vP=p;vZ=n.z;vC=c;vGLBUV=uv;vec4 w=uM*vec4(p,1.);if(c.a>.13&&c.a<.19){float k=(c.a-.14)*25.,ph=uTime*1.7+w.x*.021+w.z*.017;w.x+=(sin(ph)*3.2+sin(ph*2.3)*1.)*k;w.z+=cos(ph*.8)*2.2*k;}vW=w.xyz;vN=mat3(uM)*(n*uNS);vL=uLVP*w;gl_Position=uVP*w;}';
   const fs=`precision highp float;
 varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;
-uniform sampler2D uT,uSh,uGLBTex;uniform float uGLBTexture;uniform vec3 uSun,uSunC,uAT,uAB,uSk0,uSk1,uSd,uDc,uCam,uFog;uniform float uTx,uMode,uSP,uShOn,uTime,uStar,uE,uF,uA;uniform vec4 uUV,uC;uniform vec2 uFg;uniform vec4 uPL[3];
+uniform sampler2D uT,uSh,uGLBTex;uniform float uGLBTexture,uGLBMaterial,uGLBMetallic,uGLBRoughness;uniform vec3 uSun,uSunC,uAT,uAB,uSk0,uSk1,uSd,uDc,uCam,uFog;uniform float uTx,uMode,uSP,uShOn,uTime,uStar,uE,uF,uA;uniform vec4 uUV,uC;uniform vec2 uFg;uniform vec4 uPL[3];
 float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h1(i),h1(i+vec2(1.,0.)),f.x),mix(h1(i+vec2(0.,1.)),h1(i+vec2(1.,1.)),f.x),f.y);}
 float upk(vec4 c){return dot(c.rgb,vec3(1.,1./255.,1./65025.));}
@@ -68,7 +68,21 @@ void main(){
       vec2 ed=abs(q.xy-.5)*2.;sh=mix(s*.25,1.,smoothstep(.85,1.,max(ed.x,ed.y)));}}
   vec3 lit=(mix(uAB,uAT,n.y*.5+.5)*(.72+.28*sh)+uSunC*d*sh)*uA;float rim=pow(1.-max(dot(n,normalize(uCam-vW)),0.),3.);lit+=uAT*.5*rim*uA;
   for(int i=0;i<3;i++){vec3 l=uPL[i].xyz-vW;float dd=dot(l,l);lit+=vec3(1.,.5,.18)*uPL[i].w*max(dot(n,normalize(l)),.3)/(1.+dd*.0004);}
-  vec3 c=mix(bc.rgb*lit,bc.rgb,max(uE,step(.75,mt)));float f=clamp((dist-uFg.x)/uFg.y,0.,1.)*uF;
+  vec3 c=mix(bc.rgb*lit,bc.rgb,max(uE,step(.75,mt)));
+  if(uGLBMaterial>.5){
+    vec3 V=normalize(uCam-vW),L=normalize(uSun),H=normalize(V+L);
+    float ndv=max(dot(n,V),.001),ndh=max(dot(n,H),0.),vdh=max(dot(V,H),0.);
+    float rough=clamp(uGLBRoughness,.06,1.),metal=clamp(uGLBMetallic,0.,1.);
+    float a=rough*rough,a2=a*a,den=ndh*ndh*(a2-1.)+1.;
+    float D=a2/(3.14159265*den*den+.0001);
+    float k=(rough+1.)*(rough+1.)/8.;
+    float G=(ndv/(ndv*(1.-k)+k))*(max(dot(n,L),.001)/(max(dot(n,L),.001)*(1.-k)+k));
+    vec3 F0=mix(vec3(.04),bc.rgb,metal);
+    vec3 F=F0+(1.-F0)*pow(1.-vdh,5.);
+    vec3 spec=(D*G*F/(4.*ndv*max(dot(n,L),.001)+.001))*uSunC*sh;
+    c+=spec*(.18+.82*(1.-rough));
+  }
+  float f=clamp((dist-uFg.x)/uFg.y,0.,1.)*uF;
   c=mix(c,uFog,f);
   // Cinematic Mesopotamian grade: restrained saturation, cool shadow bias, warm ember highlights.
   c=clamp(c,0.,1.);float lum=dot(c,vec3(.299,.587,.114));
