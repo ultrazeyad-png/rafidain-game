@@ -572,6 +572,27 @@ def verify_glb_enemy_boss_asset_acceptance() -> None:
 
 
 
+
+def verify_glb_catalog_audit_and_entity_cleanup() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    template = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    required = (
+        "async function inspectGLBModelCatalog()",
+        "const entries=Array.from(gltfModelCatalog",
+        "const accepted=!entry.requireAnimatedCharacter||report.readyForEnemyOrBoss",
+        "accepted:false,error:String(error&&error.message||error)",
+        "disposeGLBResources([],entity.textures)",
+        "disposeGLBResources(entity.gpu,entity.textures);entity.gpu=null;entity.textures=[]",
+        "inspectGLBModelCatalog, getGLBEntityId",
+    )
+    combined = gltf + template
+    missing = [item for item in required if item not in combined]
+    if missing:
+        raise AssertionError(f"GLB catalog audit or entity resource cleanup missing: {missing}")
+    print("PASS: catalog-wide GLB audit reports per-model acceptance and failed entity loads release GPU resources")
+
+
+
 def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
@@ -581,6 +602,7 @@ def main() -> int:
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
     verify_glb_enemy_boss_asset_acceptance()
+    verify_glb_catalog_audit_and_entity_cleanup()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
