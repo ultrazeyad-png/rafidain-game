@@ -100,6 +100,40 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError(f"Dodge did not consume stamina: {combat}")
             print("PASS: light attack damage, dodge state, invulnerability, and stamina cost")
 
+            defense = await page.evaluate(
+                """() => {
+                    const g = window.__g, p = g.P;
+                    const e = g.enemies.find(x => !x.boss && !x.dead);
+                    if (!e) throw new Error("No standard enemy available for defense test");
+                    g.stats.wpn = "shield";
+                    p.state = "idle"; p.t = 0; p.hp = 100; p.st = 100; p.a = 0; p.inv = 0;
+                    e.x = p.x + 35; e.z = p.z; e.y = p.y; e.a = Math.PI;
+                    g.input.block = true;
+                    g.step(0.08);
+                    e.x = p.x + 35; e.z = p.z; e.y = p.y; e.a = Math.PI;
+                    e.state = "strike"; e.t = 0; e.hit = false;
+                    const hpBeforeParry = p.hp;
+                    g.step(0.02);
+                    const perfectParry = {hp: p.hp, enemyState: e.state, stamina: p.st};
+
+                    // Hold guard beyond the perfect-parry window, then receive another strike.
+                    for (let i = 0; i < 20; i++) g.step(0.02);
+                    p.state = "idle"; p.t = 0; p.hp = hpBeforeParry; p.st = 100; p.inv = 0;
+                    e.x = p.x + 35; e.z = p.z; e.y = p.y; e.a = Math.PI;
+                    e.state = "strike"; e.t = 0; e.hit = false;
+                    const staminaBeforeBlock = p.st;
+                    g.step(0.02);
+                    const normalBlock = {hp: p.hp, stamina: p.st, enemyState: e.state};
+                    g.input.block = false;
+                    return {hpBeforeParry, perfectParry, normalBlock, staminaBeforeBlock};
+                }"""
+            )
+            if defense.perfectParry.hp !== defense.hpBeforeParry or defense.perfectParry.enemyState !== "stun":
+                raise AssertionError(f"Perfect parry did not stun the attacker without damage: {defense}")
+            if defense.normalBlock.hp !== defense.hpBeforeParry or not defense.normalBlock.stamina < defense.staminaBeforeBlock:
+                raise AssertionError(f"Normal guard did not trade stamina for blocked damage: {defense}")
+            print("PASS: perfect parry stuns attacker; normal guard blocks damage at stamina cost")
+
             region_results = await page.evaluate(
                 """() => {
                     const g = window.__g;
