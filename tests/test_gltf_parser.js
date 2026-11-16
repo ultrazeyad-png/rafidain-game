@@ -120,4 +120,22 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.throws(() => context.__transformNormal(new Float32Array(16), 0, 1, 0), /singular normal matrix/);
 }
 
+
+{
+  const d = baseDocument();
+  d.accessors[0].byteOffset = 2; // FLOAT data must be four-byte aligned
+  expectInvalid(d, baseBin(), /invalid accessor layout/);
+}
+{
+  const d = baseDocument();
+  d.bufferViews[0].byteStride = 6; // glTF vertex strides are four-byte aligned
+  expectInvalid(d, baseBin(), /invalid bufferView byteStride/);
+}
+{
+  const d = baseDocument();
+  const bin = baseBin();
+  bin.writeFloatLE(Number.NaN, 0);
+  expectInvalid(d, bin, /non-finite value/);
+}
+
 console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
