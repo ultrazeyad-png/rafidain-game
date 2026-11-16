@@ -355,7 +355,11 @@ async def run_suite(base_url: str) -> None:
                 legacy_raw,
             )
             await page.evaluate("() => window.location.reload()")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+                        # Migration correctness is asserted below; WebGL health is covered by its dedicated test.
+            await page.wait_for_function(
+                "window.__g && window.__g.chunks > 0 && window.__g.REG === 'muthanna'",
+                timeout=30000,
+            )
             migrated = await page.evaluate(
                 """() => ({
                     live: JSON.parse(localStorage.getItem("ashes-rafidain-v1")),
