@@ -697,9 +697,12 @@ function inspectGLBAsset(asset){
   if(skinned&&asset.animations?.length&&!animatedJointTargets)warnings.push('No animation channel targets a joint used by the model skins.');
   const missingCore=['idle','walk','run','attack','death'].filter(action=>!animationCoverage[action]);
   if(missingCore.length)warnings.push('Missing core gameplay animation clips: '+missingCore.join(', ')+'.');
-  return {valid:primitives.length>0,readyForAnimatedCharacter:primitives.length>0&&skinned>0&&skinnedInstances.length>0&&animatedJointTargets&&unskinnedCharacterInstances.length===0&&missingCore.length===0,
+  const readyForAnimatedCharacter=primitives.length>0&&skinned>0&&skinnedInstances.length>0&&animatedJointTargets&&unskinnedCharacterInstances.length===0&&missingCore.length===0;
+  const missingEnemyCore=['idle','walk','run','attack','death'].filter(action=>!animationCoverage[action]);
+  const readyForEnemyOrBoss=readyForAnimatedCharacter&&missingEnemyCore.length===0;
+  return {valid:primitives.length>0,readyForAnimatedCharacter,readyForEnemyOrBoss,
     summary:{meshes:asset.meshes.length,primitives:primitives.length,nodes:asset.nodes.length,instances:asset.instances.length,skins:asset.skins?.length||0,skinnedPrimitives:skinned,skinnedInstances:skinnedInstances.length,animationClips:asset.animations?.length||0,animationNames:(asset.animations||[]).map(clip=>clip.name||'unnamed'),images:asset.images?.length||0,textures:asset.textures?.length||0,texturedPrimitives:textured,normalMappedPrimitives:primitives.filter(p=>p.material?.normalTexture!=null).length,primitivesWithNormals:normals,primitivesWithUVs:uvs},
-    animationCoverage,warnings};
+    animationCoverage,missingCoreAnimations:missingCore,missingEnemyCoreAnimations:missingEnemyCore,warnings};
 }
 async function inspectGLB(url){return inspectGLBAsset(await loadGLB(url));}
 
@@ -719,14 +722,16 @@ function registerGLBModelCatalog(catalog={}){
     if(!category.trim()||!entry||typeof entry!=='object'||typeof entry.url!=='string'||!entry.url.trim())gltfFail('each catalog entry needs a category and model URL');
     const scale=entry.scale??60;
     if(!Number.isFinite(scale)||scale<=0)gltfFail('catalog model scale must be positive and finite');
-    next.set(category,{url:entry.url,scale,animation:entry.animation||{}});
+    if(entry.animation!=null&&(typeof entry.animation!=='object'||Array.isArray(entry.animation)))gltfFail('catalog animation options must be an object');
+    if(entry.requireAnimatedCharacter!=null&&typeof entry.requireAnimatedCharacter!=='boolean')gltfFail('requireAnimatedCharacter must be boolean');
+    next.set(category,{url:entry.url,scale,animation:entry.animation||{},requireAnimatedCharacter:entry.requireAnimatedCharacter!==false});
   }
   gltfModelCatalog.clear();
   for(const [category,entry] of next)gltfModelCatalog.set(category,entry);
   return {ok:true,categories:Array.from(gltfModelCatalog.keys())};
 }
 function getGLBModelCatalog(){
-  return Array.from(gltfModelCatalog,([category,entry])=>({category,url:entry.url,scale:entry.scale}));
+  return Array.from(gltfModelCatalog,([category,entry])=>({category,url:entry.url,scale:entry.scale,requireAnimatedCharacter:entry.requireAnimatedCharacter}));
 }
 async function bindGLBModelForEntity(gameEntity,overrides={}){
   const category=gltfModelCategory(gameEntity),entry=gltfModelCatalog.get(category);
@@ -765,12 +770,17 @@ async function loadGLBEntity(id,url,options={}){
     entity.asset=await loadGLB(url);
     if(entity.disposed||gltfEntityInstances.get(id)!==entity)return {ok:false,id,reason:'disposed'};
     if(!entity.asset.meshes.length)gltfFail('entity model contains no meshes');
+    entity.inspection=inspectGLBAsset(entity.asset);
+    if(options.requireAnimatedCharacter!==false&&!entity.inspection.readyForEnemyOrBoss){
+      const missing=entity.inspection.missingEnemyCoreAnimations||[];
+      gltfFail('entity is not ready for animated gameplay'+(missing.length?'; missing clips: '+missing.join(', '):'; skin/joint animation validation failed'));
+    }
     entity.playback=gltfCreatePlaybackState(entity.asset,options.animation||{});
     if(glOK){entity.textures=await prepareGLBTextures(entity.asset);
       if(entity.disposed||gltfEntityInstances.get(id)!==entity){for(const texture of entity.textures)gl.deleteTexture(texture);entity.textures=[];return {ok:false,id,reason:'disposed'};}
       entity.gpu=prepareGLBHero(entity.asset);}
     if(entity.disposed||gltfEntityInstances.get(id)!==entity)return {ok:false,id,reason:'disposed'};
-    return {ok:true,id,meshes:entity.asset.meshes.length,primitives:entity.asset.bounds};
+    return {ok:true,id,meshes:entity.asset.meshes.length,primitives:entity.asset.bounds,inspection:entity.inspection};
   }catch(error){
     entity.error=String(error&&error.message||error);
     if(gltfEntityInstances.get(id)===entity)gltfEntityInstances.delete(id);
