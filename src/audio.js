@@ -77,6 +77,42 @@ function music(on){   // a low drone with a slow Hijaz phrase, only under the op
     musN={g,o};}catch(_){}
 }
 
+
+/* ================= regional environmental soundscape =================
+   Procedural ambience only: filtered water and wind beds, not field recordings. */
+let ENV=null,envRegion='none';
+function setEnvironment(region){
+  envRegion=String(region||'none');
+  if(!AUC||!MG)return envRegion;
+  try{
+    if(!ENV){
+      const master=AUC.createGain();master.gain.value=0;master.connect(MG);
+      const makeBed=(kind)=>{
+        const src=AUC.createBufferSource();src.buffer=NB;src.loop=true;
+        const filter=AUC.createBiquadFilter();filter.type=kind==='water'?'bandpass':'lowpass';
+        filter.frequency.value=kind==='water'?620:420;filter.Q.value=kind==='water'?.45:.25;
+        const slow=AUC.createOscillator(),depth=AUC.createGain(),gain=AUC.createGain();
+        slow.type='sine';slow.frequency.value=kind==='water'?.075:.035;depth.gain.value=kind==='water'?.012:.009;
+        gain.gain.value=0;slow.connect(depth);depth.connect(gain.gain);
+        src.connect(filter);filter.connect(gain);gain.connect(master);src.start();slow.start();
+        return {src,slow,gain};
+      };
+      ENV={master,water:makeBed('water'),wind:makeBed('wind')};
+    }
+    const water=envRegion==='duhok'?.055:envRegion==='baghdad'?.008:0;
+    const wind=envRegion==='duhok'?.024:envRegion==='muthanna'?.035:.018;
+    const t=AUC.currentTime;
+    ENV.water.gain.gain.cancelScheduledValues(t);
+    ENV.water.gain.gain.setTargetAtTime(water,t,.9);
+    ENV.wind.gain.gain.cancelScheduledValues(t);
+    ENV.wind.gain.gain.setTargetAtTime(wind,t,1.4);
+    ENV.master.gain.cancelScheduledValues(t);
+    ENV.master.gain.setTargetAtTime(1,t,.8);
+  }catch(_){}
+  return envRegion;
+}
+function environmentSnapshot(){return {region:envRegion,active:!!ENV};}
+
 /* ================= spoken character dialogue =================
    Prefer native Arabic speech; keep a short synthesized signature as fallback. */
 let VN=[],voiceEnabled=true;
