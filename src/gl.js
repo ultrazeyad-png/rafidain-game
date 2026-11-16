@@ -1,5 +1,5 @@
 /* ================= WebGL ================= */
-let uMode=null,uSP=null,uLVP=null,uShOn=null,uTime=null,uSk0=null,uSk1=null,uSd=null,uDc=null,uStar=null,shFB=null,shTex=null,dumTex=null,SHON=false;const SHN=1024,LVP=new Float32Array(16),Lp=new Float32Array(16),Lv=new Float32Array(16);
+let uMode=null,uSP=null,uLVP=null,uShOn=null,uTime=null,uSk0=null,uSk1=null,uSd=null,uDc=null,uStar=null,shFB=null,shTex=null,dumTex=null,SHON=false,glLost=false;const SHN=1024,LVP=new Float32Array(16),Lp=new Float32Array(16),Lv=new Float32Array(16);
 function ortho(o,R,n,f){o.fill(0);o[0]=1/R;o[5]=1/R;o[10]=-2/(f-n);o[14]=-(f+n)/(f-n);o[15]=1;}
 let prog,uVP,uM,uC,uE,uF,uA,uNS,uCam,uFog,uPL,uTx=null,uUV=null,uSun=null,uSunC=null,uAT=null,uAB=null,uFg=null,aP=0,aN=0,aC=0,meshVB=null,meshIB=null,CYLN=0,glOK=!!gl;
 const MS={},MV=[],MI=[];                 // unit meshes: index ranges, plus CPU copies used to bake the static world
@@ -189,6 +189,13 @@ function ribbon(q,al){   // dynamic triangles (sword trails): q = vertices of [x
   gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.uniform1f(uF,1);bindMesh();}
 function bakeDone(){for(const k in chkOpen)closeChunk(chkOpen[k]);chkOpen={};}
 function bakeClear(){for(const c of CHK){gl.deleteBuffer(c.vb);gl.deleteBuffer(c.ib);}CHK=[];chkOpen={};}
+function resetGLAfterContextRestore(){
+  // Handles from the lost context are invalid. Drop them without issuing GL deletes.
+  MV.length=0;MI.length=0;
+  for(const k of Object.keys(MS))delete MS[k];
+  CHK=[];chkOpen={};ribVB=null;meshVB=null;meshIB=null;
+  prog=null;shFB=null;shTex=null;dumTex=null;
+}
 function drawChunks(R){
   const fx=VT[0]-VE[0],fz=VT[2]-VE[2],fl=Math.hypot(fx,fz)||1;
   gl.uniformMatrix4fv(uM,false,IDM);gl.uniform3f(uNS,1,1,1);gl.uniform4f(uC,1,1,1,1);gl.uniform1f(uE,0);gl.uniform1f(uTx,0);
