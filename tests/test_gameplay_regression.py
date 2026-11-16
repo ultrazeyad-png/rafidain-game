@@ -246,6 +246,7 @@ async def run_suite(base_url: str) -> None:
                             blocks: g.B.length,
                             chunks: g.chunks,
                             enemies: g.enemies.length,
+                            miniBosses: g.enemies.filter(e => e.T.mini && !e.dead).map(e => e.T.name),
                             boss: !!g.boss,
                             duhokDetails: g.duhokDetails()
                         };
@@ -257,6 +258,8 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Travel loaded the wrong region: {result}")
                 if result["blocks"] <= 0 or result["chunks"] <= 0:
                     raise AssertionError(f"Region did not build world geometry: {result}")
+                if len(result["miniBosses"]) != 1:
+                    raise AssertionError(f"Region must spawn exactly one optional mini-boss: {result}")
                 if not result["boss"]:
                     raise AssertionError(f"Expected region boss was not spawned: {result}")
                 if result["id"] == "duhok" and result["duhokDetails"] < 20:
@@ -354,7 +357,7 @@ def verify_regional_mini_bosses() -> None:
     missing = [item for item in required if item not in roster]
     if missing:
         raise AssertionError(f"Regional mini-boss roster is incomplete: {missing}")
-    for spawn in ("['gmini',1560,640,120]", "['gmini',2450,500,-200]"):
+    for spawn in ("['gmini',1560,640,120]", "['gmini',3000,-300,0]"):
         if spawn not in regions:
             raise AssertionError(f"Special-region mini-boss spawn missing: {spawn}")
     for item in ("minis:world.minis", "minis:!!w.minis", "world.minis=true",
