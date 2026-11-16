@@ -128,9 +128,9 @@ async def run_suite(base_url: str) -> None:
                     return {hpBeforeParry, perfectParry, normalBlock, staminaBeforeBlock};
                 }"""
             )
-            if defense.perfectParry.hp !== defense.hpBeforeParry or defense.perfectParry.enemyState !== "stun":
+            if defense["perfectParry"]["hp"] != defense["hpBeforeParry"] or defense["perfectParry"]["enemyState"] != "stun":
                 raise AssertionError(f"Perfect parry did not stun the attacker without damage: {defense}")
-            if defense.normalBlock.hp !== defense.hpBeforeParry or not defense.normalBlock.stamina < defense.staminaBeforeBlock:
+            if defense["normalBlock"]["hp"] != defense["hpBeforeParry"] or not defense["normalBlock"]["stamina"] < defense["staminaBeforeBlock"]:
                 raise AssertionError(f"Normal guard did not trade stamina for blocked damage: {defense}")
             print("PASS: perfect parry stuns attacker; normal guard blocks damage at stamina cost")
 
