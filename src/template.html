@@ -1394,7 +1394,7 @@ document.addEventListener('touchmove',e=>{if(e.touches.length>1||e.scale&&e.scal
 {let lastT=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastT<320&&!e.target.closest('button'))e.preventDefault();lastT=n;},{passive:false});}
 document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
 if(glOK){try{initGL();}catch(err){glOK=false;}}
-if(hasSave()&&load()){$('go').textContent='كمّل الرحلة';$('newg').hidden=false;}
+const hadSave=hasSave(),restored=hadSave&&load();if(restored){$('go').textContent='كمّل الرحلة';$('newg').hidden=false;}else if(hadSave)wipe();else if(!stats.gk)stats.gk=pickGuardians();
 loadRegion(REG);applyWorld();updateBtns();setTod();setQ();musicOn=stats.mus!==0;$('mMus').textContent='الموسيقى: '+(musicOn?'شغالة':'طافية');layout();respawn();upCam(.016);
 let diagEnabled=false,diagSamples=[],diagPaintAt=0;
 function diagnosticsSnapshot(){
