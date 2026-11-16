@@ -45,7 +45,14 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError(f"Opening film is missing Baghdad's Talisman Gate: {opening_film}")
             if [shot["region"] for shot in opening_plan[:4]] != ["baghdad"] * 4 or opening_plan[4]["region"] != "duhok":
                 raise AssertionError(f"Opening film must stay in Baghdad for its first four shots, then transition to Zakho: {opening_plan}")
+            cinematic_frame = await page.evaluate("""() => {
+                const v = document.querySelector("#cV");
+                return !!v && getComputedStyle(v).pointerEvents === "none";
+            }""")
+            if not cinematic_frame:
+                raise AssertionError("Opening cinematic is missing its non-interactive film vignette layer")
             print("PASS: opening film stays in Baghdad for four shots, reveals the Talisman Gate and Adapa, then transitions to Zakho")
+            print("PASS: cinematic film vignette is present and does not intercept controls")
 
             ambience = await page.evaluate("""() => {
                 __g.setEnvironment("duhok");
