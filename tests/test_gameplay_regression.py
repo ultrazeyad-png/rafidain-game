@@ -45,7 +45,18 @@ def verify_adapa_visual_design() -> None:
     missing = [item for item in required if item not in source]
     if missing:
         raise AssertionError(f"Adapa's royal visual identity is incomplete: {missing}")
+    hero = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    for pose in (
+        "else if(st==='roll'){const u=clamp(P.t/.42,0,1),curl=Math.sin(u*PI)",
+        "else if(st==='hurt'){const flinch=Math.max(0,1-P.t/.3)",
+        "else if(st==='roll'){hip=sd>0?.82:-.58;knee=1.22;}",
+        "st==='roll'?5+2*Math.sin(P.t/.42*PI)",
+        "if(P.guard&&wpn!=='shield')",
+    ):
+        if pose not in hero:
+            raise AssertionError(f"Furat's responsive combat animation is missing: {pose}")
     print("PASS: Adapa has royal visuals, five bespoke sword attacks, voiced taunts, and a dedicated perfect-parry reaction")
+    print("PASS: Furat uses curled dodge-roll, flinch recovery, and readable guard poses")
 
 
 async def run_suite(base_url: str) -> None:
