@@ -137,7 +137,7 @@ async function loadGLB(url){
 
 
 /* ---------- GLB -> existing WebGL renderer bridge ---------- */
-let gltfHero=null,gltfHeroGPU=null,gltfHeroError='';
+let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';
 function gltfNormals(positions,indices){
   const n=new Float32Array(positions.length);
   for(let i=0;i<indices.length;i+=3){
@@ -193,13 +193,33 @@ function prepareGLBHero(asset){
   }
   return entries;
 }
+async function prepareGLBTextures(asset){
+  const out=[];
+  for(const image of asset.images||[]){
+    const blob=new Blob([image.bytes],{type:image.mimeType});
+    const bitmap=await createImageBitmap(blob);
+    const texture=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    bitmap.close?.();
+    out.push(texture);
+  }
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+  gl.activeTexture(gl.TEXTURE0);
+  return out;
+}
 async function setGLBHero(url,scale=60){
-  gltfHero=null;gltfHeroGPU=null;gltfHeroError='';
+  gltfHero=null;gltfHeroGPU=null;gltfHeroTextures=[];gltfHeroError='';
   try{
     const asset=await loadGLB(url);
     if(!asset.meshes.length)gltfFail('model contains no meshes');
     gltfHero={asset,scale};
-    if(glOK)gltfHeroGPU=prepareGLBHero(asset);
+    if(glOK){gltfHeroTextures=await prepareGLBTextures(asset);gltfHeroGPU=prepareGLBHero(asset);}
     return {ok:true,meshes:asset.meshes.length,primitives:asset.bounds};
   }catch(e){gltfHeroError=String(e&&e.message||e);return {ok:false,error:gltfHeroError};}
 }
@@ -215,8 +235,15 @@ function drawGLBHero(){
     gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);
     gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aN);
     gl.vertexAttribPointer(aP,3,gl.FLOAT,false,32,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,32,12);
+    const uvLoc=gl.getAttribLocation(prog,'uv');
+    if(uvLoc>=0){gl.enableVertexAttribArray(uvLoc);gl.vertexAttribPointer(uvLoc,2,gl.FLOAT,false,32,24);}
     gl.disableVertexAttribArray(aC);gl.vertexAttrib4f(aC,1,1,1,0);
+    const texIndex=item.texture==null?-1:gltfHero.asset.textures[item.texture]?.source??-1;
+    const tex=texIndex>=0?gltfHeroTextures[texIndex]:null;
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),tex?1:0);
+    if(tex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBTex'),2);}
     gl.drawArrays(gl.TRIANGLES,0,item.count);
   }
+  gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.activeTexture(gl.TEXTURE0);
   pop();bindMesh();gAlpha=1;return true;
 }
