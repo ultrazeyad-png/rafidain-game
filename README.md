@@ -114,3 +114,10 @@ await window.__g.bindGLBModelForEntity(enemy);
 ## الخطوة الجاية
 
 تحويلها لتطبيق APK للأندرويد.
+
+
+### Regional boss GLB profiles
+- Every spawned major boss is tagged with its region id and stable `boss:<region>` profile id.
+- The runtime profile registry stores validated boss name, region, model category, optional scale, and animation overrides.
+- Boss profiles route through the existing GLB model catalog (default category `gb`); no model URLs or assets are fabricated.
+- Exposed through `window.__g.registerGLBBossProfile` and `window.__g.getGLBBossProfiles`.
