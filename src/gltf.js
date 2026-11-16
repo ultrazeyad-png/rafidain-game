@@ -105,20 +105,29 @@ function parseGLB(buffer){
       if(p.mode!=null&&p.mode!==4)gltfFail('only TRIANGLES primitives are supported');
       const pos=readAccessor(p.attributes?.POSITION);if(pos.width!==3)gltfFail('POSITION must be VEC3');
       const nor=p.attributes.NORMAL==null?null:readAccessor(p.attributes.NORMAL);
+      const tan=p.attributes.TANGENT==null?null:readAccessor(p.attributes.TANGENT);
       const uv=p.attributes.TEXCOORD_0==null?null:readAccessor(p.attributes.TEXCOORD_0);
       if(nor&&(nor.width!==3||nor.count!==pos.count))gltfFail('NORMAL must be a matching VEC3 accessor');
+      if(tan&&(tan.width!==4||tan.count!==pos.count))gltfFail('TANGENT must be a matching VEC4 accessor');
       if(uv&&(uv.width!==2||uv.count!==pos.count))gltfFail('TEXCOORD_0 count mismatch');
       let indices;
       if(p.indices!=null){const q=readAccessor(p.indices);if(q.width!==1||![5121,5123,5125].includes(q.componentType))gltfFail('indices must use an unsigned integer SCALAR accessor');indices=q.data;}
       else{indices=new Uint32Array(pos.count);for(let i=0;i<pos.count;i++)indices[i]=i;}
       if(indices.length%3)gltfFail('triangle index count is not divisible by 3');
       for(const n of indices)if(n>=pos.count)gltfFail('index is outside POSITION range');
+      if(p.material!=null&&(!Number.isInteger(p.material)||!json.materials?.[p.material]))gltfFail('primitive references missing material '+p.material);
       const mat=json.materials?.[p.material]||{};
       const pm=mat.pbrMetallicRoughness||{};
-      return {name:mesh.name||'mesh_'+mi,positions:pos.data,normals:nor?.data||null,uvs:uv?.data||null,indices,
+      const normalTexture=mat.normalTexture||null;
+      if(normalTexture&&(!Number.isInteger(normalTexture.index)||normalTexture.index<0))gltfFail('normalTexture has an invalid texture index');
+      if(normalTexture&&normalTexture.texCoord!=null&&normalTexture.texCoord!==0)gltfFail('only TEXCOORD_0 is supported for normal maps');
+      if(normalTexture&&normalTexture.scale!=null&&!Number.isFinite(normalTexture.scale))gltfFail('normalTexture scale must be finite');
+      return {name:mesh.name||'mesh_'+mi,positions:pos.data,normals:nor?.data||null,tangents:tan?.data||null,uvs:uv?.data||null,indices,
         material:{name:mat.name||'material_'+(p.material??0),baseColorFactor:pm.baseColorFactor||[1,1,1,1],
           metallicFactor:pm.metallicFactor??1,roughnessFactor:pm.roughnessFactor??1,
-          baseColorTexture:pm.baseColorTexture?.index??null,alphaMode:mat.alphaMode||'OPAQUE',doubleSided:!!mat.doubleSided}};
+          baseColorTexture:pm.baseColorTexture?.index??null,
+          normalTexture:normalTexture?.index??null,normalScale:normalTexture?.scale??1,
+          alphaMode:mat.alphaMode||'OPAQUE',doubleSided:!!mat.doubleSided}};
     })
   }));
   const instances=gltfSceneInstances(json,meshes.length);
@@ -143,8 +152,9 @@ function parseGLB(buffer){
     return {source:texture.source,sampler:texture.sampler==null?{wrapS:10497,wrapT:10497,minFilter:9987,magFilter:9729}:samplers[texture.sampler]};
   });
   for(const mesh of meshes)for(const primitive of mesh.primitives){
-    const ti=primitive.material.baseColorTexture;
+    const ti=primitive.material.baseColorTexture,ni=primitive.material.normalTexture;
     if(ti!=null&&!textures[ti])gltfFail('material references missing base-colour texture '+ti);
+    if(ni!=null&&!textures[ni])gltfFail('material references missing normal texture '+ni);
   }
   return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,instances,images,textures,
     bounds:meshes.reduce((n,m)=>n+m.primitives.length,0),extensionsUsed:json.extensionsUsed||[]};
