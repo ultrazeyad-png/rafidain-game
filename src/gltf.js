@@ -638,6 +638,25 @@ if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
   }
 });
 
+function inspectGLBAsset(asset){
+  if(!asset||!Array.isArray(asset.meshes)||!Array.isArray(asset.nodes))gltfFail('inspectGLBAsset requires a parsed GLB asset');
+  const primitives=asset.meshes.flatMap(mesh=>mesh.primitives||[]);
+  const skinned=primitives.filter(p=>p.joints&&p.weights).length;
+  const textured=primitives.filter(p=>p.material&&(p.material.baseColorTexture!=null||p.material.normalTexture!=null)).length;
+  const normals=primitives.filter(p=>p.normals).length;
+  const uvs=primitives.filter(p=>p.uvs).length;
+  const warnings=[];
+  if(!primitives.length)warnings.push('No renderable mesh primitives were found.');
+  if(!skinned)warnings.push('No skinned primitives: the model may not deform with character animation.');
+  if(!asset.animations?.length)warnings.push('No animation clips are embedded.');
+  if(primitives.length&&normals!==primitives.length)warnings.push('Some primitives are missing normals.');
+  if(primitives.length&&uvs!==primitives.length)warnings.push('Some primitives are missing TEXCOORD_0 UVs.');
+  if(!asset.images?.length)warnings.push('No embedded images were found; materials may rely on factors or external workflows.');
+  return {valid:primitives.length>0,readyForAnimatedCharacter:primitives.length>0&&skinned>0&&(asset.animations?.length||0)>0,
+    summary:{meshes:asset.meshes.length,primitives:primitives.length,nodes:asset.nodes.length,skins:asset.skins?.length||0,skinnedPrimitives:skinned,animationClips:asset.animations?.length||0,images:asset.images?.length||0,textures:asset.textures?.length||0,texturedPrimitives:textured,normalMappedPrimitives:primitives.filter(p=>p.material?.normalTexture!=null).length,primitivesWithNormals:normals,primitivesWithUVs:uvs},warnings};
+}
+async function inspectGLB(url){return inspectGLBAsset(await loadGLB(url));}
+
 const gltfEntityInstances=new Map();
 const gltfModelCatalog=new Map();
 const gltfModelCategory=(entity)=>{
