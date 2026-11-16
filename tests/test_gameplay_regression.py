@@ -434,7 +434,7 @@ async def run_mobile_smoke(base_url: str) -> None:
                 timeout=20000,
             )
             layout = await page.evaluate("""() => {
-                const ids = ['jz','cz','bAtk','bRoll','bHeal','bJump','bLock','bBlock','bCast','bBow','bMap'];
+                const ids = ['jz','cz','bAtk','bRoll','bHeal','bJump','bLock','bMap'];
                 const rect = el => {
                     const r = el.getBoundingClientRect();
                     return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,
@@ -450,6 +450,18 @@ async def run_mobile_smoke(base_url: str) -> None:
                     raise AssertionError(f"Mobile control falls outside viewport: {control}: {rect}")
             if layout["controls"]["jz"]["touchAction"] != "none" or layout["controls"]["cz"]["touchAction"] != "none":
                 raise AssertionError(f"Virtual sticks must suppress browser gestures: {layout}")
+            conditional = await page.evaluate("""() => ({
+                bowVisible:document.getElementById('bBow').classList.contains('on'),
+                bowOwned:!!(__g.stats.own&&__g.stats.own.bow),
+                castVisible:document.getElementById('bCast').classList.contains('on'),
+                castAvailable:!!(__g.stats.spell&&__g.stats.tabs&&__g.stats.tabs[__g.stats.spell]),
+                blockVisible:document.getElementById('bBlock').classList.contains('on'),
+                shieldEquipped:__g.stats.wpn==='shield'
+            })""")
+            if (conditional["bowVisible"] != conditional["bowOwned"]
+                or conditional["castVisible"] != conditional["castAvailable"]
+                or conditional["blockVisible"] != conditional["shieldEquipped"]):
+                raise AssertionError(f"Conditional mobile action visibility does not match equipment: {conditional}")
             await page.evaluate("""() => {
                 const el=document.getElementById('jz'),r=el.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+r.height*.5;
                 el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:41,pointerType:'touch',clientX:x,clientY:y}));
