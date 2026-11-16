@@ -178,6 +178,12 @@ function drawNamtar(e){
     lean=-.035+breath*.012;
     m={t:.78+breath*.025,y:-.32,e:.98,w:-.2};
     o={t:.62,y:.3,e:.82,w:.18};
+  }else if(isAdapa&&st==='stomp'){
+    const wind=clamp(e.t/.75,0,1),impact=clamp((e.t-.75)/.24,0,1),settle=clamp((e.t-.99)/.48,0,1);
+    lean=lerp(-.34,.2,impact)*(1-settle);
+    crouch=-12*wind*(1-impact)+5*impact*(1-settle);
+    m={t:lerp(1.05,2.25,wind)*(1-settle)+.82*settle,y:lerp(-.2,.58,wind),e:lerp(.9,.12,impact),w:lerp(-.1,.9,impact)};
+    o={t:lerp(.65,1.85,wind)*(1-settle)+.55*settle,y:lerp(.2,-.55,wind),e:lerp(.8,.18,impact),w:.12};
   }else if(isAdapa&&st==='trans'){
     const rise=clamp(e.t/2.3,0,1),pulse=Math.sin(time*12);
     lean=-.12-rise*.16;
@@ -228,13 +234,23 @@ function drawNamtar(e){
     for(let q=0;q<3;q++){push();T(0,38-q*5,16);box(2.2,3,1.2,trim,0,0,0);pop();}
     // five ancient keys hang from the belt; they flare with the second phase
     for(let q=0;q<5;q++){
-      const x=(q-2)*5.1,glow=p2?1:0;
+      const x=(q-2)*5.1,glow=p2?(st==='stomp'?.72+.28*Math.sin(e.t*19+q*.7):1):0;
       push();T(x,20.5,14.2);RZ((q-2)*.09);
       cyl(1.05,7.5,1.05,trim,0,-2.2,0,glow,.72);
       sph(2.15,2.15,.85,p2?'#ff6747':'#287f91',0,2.5,0,glow,.9);
       box(3.8,1.1,1.1,trim,0,-5.5,0,glow,.8);
       box(1.1,2.8,1.1,trim,1.5,-7,0,glow,.8);
       pop();
+    }
+    // During the oath stomp, five key sparks rise in sequence from the belt.
+    if(p2&&st==='stomp'){
+      const pulse=clamp((e.t-.52)/.55,0,1);
+      for(let q=0;q<5;q++){
+        const rise=clamp((e.t-.58-q*.065)/.34,0,1),a=time*2.2+q*6.283/5;
+        push();T(Math.cos(a)*(17+rise*5),23+rise*25,Math.sin(a)*(15+rise*5));
+        sph(1.5+rise,1.5+rise,1.5+rise,q%2?'#ff6848':'#ffd18a',0,0,0,pulse,.92);
+        pop();
+      }
     }
     // Phase two fractures the ivory cuirass: five hot seams echo the awakened keys.
     if(p2){
