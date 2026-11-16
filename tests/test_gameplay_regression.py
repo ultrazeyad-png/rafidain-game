@@ -100,6 +100,14 @@ async def run_suite(base_url: str) -> None:
             if "if(MINI_ARENA){" not in (ROOT / "src" / "template.html").read_text(encoding="utf-8"):
                 raise AssertionError("Themed mini-boss arena geometry is not built")
             print("PASS: regional mini-boss arena anchor and themed standing-stone ring")
+            cinematic_source = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+            if "function miniBossFilm(e,m)" not in cinematic_source or "isMini=!!cine.mini" not in cinematic_source:
+                raise AssertionError("Mini-boss first-encounter cinematic flow is missing")
+            if "miniFilm:world.miniFilm" not in game or "miniFilm:!!w.miniFilm" not in game:
+                raise AssertionError("Mini-boss first-encounter cinematic is not persisted per region")
+            if "bossMusic(true)" not in cinematic_source or "if(e.T.mini){bossMusic(false);" not in game:
+                raise AssertionError("Mini-boss combat music does not start and stop with the encounter")
+            print("PASS: mini-boss first-contact cinematic, per-region persistence, and battle music lifecycle")
 
             speech = await page.evaluate("""() => {
                 const spoken = [];
