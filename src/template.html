@@ -388,7 +388,7 @@ function mk(k,x,z,h){const T=TYPES[k];let y=floorAt(x,z,(h||0)+6);if(y<-900)y=h|
 function spawnAll(){
   if(window.__g?.releaseGLBEntities)window.__g.releaseGLBEntities(enemies);
   const mini=MINI_GUARDS[REG];if(mini)TYPES.gmini=Object.assign({},TYPES[mini.k],{name:mini.n});
-  enemies=SPAWN.filter(s=>!(s[0]==='guard'&&world.key)&&!(s[0]==='gmini'&&world.minis)).map(s=>mk(s[0],s[1],s[2],s[3]));boss=null;lock=null;setLockBtn();
+  enemies=SPAWN.filter(s=>!(s[0]==='guard'&&world.key)&&!(s[0]==='gmini'&&world.minis)).map(s=>{const e=mk(s[0],s[1],s[2],s[3]);e.regionId=REG;return e;});boss=null;lock=null;setLockBtn();
   if(!world.bossDead){if(REG==='muthanna'){boss=mk('boss',1840,900,AY);boss.a=-PI/2;boss.elem='shadow';}
     else if(REG==='duhok'){boss=mk('erra',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem='storm';boss.spd=1.12;}
     else{const g=GOVM[REG],B_=g.boss;TYPES.gb={hp:Math.round(B_.hp*(1+regIdx(REG)*.03)),r:B_.fem?22:26,h:110,embers:1200+regIdx(REG)*120,poise:14+Math.floor(regIdx(REG)/4),name:B_.n,boss0:1};
@@ -648,14 +648,14 @@ function upEnemy(e,dt){
   const T=e.T,dx=P.x-e.x,dz=P.z-e.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),alive=P.state!=='dead',dy=Math.abs(P.y-e.y);
   if(e.k==='gmini'&&!e.p2&&e.hp<=T.hp*.5){
     e.p2=true;e.cd=.65;setE(e,'miniTrans');
-    const m=MINI_GUARDS[REG];if(m){say(m.n+'… أطلق طوره الأخير!','#c66cff',2.6);voice('boss','هسه تشوف قوتي الحقيقية!');}
+    const m=MINI_GUARDS[REG];if(m){say(m.n+'… أطلق طوره الأخير!','#c66cff',2.6);voiceBoss(e,'هسه تشوف قوتي الحقيقية!');}
     burst(e.x,e.y+T.h*.55,e.z,'#c66cff',34,190,e.y);snd('boss');snd('roar');shake=8;return;
   }
   if(ad>1100)return;
   e.cd-=dt;
   switch(e.state){
     case 'idle':{const hx=e.hx-e.x,hz=e.hz-e.z;if(Math.hypot(hx,hz)>6){e.a=Math.atan2(hz,hx);stepE(e,T.speed*.7,dt);}
-      if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m&&!world.miniFilm){world.miniFilm=true;save();miniBossFilm(e,m);return;}if(m){say(m.n,'#d6b7ff',2.8);voice('boss',m.line);}}setE(e,'chase');}break;}
+      if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m&&!world.miniFilm){world.miniFilm=true;save();miniBossFilm(e,m);return;}if(m){say(m.n,'#d6b7ff',2.8);voiceBoss(e,m.line);}}setE(e,'chase');}break;}
     case 'miniTrans':e.a=turn(e.a,ang,2.5*dt);if(e.t>=1.05){setE(e,'chase');e.cd=.25;}break;
     case 'chase':
       if(!alive||ad>T.aggro*2.2||dy>150||Math.hypot(e.x-e.hx,e.z-e.hz)>650){setE(e,'idle');break;}
