@@ -190,7 +190,25 @@ function drawNamtar(e){
   sph(14,18,17.5,body,0,36.5,0);sph(9.6,12,14,plate,3.6,38,0);
   for(let q=0;q<3;q++)cyl(14.4-q,.9,17.6-q,isAdapa?trim:'#2a201a',0,27.5+q*3.4,0);
   cyl(15,4,18,isAdapa?trim:'#3a2c1e',0,24,0);sph(4,4.4,4,isAdapa?'#f7d77c':'#a88a4a',6.6,24,0);
-  if(isAdapa){for(let q=0;q<3;q++){push();T(0,38-q*5,16);box(2.2,3,1.2,trim,0,0,0);pop();}
+  if(isAdapa){
+    // layered lamellar plates: five rows of individually raised bronze-and-ivory scales
+    for(let row=0;row<3;row++)for(let col=-2;col<=2;col++){
+      const x=col*4.15,y=42-row*5.1,z=15.1-Math.abs(col)*.22;
+      sph(3.35,2.65,1.05,row===1?'#d9c8a2':plate,x,y,z);
+      sph(.48,.48,.34,trim,x,y,z+1.02);
+    }
+    // three engraved breastplate ribs and the royal vertical sash
+    for(let q=0;q<3;q++){push();T(0,38-q*5,16);box(2.2,3,1.2,trim,0,0,0);pop();}
+    // five ancient keys hang from the belt; they flare with the second phase
+    for(let q=0;q<5;q++){
+      const x=(q-2)*5.1,glow=p2?1:0;
+      push();T(x,20.5,14.2);RZ((q-2)*.09);
+      cyl(1.05,7.5,1.05,trim,0,-2.2,0,glow,.72);
+      sph(2.15,2.15,.85,p2?'#ff6747':'#287f91',0,2.5,0,glow,.9);
+      box(3.8,1.1,1.1,trim,0,-5.5,0,glow,.8);
+      box(1.1,2.8,1.1,trim,1.5,-7,0,glow,.8);
+      pop();
+    }
     // royal vertical sash and a hanging seal at the waist
     push();T(4,34,14);box(5,27,2.2,'#7b2028',0,-2,0);box(1.1,27,2.5,trim,0,-2,1.3);pop();
     push();T(0,20,15);sph(4.2,5.2,2.2,trim,0,0,0);box(1.2,5,1.2,'#fff0c8',0,0,2);pop();}
@@ -204,10 +222,24 @@ function drawNamtar(e){
   if(isAdapa){
     // stepped gold crown, central lapis jewel and five upright points
     cyl(10.5,2.4,10.5,trim,.6,12,0);cyl(8.8,2.2,8.8,'#fff0c8',.6,14,0);
-    for(let q=0;q<5;q++){const x=(q-2)*4.1;box(1.7,8,1.7,trim,x,18,0);con(2.2,5.5,2.2,trim,x,24,0);}
+    for(let q=0;q<5;q++){
+      const x=(q-2)*4.1;
+      box(1.7,8,1.7,trim,x,18,0);
+      con(2.2,5.5,2.2,trim,x,24,0);
+      if(q===0||q===4){push();T(x,21,0);RZ(q===0?-.22:.22);con(1.5,7,1.5,trim,0,3.2,0);pop();}
+    }
+    // stepped diadem, raised side wings and the lapis centrepiece
+    box(18,1.6,2.4,trim,.6,17,0);
+    for(const sd of[-1,1]){push();T(.6,14,sd*7.4);RX(sd*.35);con(2.2,8,2.2,trim,0,4,0);pop();}
     sph(2.8,3.4,1.8,p2?'#ff563d':'#287f91',.6,15,9.4,p2?1:.82);
     if(p2){for(let q=0;q<3;q++){push();RY(time*1.8+q*2.094);T(0,15,12+Math.sin(time*3+q)*1.2);sph(1.4,1.4,1.4,'#ffb05a',0,0,0,.85);pop();}}
     for(const sd of[-1,1]){push();T(0,10,sd*8);box(2,8,2,trim,0,2,0);pop();}
+    // fine ceremonial grooves across the pale mask; the central fracture wakes in phase two
+    box(.7,12,.7,p2?'#ff624b':'#9d8150',8.7,5.5,0,p2?1:0,.85);
+    for(const sd of[-1,1]){
+      box(2.8,.7,.7,trim,8.4,7.7,sd*2.3);
+      box(1.8,.65,.7,p2?'#ff684e':'#9d8150',8.6,2.7,sd*2.1,p2?1:0,.8);
+    }
   }else{
     for(const sd of[-1,1]){push();T(-1,11,sd*7.5);RX(-sd*.9);RZ(.35);con(3.2,15,3.2,'#cfc6b0',0,7,0);T(0,13,0);RZ(.6);con(2,9,2,'#b9ad94',0,4,0);pop();}
   }
