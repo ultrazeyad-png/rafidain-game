@@ -130,9 +130,17 @@ function parseGLB(buffer){
     if(!Number.isInteger(start)||!Number.isInteger(view.byteLength)||start<0||view.byteLength<1||end>bin.byteLength)gltfFail('embedded image exceeds BIN bounds');
     return {mimeType:image.mimeType,bytes:new Uint8Array(bin.slice(start,end))};
   });
+  const samplers=(json.samplers||[]).map((sampler,index)=>{
+    const wrapS=sampler.wrapS??10497,wrapT=sampler.wrapT??10497;
+    const minFilter=sampler.minFilter??9987,magFilter=sampler.magFilter??9729;
+    if(![33071,33648,10497].includes(wrapS)||![33071,33648,10497].includes(wrapT))gltfFail('sampler '+index+' has an invalid wrap mode');
+    if(![9728,9729,9984,9985,9986,9987].includes(minFilter)||![9728,9729].includes(magFilter))gltfFail('sampler '+index+' has an invalid filter');
+    return {wrapS,wrapT,minFilter,magFilter};
+  });
   const textures=(json.textures||[]).map((texture,index)=>{
     if(!Number.isInteger(texture.source)||!images[texture.source])gltfFail('texture '+index+' references missing image');
-    return {source:texture.source};
+    if(texture.sampler!=null&&(!Number.isInteger(texture.sampler)||!samplers[texture.sampler]))gltfFail('texture '+index+' references missing sampler');
+    return {source:texture.source,sampler:texture.sampler==null?{wrapS:10497,wrapT:10497,minFilter:9987,magFilter:9729}:samplers[texture.sampler]};
   });
   for(const mesh of meshes)for(const primitive of mesh.primitives){
     const ti=primitive.material.baseColorTexture;
@@ -207,7 +215,8 @@ function prepareGLBHero(asset){
 }
 async function prepareGLBTextures(asset){
   const out=[];
-  for(const image of asset.images||[]){
+  for(const spec of asset.textures||[]){
+    const image=asset.images[spec.source],sampler=spec.sampler;
     const blob=new Blob([image.bytes],{type:image.mimeType});
     let bitmap=null;
     if(typeof createImageBitmap==='function')bitmap=await createImageBitmap(blob);
@@ -221,10 +230,16 @@ async function prepareGLBTextures(asset){
     gl.bindTexture(gl.TEXTURE_2D,texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    const pot=(n)=>(n&(n-1))===0;
+    const isPOT=pot(bitmap.width)&&pot(bitmap.height);
+    const wrap=(v)=>v===33071?gl.CLAMP_TO_EDGE:v===33648?gl.MIRRORED_REPEAT:gl.REPEAT;
+    const filter=(v)=>v===9728?gl.NEAREST:v===9729?gl.LINEAR:v===9984?gl.NEAREST_MIPMAP_NEAREST:v===9985?gl.LINEAR_MIPMAP_NEAREST:v===9986?gl.NEAREST_MIPMAP_LINEAR:gl.LINEAR_MIPMAP_LINEAR;
+    const wantsMip=sampler.minFilter>=9984;
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,wantsMip&&!isPOT?gl.LINEAR:filter(sampler.minFilter));
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,sampler.magFilter===9728?gl.NEAREST:gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,isPOT?wrap(sampler.wrapS):gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,isPOT?wrap(sampler.wrapT):gl.CLAMP_TO_EDGE);
+    if(wantsMip&&isPOT)gl.generateMipmap(gl.TEXTURE_2D);
     bitmap.close?.();
     out.push(texture);
   }
