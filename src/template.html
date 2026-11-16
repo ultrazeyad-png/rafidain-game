@@ -776,6 +776,34 @@ function decoDuhok(){
   // blue beads against the evil eye, hung over two doors only
   for(const d of[DOORS[0],DOORS[1]]){const x=d.hx+32,z=d.hz+d.dir*12,y=d.y+86;sc(1,8,1,'#3a2a1c',x,y+5,z);st('sph','#2a62c8',8,8,8,x,y,z,{em:.25});st('sph','#f2f2f2',4.4,4.4,1,x,y,z+d.dir*3.8);st('sph','#1a3a8a',2.4,2.4,1,x,y,z+d.dir*4.4);st('sph','#0a0a0a',1.2,1.2,1,x,y,z+d.dir*4.9);}
   for(const q of DECO)decoTree(q.k,q.x,q.y,q.z,q.h);
+  // Mountain-village craft details: woven rugs hung from the north-facing house,
+  // a timber drying rack, and water jars clustered beside the family entrance.
+  for(const x of[2168,2290]){
+    sb(34,48,3,'#6b3028',x,190,351);
+    sb(27,40,1.4,'#c6a66e',x,190,353);
+    for(let k=-2;k<=2;k++)sb(2.2,35,1.2,k%2?'#7a342c':'#31564b',x+k*5.2,190,354.2);
+    sb(29,3,1.8,'#d8bd83',x,168,354.4);
+    sb(29,3,1.8,'#d8bd83',x,212,354.4);
+    for(const yy of[174,206])st('sph','#b98c50',2.2,2.2,1.5,x,yy,355,{em:.06});
+  }
+  // Timber rack with drying herbs and a few tied bundles.
+  sb(76,5,5,'#5a3e28',2110,176,388);
+  for(const x of[2075,2145])sc(3,42,3,'#4a3424',x,151,388);
+  sb(76,4,4,'#765536',2110,194,388);
+  for(let k=0;k<7;k++){
+    const x=2082+k*9;
+    st('con',k%2?'#6b8547':'#879451',4,17+hash(k*4.7)*8,4,x,185,391,{rz:(k-3)*.12});
+  }
+  // Clay water jars and a shallow stone basin near the path, clear of the doorway.
+  for(const [x,z] of[[2170,378],[2192,382],[2310,372]]){
+    st('sph','#9a6544',12,17,12,x,145,z);
+    st('cyl','#875638',6,7,6,x,161,z);
+    st('cyl','#49352a',4,1.8,4,x,166,z);
+    sb(17,2,17,'#6f6254',x,132,z);
+  }
+  sb(54,7,30,'#777166',2112,134,422);
+  sb(46,2,22,'#a39a87',2112,139,422);
+  st('cyl','#7e7868',7,2,7,2092,142,422);
   // Delal bridge: layered parapets, carved capstones, and the great arch under the deck
   for(const x of[474,566]){
     sb(8,14,232,'#7e786e',x,41,-736);
