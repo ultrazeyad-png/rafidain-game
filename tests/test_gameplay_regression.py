@@ -412,7 +412,7 @@ def verify_boss_finisher() -> None:
             raise AssertionError(f"Boss finisher trigger or HUD prompt missing: {item}")
     for item in (
         "function startBossFinisher(e)",
-        "finisher:true,shots",
+        "finisher:true,finisherWeapon:weapon,shots",
         "name+'… حان وقت الحساب.'",
         "weaponStyle.line",
         "if(cine.finisher){const a=cine.boss&&cine.boss.finisherPose;P.t=Math.min(a||1.45,P.t+dt)",
