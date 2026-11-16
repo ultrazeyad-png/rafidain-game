@@ -79,6 +79,25 @@ function gltfBlendAnimationPoses(asset,fromPose,toPose,alpha){
   }
   return out;
 }
+function gltfResolveAnimationClip(asset,action){
+  const patterns={
+    idle:/idle|stand|breath/i,walk:/walk|move|locomotion/i,run:/run|sprint/i,
+    dodge:/dodge|roll|evade/i,attack:/attack|slash|strike|combat/i,
+    heavy:/heavy|strong|power/i,jump:/jump|leap/i,death:/death|die|dead/i
+  };
+  const pattern=patterns[action];if(!pattern)return -1;
+  return (asset.animations||[]).findIndex(clip=>pattern.test(clip.name||''));
+}
+function setGLBHeroAction(action){
+  if(!gltfHero) return {ok:false,reason:'no-model'};
+  if(typeof action!=='string'||!action)gltfFail('hero action must be a non-empty string');
+  const clip=gltfResolveAnimationClip(gltfHero.asset,action);
+  if(clip<0)return {ok:false,reason:'clip-not-found',action};
+  if(gltfHeroPlayback.clip===clip)return {ok:true,clip,changed:false};
+  const transitionDuration=action==='attack'||action==='heavy'||action==='dodge'?.10:.20;
+  const playback=setGLBHeroAnimation({clip,transitionDuration});
+  return {ok:true,clip,changed:true,playback};
+}
 function gltfNodeMatrix(n){
   if(n.matrix){
     if(n.matrix.length!==16||!n.matrix.every(Number.isFinite))gltfFail('node matrix must contain 16 finite values');
