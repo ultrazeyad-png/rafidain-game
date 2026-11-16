@@ -624,6 +624,88 @@ if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
     if(glOK)gltfHeroGPU=prepareGLBHero(gltfHero.asset);
   }).catch(error=>{gltfHeroError=String(error&&error.message||error);});
 });
+
+const gltfEntityInstances=new Map();
+async function loadGLBEntity(id,url,options={}){
+  if(typeof id!=='string'||!id.trim())gltfFail('entity id must be a non-empty string');
+  if(gltfEntityInstances.has(id))return {ok:false,reason:'duplicate-id',id};
+  const entity={id,url,asset:null,playback:null,gpu:null,textures:[],scale:options.scale??60,error:'',action:'idle'};
+  gltfEntityInstances.set(id,entity);
+  try{
+    entity.asset=await loadGLB(url);
+    if(!entity.asset.meshes.length)gltfFail('entity model contains no meshes');
+    entity.playback=gltfCreatePlaybackState(entity.asset,options.animation||{});
+    if(glOK){entity.textures=await prepareGLBTextures(entity.asset);entity.gpu=prepareGLBHero(entity.asset);}
+    return {ok:true,id,meshes:entity.asset.meshes.length,primitives:entity.asset.bounds};
+  }catch(error){
+    entity.error=String(error&&error.message||error);
+    gltfEntityInstances.delete(id);
+    return {ok:false,id,error:entity.error};
+  }
+}
+function setGLBEntityAction(id,action,options={}){
+  const entity=gltfEntityInstances.get(id);
+  if(!entity||!entity.asset)return {ok:false,reason:'entity-not-loaded',id};
+  const result=gltfSetEntityAction(entity,action,options);
+  if(result.ok)entity.action=action;
+  return result;
+}
+function updateGLBEntity(id,now){
+  const entity=gltfEntityInstances.get(id);
+  if(!entity||!entity.asset)return {ok:false,reason:'entity-not-loaded',id};
+  const state=gltfUpdateAnimatedEntity(entity,now);
+  if(entity.gpu){
+    for(const item of entity.gpu){
+      if(item.skin==null)continue;
+      const palette=state.jointPalettes.get(item.skin+':'+item.node);
+      if(!palette)continue;
+      const deformed=gltfSkinPrimitiveCPU(item.primitive,palette);
+      const data=gltfTransformExpanded(gltfExpandPrimitive(deformed),item.matrix);
+      gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.DYNAMIC_DRAW);
+    }
+  }
+  return {ok:true,id,action:entity.action,elapsed:entity.playback.elapsed};
+}
+function removeGLBEntity(id){
+  const entity=gltfEntityInstances.get(id);if(!entity)return false;
+  if(glOK){for(const item of entity.gpu||[])gl.deleteBuffer(item.buffer);for(const texture of entity.textures||[])gl.deleteTexture(texture);}
+  gltfEntityInstances.delete(id);return true;
+}
+function drawGLBEntity(id,x,y,z,yaw=0,scale){
+  const entity=gltfEntityInstances.get(id);
+  if(!entity||!entity.asset||!glOK)return false;
+  if(!entity.gpu){try{entity.gpu=prepareGLBHero(entity.asset);}catch(error){entity.error=String(error);return false;}}
+  const size=Number.isFinite(scale)?scale:entity.scale;
+  try{updateGLBEntity(id,typeof time==='number'?time:0);}catch(error){entity.error=String(error&&error.message||error);return false;}
+  push();T(x,y,z);RY(-yaw);Sc(size,size,size);
+  gl.uniformMatrix4fv(uM,false,cur);gl.uniform3f(uNS,1/(size*size),1/(size*size),1/(size*size));
+  gl.uniform1f(uTx,0);gl.uniform1f(uE,0);
+  for(const item of entity.gpu){
+    const m=item.material,f=m.baseColorFactor;
+    gl.uniform4f(uC,f[0],f[1],f[2],f[3]);
+    gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);
+    gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aN);
+    gl.vertexAttribPointer(aP,3,gl.FLOAT,false,48,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,48,12);
+    const uvLoc=gl.getAttribLocation(prog,'uv');
+    if(uvLoc>=0){gl.enableVertexAttribArray(uvLoc);gl.vertexAttribPointer(uvLoc,2,gl.FLOAT,false,48,24);}
+    gl.disableVertexAttribArray(aC);gl.vertexAttrib4f(aC,1,1,1,0);
+    const tangentLoc=gl.getAttribLocation(prog,'tangent');if(tangentLoc>=0){gl.enableVertexAttribArray(tangentLoc);gl.vertexAttribPointer(tangentLoc,4,gl.FLOAT,false,48,32);}
+    const tex=item.texture==null?null:entity.textures[item.texture]||null;
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),tex?1:0);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),1);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBMetallic'),m.metallicFactor??1);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBRoughness'),m.roughnessFactor??1);
+    if(tex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBTex'),2);}
+    const normalTex=item.normalTexture==null?null:entity.textures[item.normalTexture]||null,useNormal=!!(normalTex&&item.hasTangents&&item.hasUVs);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalMap'),useNormal?1:0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalScale'),m.normalScale??1);
+    if(useNormal){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,normalTex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBNormalTex'),3);}
+    gl.drawArrays(gl.TRIANGLES,0,item.count);
+  }
+  gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalMap'),0);gl.activeTexture(gl.TEXTURE0);
+  const uvLoc=gl.getAttribLocation(prog,'uv');if(uvLoc>=0)gl.disableVertexAttribArray(uvLoc);
+  pop();bindMesh();gAlpha=1;return true;
+}
+
 function drawGLBHero(){
   if(!gltfHero||!glOK)return false;
   if(!gltfHeroGPU){try{gltfHeroGPU=prepareGLBHero(gltfHero.asset);}catch(e){gltfHeroError=String(e);return false;}}
