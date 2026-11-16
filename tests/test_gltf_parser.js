@@ -224,4 +224,40 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.equal(parsed.meshes[0].primitives[0].material.roughnessFactor,0.7);
 }
 
+
+{
+  const d=baseDocument();
+  const bin=Buffer.alloc(92);baseBin().copy(bin,0);
+  for(let i=0;i<3;i++){bin.writeFloatLE(1,44+i*16);bin.writeFloatLE(0,48+i*16);bin.writeFloatLE(0,52+i*16);bin.writeFloatLE(1,56+i*16);}
+  d.bufferViews.push({buffer:0,byteOffset:44,byteLength:48});
+  d.accessors.push({bufferView:2,componentType:5126,count:3,type:'VEC4'});
+  d.meshes[0].primitives[0].attributes.TANGENT=2;
+  const parsed=parse(makeGLB(d,bin));
+  assert.equal(parsed.meshes[0].primitives[0].tangents.length,12);
+  assert.equal(parsed.meshes[0].primitives[0].tangents[3],1);
+}
+{
+  const d=baseDocument();
+  d.accessors.push({bufferView:1,componentType:5126,count:3,type:'VEC4'});
+  d.meshes[0].primitives[0].attributes.TANGENT=2;
+  expectInvalid(d,baseBin(),/TANGENT must be a matching VEC4/);
+}
+{
+  const d=baseDocument();
+  d.materials=[{normalTexture:{index:0,scale:0.65}}];
+  d.meshes[0].primitives[0].material=0;
+  d.images=[{bufferView:2,mimeType:'image/png'}];
+  d.bufferViews.push({buffer:0,byteOffset:44,byteLength:4});
+  d.textures=[{source:0}];
+  const parsed=parse(makeGLB(d,baseBin()));
+  assert.equal(parsed.meshes[0].primitives[0].material.normalTexture,0);
+  assert.equal(parsed.meshes[0].primitives[0].material.normalScale,0.65);
+}
+{
+  const d=baseDocument();
+  d.materials=[{normalTexture:{index:2}}];
+  d.meshes[0].primitives[0].material=0;
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/missing normal texture/);
+}
+
 console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
