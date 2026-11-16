@@ -13,10 +13,16 @@ function gltfMatMul(a,b){
   return o;
 }
 function gltfNodeMatrix(n){
-  if(n.matrix){if(n.matrix.length!==16)gltfFail('node matrix must contain 16 values');return new Float32Array(n.matrix);}
+  if(n.matrix){
+    if(n.matrix.length!==16||!n.matrix.every(Number.isFinite))gltfFail('node matrix must contain 16 finite values');
+    return new Float32Array(n.matrix);
+  }
   const t=n.translation||[0,0,0],q=n.rotation||[0,0,0,1],s=n.scale||[1,1,1];
-  if(t.length!==3||q.length!==4||s.length!==3)gltfFail('invalid node TRS');
-  const [x,y,z,w]=q,xx=x*x,yy=y*y,zz=z*z,xy=x*y,xz=x*z,yz=y*z,wx=w*x,wy=w*y,wz=w*z;
+  if(t.length!==3||q.length!==4||s.length!==3||
+     !t.every(Number.isFinite)||!q.every(Number.isFinite)||!s.every(Number.isFinite))gltfFail('invalid or non-finite node TRS');
+  const qlen=Math.hypot(q[0],q[1],q[2],q[3]);
+  if(qlen<1e-12)gltfFail('node rotation quaternion must be non-zero');
+  const [x0,y0,z0,w0]=q,x=x0/qlen,y=y0/qlen,z=z0/qlen,w=w0/qlen,xx=x*x,yy=y*y,zz=z*z,xy=x*y,xz=x*z,yz=y*z,wx=w*x,wy=w*y,wz=w*z;
   return new Float32Array([
     (1-2*(yy+zz))*s[0],(2*(xy+wz))*s[0],(2*(xz-wy))*s[0],0,
     (2*(xy-wz))*s[1],(1-2*(xx+zz))*s[1],(2*(yz+wx))*s[1],0,
@@ -27,15 +33,21 @@ function gltfNodeMatrix(n){
 function gltfSceneInstances(json,meshCount){
   const nodes=json.nodes||[],scenes=json.scenes||[],instances=[];
   if(!nodes.length)return Array.from({length:meshCount},(_,mesh)=>({mesh,node:-1,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
-  const scene=scenes[json.scene||0];
-  const roots=scene?.nodes||nodes.map((_,i)=>i).filter(i=>!nodes.some(n=>(n.children||[]).includes(i)));
+  const sceneIndex=json.scene??0;
+  if(scenes.length&&(!Number.isInteger(sceneIndex)||sceneIndex<0||sceneIndex>=scenes.length))gltfFail('selected scene index is out of range');
+  const scene=scenes[sceneIndex];
+  const roots=scene?scene.nodes:(nodes.map((_,i)=>i).filter(i=>!nodes.some(n=>(n.children||[]).includes(i))));
+  if(!Array.isArray(roots))gltfFail('scene nodes must be an array');
   const active=new Set(),visited=new Set();
   const walk=(index,parent)=>{
+    if(!Number.isInteger(index)||index<0||index>=nodes.length)gltfFail('scene references missing node '+index);
     const n=nodes[index];if(!n)gltfFail('scene references missing node '+index);
     if(active.has(index))gltfFail('node hierarchy contains a cycle');
+    if(visited.has(index))gltfFail('node is referenced more than once in the selected scene');
     active.add(index);visited.add(index);
     const world=gltfMatMul(parent,gltfNodeMatrix(n));
     if(n.mesh!=null){if(!Number.isInteger(n.mesh)||n.mesh<0||n.mesh>=meshCount)gltfFail('node references missing mesh '+n.mesh);instances.push({mesh:n.mesh,node:index,matrix:world});}
+    if(n.children!=null&&!Array.isArray(n.children))gltfFail('node children must be an array');
     for(const child of n.children||[])walk(child,world);
     active.delete(index);
   };
