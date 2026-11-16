@@ -69,6 +69,40 @@ function gltfNodeMatrix(n){
     t[0],t[1],t[2],1
   ]);
 }
+function gltfInvertMat4(a){
+  const out=new Float32Array(16),b00=a[0]*a[5]-a[1]*a[4],b01=a[0]*a[6]-a[2]*a[4],b02=a[0]*a[7]-a[3]*a[4],b03=a[1]*a[6]-a[2]*a[5],b04=a[1]*a[7]-a[3]*a[5],b05=a[2]*a[7]-a[3]*a[6],b06=a[8]*a[13]-a[9]*a[12],b07=a[8]*a[14]-a[10]*a[12],b08=a[8]*a[15]-a[11]*a[12],b09=a[9]*a[14]-a[10]*a[13],b10=a[9]*a[15]-a[11]*a[13],b11=a[10]*a[15]-a[11]*a[14];
+  let det=b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06;
+  if(!Number.isFinite(det)||Math.abs(det)<1e-12)gltfFail('cannot invert a singular node transform');det=1/det;
+  out[0]=(a[5]*b11-a[6]*b10+a[7]*b09)*det;out[1]=(a[2]*b10-a[1]*b11-a[3]*b09)*det;out[2]=(a[13]*b05-a[14]*b04+a[15]*b03)*det;out[3]=(a[10]*b04-a[9]*b05-a[11]*b03)*det;
+  out[4]=(a[6]*b08-a[4]*b11-a[7]*b07)*det;out[5]=(a[0]*b11-a[2]*b08+a[3]*b07)*det;out[6]=(a[14]*b02-a[12]*b05-a[15]*b01)*det;out[7]=(a[8]*b05-a[10]*b02+a[11]*b01)*det;
+  out[8]=(a[4]*b10-a[5]*b08+a[7]*b06)*det;out[9]=(a[1]*b08-a[0]*b10-a[3]*b06)*det;out[10]=(a[12]*b04-a[13]*b02+a[15]*b00)*det;out[11]=(a[9]*b02-a[8]*b04-a[11]*b00)*det;
+  out[12]=(a[5]*b07-a[4]*b09-a[6]*b06)*det;out[13]=(a[0]*b09-a[1]*b07+a[2]*b06)*det;out[14]=(a[13]*b01-a[12]*b03-a[14]*b00)*det;out[15]=(a[8]*b03-a[9]*b01+a[10]*b00)*det;
+  return out;
+}
+function gltfNodeWorldMatrices(asset,pose=new Map()){
+  const nodes=asset.nodes||[],world=new Array(nodes.length),active=new Set();
+  const parent=new Array(nodes.length).fill(-1);
+  for(let i=0;i<nodes.length;i++)for(const child of nodes[i].children||[]){if(parent[child]!==-1)gltfFail('node has multiple parents');parent[child]=i;}
+  const resolve=i=>{
+    if(world[i])return world[i];if(active.has(i))gltfFail('node hierarchy contains a cycle');active.add(i);
+    const n=nodes[i],p=pose.get(i)||{};
+    if(n.matrix&&(p.translation||p.rotation||p.scale))gltfFail('animated nodes must use TRS instead of matrix');
+    const local=n.matrix?gltfNodeMatrix(n):gltfNodeMatrix({translation:p.translation||n.translation,rotation:p.rotation||n.rotation,scale:p.scale||n.scale});
+    world[i]=parent[i]===-1?local:gltfMatMul(resolve(parent[i]),local);active.delete(i);return world[i];
+  };
+  for(let i=0;i<nodes.length;i++)resolve(i);
+  return world;
+}
+function gltfBuildJointMatrices(asset,skinIndex,meshNode,pose=new Map()){
+  const skin=asset.skins?.[skinIndex];if(!skin)gltfFail('missing skin '+skinIndex);
+  if(!Number.isInteger(meshNode)||meshNode<0||meshNode>=asset.nodes.length)gltfFail('invalid skinned mesh node');
+  const worlds=gltfNodeWorldMatrices(asset,pose),inverseMesh=gltfInvertMat4(worlds[meshNode]),out=new Float32Array(skin.joints.length*16);
+  for(let i=0;i<skin.joints.length;i++){
+    const jointWorld=worlds[skin.joints[i]],ibm=skin.inverseBindMatrices.subarray(i*16,(i+1)*16);
+    out.set(gltfMatMul(gltfMatMul(inverseMesh,jointWorld),ibm),i*16);
+  }
+  return out;
+}
 function gltfSceneInstances(json,meshCount){
   const nodes=json.nodes||[],scenes=json.scenes||[],instances=[];
   if(!nodes.length)return Array.from({length:meshCount},(_,mesh)=>({mesh,node:-1,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
@@ -85,7 +119,7 @@ function gltfSceneInstances(json,meshCount){
     if(visited.has(index))gltfFail('node is referenced more than once in the selected scene');
     active.add(index);visited.add(index);
     const world=gltfMatMul(parent,gltfNodeMatrix(n));
-    if(n.mesh!=null){if(!Number.isInteger(n.mesh)||n.mesh<0||n.mesh>=meshCount)gltfFail('node references missing mesh '+n.mesh);instances.push({mesh:n.mesh,node:index,matrix:world});}
+    if(n.mesh!=null){if(!Number.isInteger(n.mesh)||n.mesh<0||n.mesh>=meshCount)gltfFail('node references missing mesh '+n.mesh);instances.push({mesh:n.mesh,node:index,skin:n.skin??null,matrix:world});}
     if(n.children!=null&&!Array.isArray(n.children))gltfFail('node children must be an array');
     for(const child of n.children||[])walk(child,world);
     active.delete(index);
