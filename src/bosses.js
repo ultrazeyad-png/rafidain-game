@@ -86,9 +86,23 @@ function namAxe(){cyl(2.1,70,2.1,'#2a1c14',0,-14,0);for(let i=0;i<4;i++)cyl(2.5,
   sph(15,19,2,'#5a5650',8,0,0);sph(13.5,17,1.5,'#8a8680',10,0,0);box(.9,17,2.4,'#c8ccd2',16.4,0,0);
   for(const s of[-1,1]){push();T(8,s*8,0);RZ(s*.4);box(6,2.2,2,'#3a3430',0,0,0);pop();}
   con(3,9,3,'#4a443e',-4,0,0);pop();con(2.4,7,2.4,'#4a443e',0,-50,0);}
+function adapaSword(){
+  // ceremonial straight blade with a gold crossguard and lapis pommel
+  cyl(2.1,17,2.1,'#4a3020',0,0,0);
+  for(let i=0;i<3;i++)cyl(2.6,1,2.6,'#d8ad54',0,-5+i*4,0);
+  box(18,3.2,3.2,'#d8ad54',0,-9,0);
+  box(7.2,38,2.4,'#cfd5d5',0,-29,0);
+  box(1.4,34,1.1,'#fff4d8',-1.6,-29,1.5);
+  box(5.2,29,1.4,'#8f9b9d',0,-28,-1.4);
+  con(3.7,10,2.2,'#e4e0d1',0,-53,0);
+  sph(3.2,3.2,3.2,'#287f91',0,10,0);
+}
 function drawNamtar(e){
   const fall=mobFx(e,2.2);if(fall<0)return;
-  const st=e.state,p2=e.p2,body='#4e3e2c',dark='#241a12',cape=p2?'#120708':'#3a1218';
+  const st=e.state,p2=e.p2,isAdapa=!!(e.T&&e.T.name&&e.T.name.includes('أدابا'));
+  const body=isAdapa?'#d9d0bd':'#4e3e2c',dark=isAdapa?'#30251f':'#241a12',
+    cape=isAdapa?(p2?'#351018':'#641d25'):(p2?'#120708':'#3a1218'),
+    trim=isAdapa?'#d8ad54':'#8a7045',plate=isAdapa?'#eee5d2':'#5e4a32';
   let key=null,u=0,lean=0,crouch=0;
   const A=NM[st];
   if(A){const sp=p2?1.18:1;key=A.key;
@@ -115,22 +129,37 @@ function drawNamtar(e){
     push();T(0,24.4,sd*4.6);RZ(hip);sph(7,14,7.4,dark,0,-6,0);T(0,-11.5,0);RZ(-knee);
     sph(6,12.8,6.4,body,0,-5,0);sph(6.8,4,7,'#6a5236',1,0,0);T(0,-10.3,0);RZ(knee-hip);sph(10,5,7,dark,1.8,0,0);pop();}
   // skirt of plates
-  for(let q=0;q<8;q++){const a=q/8*6.283;push();T(Math.cos(a)*7,22,Math.sin(a)*8.6);RX(Math.sin(a)*.25);RZ(-Math.cos(a)*.25);box(1.4,15,6.4,q%2?body:'#5a4630',0,-6,0);pop();}
+  for(let q=0;q<(isAdapa?10:8);q++){const a=q/(isAdapa?10:8)*6.283;push();T(Math.cos(a)*7,22,Math.sin(a)*8.6);RX(Math.sin(a)*.25);RZ(-Math.cos(a)*.25);box(isAdapa?1.8:1.4,isAdapa?18:15,isAdapa?7:6.4,q%2?body:(isAdapa?trim:'#5a4630'),0,-6,0);pop();}
   push();T(0,30,0);RZ(lean);T(0,-30,0);
   // cape: tattered, burning black in the second phase
   push();T(-8,46,0);RZ(-.22-Math.sin(time*2.2)*.05-mvk*.2);
   for(let q=0;q<5;q++){const l=38+hash(q*3.1)*14;box(2,l,7.4,cape,0,-l/2,(q-2)*7);if(p2)box(2.2,6,7.6,'#c0242e',.2,-l+3,(q-2)*7,1,.8);}pop();
   // breastplate, belly plates, pauldrons
-  sph(14,18,17.5,body,0,36.5,0);sph(9.6,12,14,'#5e4a32',3.6,38,0);for(let q=0;q<3;q++)cyl(14.4-q,.9,17.6-q,'#2a201a',0,27.5+q*3.4,0);
-  cyl(15,4,18,'#3a2c1e',0,24,0);sph(4,4.4,4,'#a88a4a',6.6,24,0);
-  for(const sd of[-1,1]){push();T(0,44,sd*10.6);for(let q=0;q<3;q++)sph(11-q*1.5,4.6,11-q*1.5,q?'#5a4630':'#6a5236',0,-q*3.6,0);con(2.4,7,2.4,'#b9ad94',0,4.4,0);pop();}
-  // helm: horned, a slit where the face should be, embers behind it
+  sph(14,18,17.5,body,0,36.5,0);sph(9.6,12,14,plate,3.6,38,0);
+  for(let q=0;q<3;q++)cyl(14.4-q,.9,17.6-q,isAdapa?trim:'#2a201a',0,27.5+q*3.4,0);
+  cyl(15,4,18,isAdapa?trim:'#3a2c1e',0,24,0);sph(4,4.4,4,isAdapa?'#f7d77c':'#a88a4a',6.6,24,0);
+  if(isAdapa){for(let q=0;q<3;q++){push();T(0,38-q*5,16);box(2.2,3,1.2,trim,0,0,0);pop();}
+    // royal vertical sash and a hanging seal at the waist
+    push();T(4,34,14);box(5,27,2.2,'#7b2028',0,-2,0);box(1.1,27,2.5,trim,0,-2,1.3);pop();
+    push();T(0,20,15);sph(4.2,5.2,2.2,trim,0,0,0);box(1.2,5,1.2,'#fff0c8',0,0,2);pop();}
+  for(const sd of[-1,1]){push();T(0,44,sd*10.6);for(let q=0;q<3;q++)sph(isAdapa?12-q*1.5:11-q*1.5,4.6,isAdapa?12-q*1.5:11-q*1.5,q?(isAdapa?body:'#5a4630'):(isAdapa?trim:'#6a5236'),0,-q*3.6,0);if(!isAdapa)con(2.4,7,2.4,'#b9ad94',0,4.4,0);else{for(let q=0;q<3;q++)con(2.2,6,2.2,trim,0,4+q*3,0);}pop();}
+  // Adapa wears a royal crown and a pale ceremonial mask; Namtar keeps his horned war-helm
   push();T(.6,47,0);sph(7.4,4,7.4,dark,0,0,0);
-  sph(9.4,11,9,'#3a2e22',.6,6,0);box(1.2,1.4,8,'#0a0606',8.6,6.6,0);for(const sd of[-1,1])sph(1.3,1.1,1.6,p2?'#ff3a20':'#ff9a40',8.4,6.6,sd*2.2,1);
-  box(1.6,7,1.6,'#2a201a',9,2,0);cyl(10,1.6,10,'#6a5236',.6,10.6,0);
-  for(const sd of[-1,1]){push();T(-1,11,sd*7.5);RX(-sd*.9);RZ(.35);con(3.2,15,3.2,'#cfc6b0',0,7,0);T(0,13,0);RZ(.6);con(2,9,2,'#b9ad94',0,4,0);pop();}
+  sph(9.4,11,9,isAdapa?'#d9c9a7':'#3a2e22',.6,6,0);
+  box(1.2,1.4,8,'#0a0606',8.6,6.6,0);
+  for(const sd of[-1,1])sph(1.3,1.1,1.6,isAdapa?(p2?'#fff0a8':'#fff8d8'):(p2?'#ff3a20':'#ff9a40'),8.4,6.6,sd*2.2,1);
+  box(1.6,7,1.6,isAdapa?trim:'#2a201a',9,2,0);cyl(10,1.6,10,isAdapa?trim:'#6a5236',.6,10.6,0);
+  if(isAdapa){
+    // stepped gold crown, central lapis jewel and five upright points
+    cyl(10.5,2.4,10.5,trim,.6,12,0);cyl(8.8,2.2,8.8,'#fff0c8',.6,14,0);
+    for(let q=0;q<5;q++){const x=(q-2)*4.1;box(1.7,8,1.7,trim,x,18,0);con(2.2,5.5,2.2,trim,x,24,0);}
+    sph(2.8,3.4,1.8,'#287f91',.6,15,9.4);
+    for(const sd of[-1,1]){push();T(0,10,sd*8);box(2,8,2,trim,0,2,0);pop();}
+  }else{
+    for(const sd of[-1,1]){push();T(-1,11,sd*7.5);RX(-sd*.9);RZ(.35);con(3.2,15,3.2,'#cfc6b0',0,7,0);T(0,13,0);RZ(.6);con(2,9,2,'#b9ad94',0,4,0);pop();}
+  }
   pop();
-  const ax=st==='held'?null:namAxe;namArm(-1,o,null,body);namArm(1,m,ax,body);
+  const ax=st==='held'?null:(isAdapa?adapaSword:namAxe);namArm(-1,o,null,body);namArm(1,m,ax,body);
   if(st==='stag'){}   // he stays down; the axe hangs from his hand
   pop();pop();
   if(st==='held'||st==='grab')gFlash=false;
