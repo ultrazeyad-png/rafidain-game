@@ -79,6 +79,48 @@ function gltfBlendAnimationPoses(asset,fromPose,toPose,alpha){
   }
   return out;
 }
+function gltfCreatePlaybackState(asset,options={}){
+  const count=asset.animations?.length||0,clip=options.clip??0,speed=options.speed??1,loop=options.loop??true;
+  if(!Number.isInteger(clip)||clip<0||(count&&clip>=count))gltfFail('animation clip index is out of range');
+  if(!Number.isFinite(speed)||speed<0||speed>4)gltfFail('animation speed must be between 0 and 4');
+  if(typeof loop!=='boolean')gltfFail('animation loop must be boolean');
+  return {clip,speed,paused:!!options.paused,elapsed:options.position??0,lastTime:null,loop,transition:null,currentPose:new Map()};
+}
+function gltfSetPlaybackAnimation(asset,playback,options={}){
+  const next={...playback};
+  if(options.clip!=null){
+    if(!Number.isInteger(options.clip)||options.clip<0||options.clip>=(asset.animations?.length||0))gltfFail('animation clip index is out of range');
+    if(options.clip!==next.clip){
+      const duration=options.transitionDuration??0;
+      if(!Number.isFinite(duration)||duration<0||duration>10)gltfFail('transitionDuration must be between 0 and 10 seconds');
+      next.transition=duration>0&&next.currentPose?.size?{fromPose:next.currentPose,duration,elapsed:0}:null;
+      next.clip=options.clip;next.elapsed=0;next.lastTime=null;
+    }
+  }
+  if(options.speed!=null){if(!Number.isFinite(options.speed)||options.speed<0||options.speed>4)gltfFail('animation speed must be between 0 and 4');next.speed=options.speed;}
+  if(options.paused!=null){if(typeof options.paused!=='boolean')gltfFail('animation paused must be boolean');next.paused=options.paused;}
+  if(options.loop!=null){if(typeof options.loop!=='boolean')gltfFail('animation loop must be boolean');next.loop=options.loop;}
+  if(options.position!=null){if(!Number.isFinite(options.position)||options.position<0)gltfFail('animation position must be a non-negative finite number');next.elapsed=options.position;next.lastTime=null;}
+  return next;
+}
+function gltfAdvancePlayback(asset,playback,now){
+  if(!asset.animations?.length)return new Map();
+  const animation=asset.animations[playback.clip];
+  if(!animation)gltfFail('animation playback clip is unavailable');
+  if(!animation.channels?.length)return playback.currentPose||new Map();
+  const clock=Number.isFinite(now)?now:0;
+  if(playback.lastTime==null)playback.lastTime=clock;
+  else{const dt=Math.max(0,clock-playback.lastTime);if(!playback.paused){playback.elapsed+=dt*playback.speed;if(playback.transition)playback.transition.elapsed+=dt;}playback.lastTime=clock;}
+  const clipTime=gltfAnimationLocalTime(animation,playback.elapsed,playback.loop);
+  let pose=gltfEvaluateAnimation(animation,clipTime);
+  if(playback.transition){
+    const alpha=playback.transition.elapsed/playback.transition.duration;
+    pose=gltfBlendAnimationPoses(asset,playback.transition.fromPose,pose,alpha);
+    if(alpha>=1)playback.transition=null;
+  }
+  playback.currentPose=pose;
+  return pose;
+}
 function gltfResolveAnimationClip(asset,action){
   const patterns={
     idle:/idle|stand|breath/i,walk:/walk|move|locomotion/i,run:/run|sprint/i,
@@ -480,39 +522,13 @@ function prepareGLBHero(asset){
 }
 function setGLBHeroAnimation(options={}){
   if(!gltfHero)gltfFail('no GLB hero is loaded');
-  const next={...gltfHeroPlayback};
-  if(options.clip!=null){
-    if(!Number.isInteger(options.clip)||options.clip<0||options.clip>=gltfHero.asset.animations.length)gltfFail('animation clip index is out of range');
-    if(options.clip!==next.clip){
-      const duration=options.transitionDuration??0;
-      if(!Number.isFinite(duration)||duration<0||duration>10)gltfFail('transitionDuration must be between 0 and 10 seconds');
-      if(duration>0&&next.currentPose?.size)next.transition={fromPose:next.currentPose,duration,elapsed:0};
-      else next.transition=null;
-      next.clip=options.clip;next.elapsed=0;next.lastTime=null;
-    }
-  }
-  if(options.speed!=null){if(!Number.isFinite(options.speed)||options.speed<0||options.speed>4)gltfFail('animation speed must be between 0 and 4');next.speed=options.speed;}
-  if(options.paused!=null){if(typeof options.paused!=='boolean')gltfFail('animation paused must be boolean');next.paused=options.paused;}
-  if(options.loop!=null){if(typeof options.loop!=='boolean')gltfFail('animation loop must be boolean');next.loop=options.loop;}
-  if(options.position!=null){if(!Number.isFinite(options.position)||options.position<0)gltfFail('animation position must be a non-negative finite number');next.elapsed=options.position;next.lastTime=null;}
-  gltfHeroPlayback=next;
-  return {clip:next.clip,speed:next.speed,paused:next.paused,loop:next.loop,position:next.elapsed,transition:next.transition?next.transition.duration:0};
+  gltfHeroPlayback=gltfSetPlaybackAnimation(gltfHero.asset,gltfHeroPlayback,options);
+  const p=gltfHeroPlayback;
+  return {clip:p.clip,speed:p.speed,paused:p.paused,loop:p.loop,position:p.elapsed,transition:p.transition?p.transition.duration:0};
 }
 function updateGLBHeroSkinning(now){
   if(!gltfHero||!gltfHeroGPU||!gltfHero.asset.animations?.length)return;
-  const asset=gltfHero.asset,playback=gltfHeroPlayback,animation=asset.animations[playback.clip];
-  if(!animation?.channels.length)return;
-  const clock=Number.isFinite(now)?now:0;
-  if(playback.lastTime==null)playback.lastTime=clock;
-  else{const dt=Math.max(0,clock-playback.lastTime);if(!playback.paused){playback.elapsed+=dt*playback.speed;if(playback.transition)playback.transition.elapsed+=dt;}playback.lastTime=clock;}
-  const clipTime=gltfAnimationLocalTime(animation,playback.elapsed,playback.loop);
-  let pose=gltfEvaluateAnimation(animation,clipTime);
-  if(playback.transition){
-    const alpha=playback.transition.elapsed/playback.transition.duration;
-    pose=gltfBlendAnimationPoses(asset,playback.transition.fromPose,pose,alpha);
-    if(alpha>=1)playback.transition=null;
-  }
-  playback.currentPose=pose;
+  const asset=gltfHero.asset,playback=gltfHeroPlayback,pose=gltfAdvancePlayback(asset,playback,now);
   const palettes=new Map();
   for(const item of gltfHeroGPU){
     if(item.skin==null)continue;
