@@ -526,6 +526,30 @@ def verify_glb_gameplay_entity_render_binding() -> None:
             raise AssertionError(f"Enemy/boss GLB draw integration or fallback missing: {item}")
     print("PASS: GLB entity binding API, animation sync, model draw path, texture source mapping, and procedural fallback")
 
+
+def verify_glb_hero_load_is_transactional() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    required = (
+        "gltfHeroLoadSerial=0",
+        "function disposeGLBResources(gpu,textures)",
+        "const request=++gltfHeroLoadSerial",
+        "if(request!==gltfHeroLoadSerial)return {ok:false,reason:'superseded'}",
+        "const previousGPU=gltfHeroGPU,previousTextures=gltfHeroTextures",
+        "gltfHero={asset,scale};gltfHeroGPU=gpu;gltfHeroTextures=textures",
+        "disposeGLBResources(previousGPU,previousTextures)",
+        "const inspection=inspectGLBAsset(asset)",
+        "if(texture)gl.deleteTexture(texture)",
+        "if(gltfHero!==restoredHero||gltfHeroLoadSerial!==restoreSerial)",
+        "gltfCreatePlaybackState(asset,{clip:0,speed:1,paused:false,position:0,loop:true})",
+    )
+    missing = [item for item in required if item not in gltf]
+    if missing:
+        raise AssertionError(f"Transactional GLB hero loading safeguards missing: {missing}")
+    if "gltfHero=null;gltfHeroGPU=null;gltfHeroTextures=[];gltfHeroError='';" in gltf:
+        raise AssertionError("A new hero request must not clear the currently working hero before success")
+    print("PASS: GLB hero replacement is race-safe, preserves the previous model on failure, and cleans partial GPU resources")
+
+
 def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
@@ -533,6 +557,7 @@ def main() -> int:
     verify_weapon_and_boss_specific_finishers()
     verify_regional_mini_bosses()
     verify_glb_gameplay_entity_render_binding()
+    verify_glb_hero_load_is_transactional()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
