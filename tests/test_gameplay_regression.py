@@ -573,6 +573,19 @@ def verify_glb_enemy_boss_asset_acceptance() -> None:
 
 
 
+def verify_regional_miniboss_voice_routing() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+    if "e.regionId=REG;return e;" not in game:
+        raise AssertionError("Spawned enemies and mini-bosses must retain their region id")
+    for item in ("voiceBoss(e,'هسه تشوف قوتي الحقيقية!')", "voiceBoss(e,m.line)"):
+        if item not in game:
+            raise AssertionError(f"Regional mini-boss voice route missing: {item}")
+    if "if(m)voiceBoss(b,m.line);" not in systems:
+        raise AssertionError("Mini-boss cinematic return must use the regional voice profile")
+    print("PASS: regional mini-boss intro, phase-two and cinematic dialogue use their region voice profile")
+
+
 def verify_region_specific_boss_voice_profiles() -> None:
     audio = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
     bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
@@ -636,6 +649,7 @@ def main() -> int:
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
     verify_glb_enemy_boss_asset_acceptance()
+    verify_regional_miniboss_voice_routing()
     verify_region_specific_boss_voice_profiles()
     verify_glb_boss_profile_registry()
     verify_glb_catalog_audit_and_entity_cleanup()
