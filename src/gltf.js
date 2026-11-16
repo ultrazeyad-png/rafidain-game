@@ -131,6 +131,18 @@ function gltfNormals(positions,indices){
   for(let i=0;i<n.length;i+=3){const l=Math.hypot(n[i],n[i+1],n[i+2])||1;n[i]/=l;n[i+1]/=l;n[i+2]/=l;}
   return n;
 }
+function gltfTransformNormal(m,x,y,z){
+  // Inverse-transpose of the upper-left 3x3; required for non-uniform scale.
+  const a=m[0],b=m[4],c=m[8],d=m[1],e=m[5],f=m[9],g=m[2],h=m[6],i=m[10];
+  const c00=e*i-f*h,c01=f*g-d*i,c02=d*h-e*g;
+  const c10=c*h-b*i,c11=a*i-c*g,c12=b*g-a*h;
+  const c20=b*f-c*e,c21=c*d-a*f,c22=a*e-b*d;
+  const det=a*c00+b*c01+c*c02;
+  if(!Number.isFinite(det)||Math.abs(det)<1e-12)gltfFail('node transform has a singular normal matrix');
+  const invDet=1/det,nx=(c00*x+c01*y+c02*z)*invDet,ny=(c10*x+c11*y+c12*z)*invDet,nz=(c20*x+c21*y+c22*z)*invDet;
+  const len=Math.hypot(nx,ny,nz)||1;
+  return [nx/len,ny/len,nz/len];
+}
 function gltfExpandPrimitive(p){
   const srcN=p.normals||gltfNormals(p.positions,p.indices),out=new Float32Array(p.indices.length*6);
   for(let i=0;i<p.indices.length;i++){
@@ -152,8 +164,8 @@ function prepareGLBHero(asset){
         data[i]=m[0]*x+m[4]*y+m[8]*z+m[12];
         data[i+1]=m[1]*x+m[5]*y+m[9]*z+m[13];
         data[i+2]=m[2]*x+m[6]*y+m[10]*z+m[14];
-        const tx=m[0]*nx+m[4]*ny+m[8]*nz,ty=m[1]*nx+m[5]*ny+m[9]*nz,tz=m[2]*nx+m[6]*ny+m[10]*nz,l=Math.hypot(tx,ty,tz)||1;
-        data[i+3]=tx/l;data[i+4]=ty/l;data[i+5]=tz/l;
+        const normal=gltfTransformNormal(m,nx,ny,nz);
+        data[i+3]=normal[0];data[i+4]=normal[1];data[i+5]=normal[2];
       }
       const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
       entries.push({buffer,count:p.indices.length,material:p.material});
