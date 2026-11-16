@@ -448,14 +448,20 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 
 
 {
-  const asset={animations:[{name:'Idle_Breathing'},{name:'Walk_Forward'},{name:'Run_Fast'},{name:'Dodge_Roll'},{name:'Attack_Slash'},{name:'Death'}]};
+  const asset={animations:[{name:'Idle_Breathing'},{name:'Walk_Forward'},{name:'Run_Fast'},{name:'Dodge_Roll'},{name:'Attack_Slash'},{name:'Death'},{name:'Heavy_Strike'},{name:'Jump_Start'},{name:'Hurt_Reaction'},{name:'Guard_Block'},{name:'Cast_Spell'},{name:'Bow_Aim'},{name:'Heal_Potion'}]};
   assert.equal(context.__resolveAnimationClip(asset,'idle'),0);
   assert.equal(context.__resolveAnimationClip(asset,'walk'),1);
   assert.equal(context.__resolveAnimationClip(asset,'run'),2);
   assert.equal(context.__resolveAnimationClip(asset,'dodge'),3);
   assert.equal(context.__resolveAnimationClip(asset,'attack'),4);
   assert.equal(context.__resolveAnimationClip(asset,'death'),5);
-  assert.equal(context.__resolveAnimationClip(asset,'jump'),-1);
+  assert.equal(context.__resolveAnimationClip(asset,'heavy'),6);
+  assert.equal(context.__resolveAnimationClip(asset,'jump'),7);
+  assert.equal(context.__resolveAnimationClip(asset,'hurt'),8);
+  assert.equal(context.__resolveAnimationClip(asset,'block'),9);
+  assert.equal(context.__resolveAnimationClip(asset,'cast'),10);
+  assert.equal(context.__resolveAnimationClip(asset,'aim'),11);
+  assert.equal(context.__resolveAnimationClip(asset,'heal'),12);
   assert.equal(context.__resolveAnimationClip(asset,'unknown'),-1);
 }
 
