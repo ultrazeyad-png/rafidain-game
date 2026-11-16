@@ -733,6 +733,18 @@ function registerGLBModelCatalog(catalog={}){
 function getGLBModelCatalog(){
   return Array.from(gltfModelCatalog,([category,entry])=>({category,url:entry.url,scale:entry.scale,requireAnimatedCharacter:entry.requireAnimatedCharacter}));
 }
+async function inspectGLBModelCatalog(){
+  const entries=Array.from(gltfModelCatalog,([category,entry])=>({category,...entry}));
+  return Promise.all(entries.map(async entry=>{
+    try{
+      const report=await inspectGLB(entry.url);
+      const accepted=!entry.requireAnimatedCharacter||report.readyForEnemyOrBoss;
+      return {category:entry.category,url:entry.url,scale:entry.scale,requireAnimatedCharacter:entry.requireAnimatedCharacter,accepted,report};
+    }catch(error){
+      return {category:entry.category,url:entry.url,scale:entry.scale,requireAnimatedCharacter:entry.requireAnimatedCharacter,accepted:false,error:String(error&&error.message||error)};
+    }
+  }));
+}
 async function bindGLBModelForEntity(gameEntity,overrides={}){
   const category=gltfModelCategory(gameEntity),entry=gltfModelCatalog.get(category);
   if(!entry)return {ok:false,reason:'no-model-for-category',category};
@@ -777,12 +789,13 @@ async function loadGLBEntity(id,url,options={}){
     }
     entity.playback=gltfCreatePlaybackState(entity.asset,options.animation||{});
     if(glOK){entity.textures=await prepareGLBTextures(entity.asset);
-      if(entity.disposed||gltfEntityInstances.get(id)!==entity){for(const texture of entity.textures)gl.deleteTexture(texture);entity.textures=[];return {ok:false,id,reason:'disposed'};}
+      if(entity.disposed||gltfEntityInstances.get(id)!==entity){disposeGLBResources([],entity.textures);entity.textures=[];return {ok:false,id,reason:'disposed'};}
       entity.gpu=prepareGLBHero(entity.asset);}
-    if(entity.disposed||gltfEntityInstances.get(id)!==entity)return {ok:false,id,reason:'disposed'};
+    if(entity.disposed||gltfEntityInstances.get(id)!==entity){disposeGLBResources(entity.gpu,entity.textures);entity.gpu=null;entity.textures=[];return {ok:false,id,reason:'disposed'};}
     return {ok:true,id,meshes:entity.asset.meshes.length,primitives:entity.asset.bounds,inspection:entity.inspection};
   }catch(error){
     entity.error=String(error&&error.message||error);
+    disposeGLBResources(entity.gpu,entity.textures);entity.gpu=null;entity.textures=[];
     if(gltfEntityInstances.get(id)===entity)gltfEntityInstances.delete(id);
     return {ok:false,id,error:entity.error};
   }
