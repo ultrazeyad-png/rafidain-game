@@ -193,12 +193,14 @@ function gltfTransformNormal(m,x,y,z){
   return [nx/len,ny/len,nz/len];
 }
 function gltfExpandPrimitive(p){
-  const srcN=p.normals||gltfNormals(p.positions,p.indices),out=new Float32Array(p.indices.length*8);
+  const srcN=p.normals||gltfNormals(p.positions,p.indices),out=new Float32Array(p.indices.length*12);
   for(let i=0;i<p.indices.length;i++){
-    const j=p.indices[i],k=i*8,q=j*3,u=p.uvs?j*2:-1;
+    const j=p.indices[i],k=i*12,q=j*3,u=p.uvs?j*2:-1,t=j*4;
     out[k]=p.positions[q];out[k+1]=p.positions[q+1];out[k+2]=p.positions[q+2];
     out[k+3]=srcN[q];out[k+4]=srcN[q+1];out[k+5]=srcN[q+2];
     out[k+6]=p.uvs?p.uvs[u]:0;out[k+7]=p.uvs?p.uvs[u+1]:0;
+    if(p.tangents){out[k+8]=p.tangents[t];out[k+9]=p.tangents[t+1];out[k+10]=p.tangents[t+2];out[k+11]=p.tangents[t+3];}
+    else{out[k+8]=1;out[k+9]=0;out[k+10]=0;out[k+11]=1;}
   }
   return out;
 }
@@ -216,9 +218,10 @@ function prepareGLBHero(asset){
         data[i+2]=m[2]*x+m[6]*y+m[10]*z+m[14];
         const normal=gltfTransformNormal(m,nx,ny,nz);
         data[i+3]=normal[0];data[i+4]=normal[1];data[i+5]=normal[2];
+        const tangent=gltfTransformNormal(m,data[i+8],data[i+9],data[i+10]);data[i+8]=tangent[0];data[i+9]=tangent[1];data[i+10]=tangent[2];
       }
       const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
-      entries.push({buffer,count:p.indices.length,material:p.material,stride:32,texture:p.material.baseColorTexture});
+      entries.push({buffer,count:p.indices.length,material:p.material,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents});
     }
   }
   return entries;
@@ -286,10 +289,11 @@ function drawGLBHero(){
     gl.uniform4f(uC,f[0],f[1],f[2],f[3]);
     gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);
     gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aN);
-    gl.vertexAttribPointer(aP,3,gl.FLOAT,false,32,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,32,12);
+    gl.vertexAttribPointer(aP,3,gl.FLOAT,false,48,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,48,12);
     const uvLoc=gl.getAttribLocation(prog,'uv');
-    if(uvLoc>=0){gl.enableVertexAttribArray(uvLoc);gl.vertexAttribPointer(uvLoc,2,gl.FLOAT,false,32,24);}
+    if(uvLoc>=0){gl.enableVertexAttribArray(uvLoc);gl.vertexAttribPointer(uvLoc,2,gl.FLOAT,false,48,24);}
     gl.disableVertexAttribArray(aC);gl.vertexAttrib4f(aC,1,1,1,0);
+    const tangentLoc=gl.getAttribLocation(prog,'tangent');if(tangentLoc>=0){gl.enableVertexAttribArray(tangentLoc);gl.vertexAttribPointer(tangentLoc,4,gl.FLOAT,false,48,32);}
     const texIndex=item.texture==null?-1:gltfHero.asset.textures[item.texture]?.source??-1;
     const tex=texIndex>=0?gltfHeroTextures[texIndex]:null;
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),tex?1:0);
@@ -297,9 +301,12 @@ function drawGLBHero(){
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBMetallic'),m.metallicFactor??1);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBRoughness'),m.roughnessFactor??1);
     if(tex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBTex'),2);}
+    const normalTex=item.normalTexture==null?null:gltfHeroTextures[item.normalTexture];const useNormal=!!(normalTex&&item.hasTangents);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalMap'),useNormal?1:0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalScale'),m.normalScale??1);
+    if(useNormal){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,normalTex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBNormalTex'),3);}
     gl.drawArrays(gl.TRIANGLES,0,item.count);
   }
-  gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),0);gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalMap'),0);gl.activeTexture(gl.TEXTURE0);
   const uvLoc=gl.getAttribLocation(prog,'uv');if(uvLoc>=0)gl.disableVertexAttribArray(uvLoc);
   pop();bindMesh();gAlpha=1;return true;
 }
