@@ -427,7 +427,10 @@ async def run_suite(base_url: str) -> None:
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
             await reload_and_start()
-            # The restart helper has already waited for the game runtime.
+            # A rejected save starts a fresh campaign, whose opening film begins
+            # in Baghdad before handing control back to Zakho.
+            await page.evaluate("() => { if (__g.cine) __g.endCine(); }")
+            await page.wait_for_function("window.__g.REG === 'duhok'", timeout=30000)
             # Snapshot recovery immediately; renderer/chunk readiness is separate.
             recovered = await page.evaluate(
                 """() => ({
