@@ -188,7 +188,8 @@ async def run_suite(base_url: str) -> None:
                             blocks: g.B.length,
                             chunks: g.chunks,
                             enemies: g.enemies.length,
-                            boss: !!g.boss
+                            boss: !!g.boss,
+                            staticProps: g.nst()
                         };
                     });
                 }"""
@@ -200,6 +201,8 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Region did not build world geometry: {result}")
                 if not result["boss"]:
                     raise AssertionError(f"Expected region boss was not spawned: {result}")
+                if result["id"] == "duhok" and result["staticProps"] < 20:
+                    raise AssertionError(f"Zakho/Delal landmark details were not baked: {result}")
             print("PASS: Duhok, Muthanna, Nineveh, Anbar, and Baghdad load with geometry and bosses")
 
             await page.evaluate(
