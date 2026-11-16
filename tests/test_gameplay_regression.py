@@ -488,7 +488,7 @@ def verify_regional_mini_bosses() -> None:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
     if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
         raise AssertionError("Regional mini-bosses are missing their dedicated creature renderer")
-    for behavior in ("voice('boss',m.line)", "e.orbitT=(e.orbitT||0)+dt", "Math.cos(ang+PI/2)", "MINI_GUARDS[REG].k==='ghostK')e.blinked=false", "burst(e.x,e.y+24,e.z,'#b9a0ff',10,82,e.y)", "mini==='scorpK'&&e.p2&&!e.poisonCast", "waves.push({x:e.x,z:e.z,r:18,l:1.05,y:e.y,col:'#a5d64b'})", "mini==='crocK'&&e.p2?ang+(e.sx||1)*.34:ang", "e.blinked=true", "Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42)", "?1.32:1", "'#a5d64b'", "case 'miniTrans'", "e.hp<=T.hp*.5", "waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col})", "e.p2?1.18:1"):
+    for behavior in ("voice('boss',m.line)", "e.orbitT=(e.orbitT||0)+dt", "Math.cos(ang+PI/2)", "MINI_GUARDS[REG].k==='ghostK')e.blinked=false", "burst(e.x,e.y+24,e.z,'#b9a0ff',10,82,e.y)", "mini==='scorpK'&&e.p2&&!e.poisonCast", "waves.push({x:e.x,z:e.z,r:18,l:1.05,y:e.y,col:'#a5d64b'})", "mini==='crocK'&&e.p2?ang+(e.sx||1)*.34:ang", "e.rippleCast=false", "e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'&&e.p2&&!e.rippleCast", "waves.push({x:e.x,z:e.z,r:34,l:1.15,y:e.y,col:'#55c9bb'})", "e.blinked=true", "Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42)", "?1.32:1", "'#a5d64b'", "case 'miniTrans'", "e.hp<=T.hp*.5", "waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col})", "e.p2?1.18:1"):
         if behavior not in game:
             raise AssertionError(f"Regional mini-boss phase-two behavior missing: {behavior}")
     if "T(e.x,e.y+e.j,e.z)" not in characters:
