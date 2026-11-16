@@ -193,7 +193,8 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   d.bufferViews.push({buffer:0,byteOffset:44,byteLength:4});
   d.textures=[{source:0,sampler:0}];
   d.samplers=[{wrapS:33071,wrapT:33648,minFilter:9728,magFilter:9728}];
-  const parsed=parse(makeGLB(d,baseBin()));
+  const bin=Buffer.alloc(48);baseBin().copy(bin);
+  const parsed=parse(makeGLB(d,bin));
   assert.deepEqual({...parsed.textures[0].sampler},{wrapS:33071,wrapT:33648,minFilter:9728,magFilter:9728});
 }
 {
@@ -201,7 +202,8 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   d.images=[{bufferView:2,mimeType:'image/png'}];
   d.bufferViews.push({buffer:0,byteOffset:44,byteLength:4});
   d.textures=[{source:0,sampler:4}];
-  assert.throws(()=>parse(makeGLB(d,baseBin())),/references missing sampler/);
+  const bin=Buffer.alloc(48);baseBin().copy(bin);
+  assert.throws(()=>parse(makeGLB(d,bin)),/references missing sampler/);
 }
 {
   const d=baseDocument();
