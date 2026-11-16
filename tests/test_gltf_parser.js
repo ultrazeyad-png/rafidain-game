@@ -111,6 +111,32 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 }
 
 {
+  const d=baseDocument();
+  d.nodes=[{mesh:0,translation:[NaN,0,0]}];
+  d.scenes=[{nodes:[0]}];
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/invalid or non-finite node TRS/);
+}
+{
+  const d=baseDocument();
+  d.nodes=[{mesh:0,rotation:[0,0,0,0]}];
+  d.scenes=[{nodes:[0]}];
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/rotation quaternion must be non-zero/);
+}
+{
+  const d=baseDocument();
+  d.nodes=[{mesh:0}];
+  d.scenes=[{nodes:[0]}];
+  d.scene=2;
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/selected scene index is out of range/);
+}
+{
+  const d=baseDocument();
+  d.nodes=[{children:[1]},{mesh:0}];
+  d.scenes=[{nodes:[0,1]}];
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/referenced more than once/);
+}
+
+{
   const m = new Float32Array([2,0,0,0, 0,1,0,0, 0,0,0.5,0, 0,0,0,1]);
   const n = context.__transformNormal(m, 1, 1, 1);
   const len = Math.hypot(0.5, 1, 2);
