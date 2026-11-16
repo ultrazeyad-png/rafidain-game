@@ -371,7 +371,16 @@ async def run_suite(base_url: str) -> None:
             await page.evaluate("() => window.location.reload()")
             # Wait for game startup, then assert persistence explicitly below.
             # Do not turn a wrong restored region into a 30-second opaque timeout.
-            await page.wait_for_function("!!window.__g", timeout=30000)
+            try:
+                await page.wait_for_function("!!window.__g", timeout=12000)
+            except Exception as error:
+                diagnostics = await page.evaluate(
+                    "() => ({ready: document.readyState, title: document.title, body: document.body.innerText.slice(0, 500)})"
+                )
+                raise AssertionError(
+                    f"Game did not expose its runtime after save/reload: "
+                    f"{error}; page_errors={page_errors}; diagnostics={diagnostics}"
+                ) from error
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
             )
