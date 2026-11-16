@@ -357,7 +357,7 @@ def verify_regional_mini_bosses() -> None:
     missing = [item for item in required if item not in roster]
     if missing:
         raise AssertionError(f"Regional mini-boss roster is incomplete: {missing}")
-    for spawn in ("['gmini',1560,640,120]", "['gmini',3000,-300,0]"):
+    for spawn in ("['gmini',1900,500,130]", "['gmini',3000,-300,0]"):
         if spawn not in regions:
             raise AssertionError(f"Special-region mini-boss spawn missing: {spawn}")
     for item in ("minis:world.minis", "minis:!!w.minis", "world.minis=true",
