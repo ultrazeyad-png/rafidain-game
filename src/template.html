@@ -394,6 +394,13 @@ function spawnAll(){
     else{const g=GOVM[REG],B_=g.boss;TYPES.gb={hp:Math.round(B_.hp*(1+regIdx(REG)*.03)),r:B_.fem?22:26,h:110,embers:1200+regIdx(REG)*120,poise:14+Math.floor(regIdx(REG)/4),name:B_.n,boss0:1};
       boss=mk('gb',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem=B_.el;boss.wpn=B_.w;boss.look=Object.assign({fem:B_.fem,two:B_.w==='axe'||B_.w==='spear'},B_.look);boss.spd=1+regIdx(REG)*.012;boss.dm=1+regIdx(REG)*.04;}boss.boss=true;boss.state='sleep';enemies.push(boss);}
   waves=[];shots=[];world.locked=false;if(GATE)GATE.off=world.gate;if(MGATE)MGATE.off=world.mgate;for(const d of DOORS){d.o=0;d.t=0;d.blk.off=false;}
+  bindConfiguredGLBEntities();
+}
+function bindConfiguredGLBEntities(){
+  const api=window.__g;if(!api?.bindGLBModelForEntity||!api.getGLBModelCatalog?.().length)return;
+  for(const entity of enemies){
+    Promise.resolve(api.bindGLBModelForEntity(entity)).catch(error=>console.warn('GLB entity bind failed:',entity.k,error));
+  }
 }
 function setP(s){P.state=s;P.t=0;P.hit=false;}
 function setE(e,s){e.state=s;e.t=0;e.hit=false;e.blinked=false;e.j=0;if(e.boss)e.vsaid=false;}
