@@ -32,6 +32,8 @@ Required clips, with clear names:
 7. hurt — brief hit reaction.
 8. death — final fall / collapse.
 
+The runtime resolves clip names by keyword patterns, so use unambiguous names beginning with these canonical labels: `idle`, `walk`, `run`, `dodge`, `attack`, `heavy`, `hurt`, and `death`. The minimum core gameplay set for acceptance is `idle`, `walk`, `run`, `attack`, and `death`. The inspector reports coverage for all eight actions and lists missing core clips.
+
 Use in-place locomotion unless the clip is explicitly authored to translate the root. Keep the feet planted during idle and avoid severe foot sliding. Attack clips must leave the weapon hand readable and avoid cloth/weapon intersections.
 
 ## Scale and orientation
