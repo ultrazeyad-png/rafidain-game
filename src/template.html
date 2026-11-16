@@ -649,6 +649,7 @@ function upBoss(b,dt){
       if(b.t>=.5||b.x<=AX0+34||b.x>=AX1-34||b.z<=AZ0+34||b.z>=AZ1-34)bRec(b,1);break;
     case 'rec':if(b.t>=b.recT){setE(b,'chase');b.cd=ph2?.3:.65;}break;
     case 'stag':if(b.t>=1.3){setE(b,'chase');b.cd=.3;}break;
+    case 'parried':b.a=turn(b.a,ang,2*dt);if(b.t>=.72){setE(b,'chase');b.cd=.55;}break;
   }
   if(mvs){const nx=b.x+Math.cos(b.a)*mvs*dt,nz=b.z+Math.sin(b.a)*mvs*dt;if(Math.hypot(P.x-nx,P.z-nz)>=P.r+b.T.r-1||P.state==='roll'){b.x=nx;b.z=nz;b.walk+=mvs*dt*.11;}}
   b.x=clamp(b.x,AX0+30,AX1-30);b.z=clamp(b.z,AZ0+30,AZ1-30);b.y=AY;
