@@ -478,6 +478,7 @@ def verify_regional_mini_bosses() -> None:
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     characters = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    depth = (ROOT / "src" / "depth.js").read_text(encoding="utf-8")
     required = (
         "const MINI_GUARDS=",
         "nineveh:{k:'ghostK'",
@@ -505,7 +506,7 @@ def verify_regional_mini_bosses() -> None:
     if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
         raise AssertionError("Regional mini-bosses are missing their dedicated creature renderer")
     for behavior in ("voice('boss',m.line)", "e.orbitT=(e.orbitT||0)+dt", "Math.cos(ang+PI/2)", "MINI_GUARDS[REG].k==='ghostK')e.blinked=false", "burst(e.x,e.y+24,e.z,'#b9a0ff',10,82,e.y)", "mini==='scorpK'&&e.p2&&!e.poisonCast", "waves.push({x:e.x,z:e.z,r:18,l:1.05,y:e.y,col:'#a5d64b'})", "mini==='crocK'&&e.p2?ang+(e.sx||1)*.34:ang", "e.rippleCast=false", "e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'&&e.p2&&!e.rippleCast", "waves.push({x:e.x,z:e.z,r:34,l:1.15,y:e.y,col:'#55c9bb'})", "e.blinked=true", "e.feintMoved=false", "mini==='wolfK'&&e.p2&&!e.feintMoved&&e.t>=windDur*.42", "moveEnt(e,e.x-Math.cos(ang)*42,e.z-Math.sin(ang)*42,T.r*.9,true)", "Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42)", "?1.32:1", "const tailSnap=st==='strike'?Math.sin(strike*PI):st==='wind'?wind:0", "const recoil=st==='strike'?Math.sin(strike*PI):st==='rec'?Math.sin(Math.min(1,e.t/.28)*PI):0", "const arm=st==='wind'?lerp(.5,2.8,wind):st==='strike'?lerp(2.8,-1.35,strike)", "'#a5d64b'", "case 'miniTrans'", "e.hp<=T.hp*.5", "waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col})", "e.p2?1.18:1"):
-        if behavior not in game:
+        if behavior not in game + depth:
             raise AssertionError(f"Regional mini-boss phase-two behavior missing: {behavior}")
     if "T(e.x,e.y+e.j,e.z)" not in characters:
         raise AssertionError("Wolf mini-boss leap pose is not rendered")
