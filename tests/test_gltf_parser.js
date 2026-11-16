@@ -261,4 +261,55 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.throws(()=>parse(makeGLB(d,baseBin())),/missing normal texture/);
 }
 
-console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
+
+{
+  const d=baseDocument(),bin=Buffer.alloc(200);baseBin().copy(bin,0);
+  d.bufferViews.push(
+    {buffer:0,byteOffset:44,byteLength:12},
+    {buffer:0,byteOffset:56,byteLength:48},
+    {buffer:0,byteOffset:104,byteLength:64},
+    {buffer:0,byteOffset:168,byteLength:8},
+    {buffer:0,byteOffset:176,byteLength:24}
+  );
+  d.accessors.push(
+    {bufferView:2,componentType:5121,count:3,type:'VEC4'},
+    {bufferView:3,componentType:5126,count:3,type:'VEC4'},
+    {bufferView:4,componentType:5126,count:1,type:'MAT4'},
+    {bufferView:5,componentType:5126,count:2,type:'SCALAR'},
+    {bufferView:6,componentType:5126,count:2,type:'VEC3'}
+  );
+  for(let i=0;i<3;i++){bin.writeUInt8(0,44+i*4);bin.writeFloatLE(1,56+i*16);}
+  for(let i=0;i<16;i++)bin.writeFloatLE(i%5===0?1:0,104+i*4);
+  bin.writeFloatLE(0,168);bin.writeFloatLE(1,172);
+  [0,0,0, 1,0,0].forEach((v,i)=>bin.writeFloatLE(v,176+i*4));
+  d.meshes[0].primitives[0].attributes.JOINTS_0=2;
+  d.meshes[0].primitives[0].attributes.WEIGHTS_0=3;
+  d.nodes=[{mesh:0,skin:0},{name:'root_joint'}];d.scenes=[{nodes:[0,1]}];
+  d.skins=[{joints:[1],inverseBindMatrices:4}];
+  d.animations=[{name:'idle',samplers:[{input:5,output:6}],channels:[{sampler:0,target:{node:1,path:'translation'}}]}];
+  const parsed=parse(makeGLB(d,bin));
+  const primitive=parsed.meshes[0].primitives[0];
+  assert.equal(primitive.joints.length,12);assert.equal(primitive.weights[0],1);
+  assert.equal(parsed.skins[0].joints[0],1);assert.equal(parsed.skins[0].inverseBindMatrices[0],1);
+  assert.equal(parsed.animations[0].samplers[0].input.length,2);
+  assert.equal(parsed.animations[0].channels[0].path,'translation');
+}
+{
+  const d=baseDocument(),bin=Buffer.alloc(200);baseBin().copy(bin,0);
+  d.bufferViews.push({buffer:0,byteOffset:44,byteLength:12},{buffer:0,byteOffset:56,byteLength:48});
+  d.accessors.push({bufferView:2,componentType:5121,count:3,type:'VEC4'},{bufferView:3,componentType:5126,count:3,type:'VEC4'});
+  d.meshes[0].primitives[0].attributes.JOINTS_0=2;d.meshes[0].primitives[0].attributes.WEIGHTS_0=3;
+  d.nodes=[{mesh:0,skin:0},{name:'joint'}];d.scenes=[{nodes:[0,1]}];d.skins=[{joints:[1]}];
+  bin.writeUInt8(1,44);
+  assert.throws(()=>parse(makeGLB(d,bin)),/vertex joint index exceeds skin joint count/);
+}
+{
+  const d=baseDocument(),bin=Buffer.alloc(104);baseBin().copy(bin,0);
+  d.bufferViews.push({buffer:0,byteOffset:44,byteLength:8},{buffer:0,byteOffset:52,byteLength:24});
+  d.accessors.push({bufferView:2,componentType:5126,count:2,type:'SCALAR'},{bufferView:3,componentType:5126,count:2,type:'VEC3'});
+  d.nodes=[{}];d.scenes=[{nodes:[0]}];
+  d.animations=[{samplers:[{input:2,output:3}],channels:[{sampler:0,target:{node:0,path:'rotation'}}]}];
+  assert.throws(()=>parse(makeGLB(d,bin)),/animation output width does not match target path/);
+}
+
+console.log('GLB parser fixtures passed: skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
