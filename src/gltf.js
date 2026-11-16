@@ -103,6 +103,31 @@ function gltfBuildJointMatrices(asset,skinIndex,meshNode,pose=new Map()){
   }
   return out;
 }
+function gltfSkinPrimitiveCPU(primitive,jointMatrices){
+  if(!primitive.joints||!primitive.weights)gltfFail('CPU skinning requires JOINTS_0 and WEIGHTS_0');
+  const count=primitive.positions.length/3;
+  if(primitive.joints.length!==count*4||primitive.weights.length!==count*4)gltfFail('CPU skin attributes do not match vertex count');
+  const positions=new Float32Array(primitive.positions.length),normals=primitive.normals?new Float32Array(primitive.normals.length):null,tangents=primitive.tangents?new Float32Array(primitive.tangents.length):null;
+  const transform=(m,x,y,z,w)=>[m[0]*x+m[4]*y+m[8]*z+m[12]*w,m[1]*x+m[5]*y+m[9]*z+m[13]*w,m[2]*x+m[6]*y+m[10]*z+m[14]*w];
+  for(let v=0;v<count;v++){
+    let total=0,px=0,py=0,pz=0,nx=0,ny=0,nz=0,tx=0,ty=0,tz=0;
+    for(let k=0;k<4;k++){
+      const a=v*4+k,w=primitive.weights[a],j=primitive.joints[a];
+      if(!Number.isFinite(w)||w<0||!Number.isInteger(j)||j<0||j*16+15>=jointMatrices.length)gltfFail('invalid CPU skin joint influence');
+      if(w===0)continue;const m=jointMatrices.subarray(j*16,j*16+16),q=v*3;
+      const p=transform(m,primitive.positions[q],primitive.positions[q+1],primitive.positions[q+2],1);
+      px+=p[0]*w;py+=p[1]*w;pz+=p[2]*w;
+      if(normals){const n=gltfTransformNormal(m,primitive.normals[q],primitive.normals[q+1],primitive.normals[q+2]);nx+=n[0]*w;ny+=n[1]*w;nz+=n[2]*w;}
+      if(tangents){const t=v*4,r=transform(m,primitive.tangents[t],primitive.tangents[t+1],primitive.tangents[t+2],0);tx+=r[0]*w;ty+=r[1]*w;tz+=r[2]*w;}
+      total+=w;
+    }
+    if(total<=1e-8)gltfFail('vertex has no positive skin weights');
+    const q=v*3;positions[q]=px/total;positions[q+1]=py/total;positions[q+2]=pz/total;
+    if(normals){const l=Math.hypot(nx,ny,nz)||1;normals[q]=nx/l;normals[q+1]=ny/l;normals[q+2]=nz/l;}
+    if(tangents){const t=v*4,l=Math.hypot(tx,ty,tz)||1;tangents[t]=tx/l;tangents[t+1]=ty/l;tangents[t+2]=tz/l;tangents[t+3]=primitive.tangents[t+3];}
+  }
+  return {positions,normals,tangents};
+}
 function gltfSceneInstances(json,meshCount){
   const nodes=json.nodes||[],scenes=json.scenes||[],instances=[];
   if(!nodes.length)return Array.from({length:meshCount},(_,mesh)=>({mesh,node:-1,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
