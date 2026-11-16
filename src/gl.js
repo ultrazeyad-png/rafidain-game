@@ -27,11 +27,11 @@ function lookAt(o,e,c){
 const HEXC={};
 function hex(h){let c=HEXC[h];if(!c){const n=parseInt(h.slice(1),16);c=HEXC[h]=[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}return c;}
 function initGL(){
-  const vs='attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute vec2 uv;uniform mat4 uVP,uM,uLVP;uniform vec3 uNS;uniform float uTime;varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;'+
-    'void main(){vP=p;vZ=n.z;vC=c;vGLBUV=uv;vec4 w=uM*vec4(p,1.);if(c.a>.13&&c.a<.19){float k=(c.a-.14)*25.,ph=uTime*1.7+w.x*.021+w.z*.017;w.x+=(sin(ph)*3.2+sin(ph*2.3)*1.)*k;w.z+=cos(ph*.8)*2.2*k;}vW=w.xyz;vN=mat3(uM)*(n*uNS);vL=uLVP*w;gl_Position=uVP*w;}';
+  const vs='attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute vec2 uv;attribute vec4 tangent;uniform mat4 uVP,uM,uLVP;uniform vec3 uNS;uniform float uTime;varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;varying vec3 vT;varying float vHand;'+
+    'void main(){vP=p;vZ=n.z;vC=c;vGLBUV=uv;vT=mat3(uM)*tangent.xyz;vHand=tangent.w;vec4 w=uM*vec4(p,1.);if(c.a>.13&&c.a<.19){float k=(c.a-.14)*25.,ph=uTime*1.7+w.x*.021+w.z*.017;w.x+=(sin(ph)*3.2+sin(ph*2.3)*1.)*k;w.z+=cos(ph*.8)*2.2*k;}vW=w.xyz;vN=mat3(uM)*(n*uNS);vL=uLVP*w;gl_Position=uVP*w;}';
   const fs=`precision highp float;
-varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;
-uniform sampler2D uT,uSh,uGLBTex;uniform float uGLBTexture,uGLBMaterial,uGLBMetallic,uGLBRoughness;uniform vec3 uSun,uSunC,uAT,uAB,uSk0,uSk1,uSd,uDc,uCam,uFog;uniform float uTx,uMode,uSP,uShOn,uTime,uStar,uE,uF,uA;uniform vec4 uUV,uC;uniform vec2 uFg;uniform vec4 uPL[3];
+varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;varying vec3 vT;varying float vHand;
+uniform sampler2D uT,uSh,uGLBTex,uGLBNormalTex;uniform float uGLBTexture,uGLBMaterial,uGLBMetallic,uGLBRoughness,uGLBNormalMap,uGLBNormalScale;uniform vec3 uSun,uSunC,uAT,uAB,uSk0,uSk1,uSd,uDc,uCam,uFog;uniform float uTx,uMode,uSP,uShOn,uTime,uStar,uE,uF,uA;uniform vec4 uUV,uC;uniform vec2 uFg;uniform vec4 uPL[3];
 float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h1(i),h1(i+vec2(1.,0.)),f.x),mix(h1(i+vec2(0.,1.)),h1(i+vec2(1.,1.)),f.x),f.y);}
 float upk(vec4 c){return dot(c.rgb,vec3(1.,1./255.,1./65025.));}
@@ -47,6 +47,7 @@ void main(){
     c+=vec3(step(.9975,h1(floor(d.xz/(abs(el)+.3)*260.))))*uStar*smoothstep(.05,.3,el);
     gl_FragColor=vec4(mix(uFog,c,smoothstep(-.03,.1,el)),1.);return;}
   vec3 n=normalize(vN);
+  if(uGLBNormalMap>.5){vec3 T=normalize(vT-n*dot(n,vT));vec3 B=normalize(cross(n,T))*vHand;vec3 mapN=texture2D(uGLBNormalTex,vGLBUV).xyz*2.-1.;mapN.xy*=uGLBNormalScale;n=normalize(mat3(T,B,n)*mapN);}
   if(uMode>2.5){float g=pow(max(dot(n,normalize(uCam-vW)),0.),2.6);gl_FragColor=vec4(uC.rgb*g*uC.a,1.);return;}   // soft glow, added on top
   if(uMode>1.5){   // water: moving ripples, sky on the surface, sun glitter
     vec2 p=vW.xz*.035;float w1=ns(p+uTime*vec2(.25,.1)),w2=ns(p*2.7-uTime*vec2(.2,.3));n=normalize(vec3((w1-.5)*.55,1.,(w2-.5)*.55));
