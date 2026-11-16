@@ -79,6 +79,24 @@ function gltfInvertMat4(a){
   out[12]=(a[5]*b07-a[4]*b09-a[6]*b06)*det;out[13]=(a[0]*b09-a[1]*b07+a[2]*b06)*det;out[14]=(a[13]*b01-a[12]*b03-a[14]*b00)*det;out[15]=(a[8]*b03-a[9]*b01+a[10]*b00)*det;
   return out;
 }
+function gltfSkinPrimitiveCPU(primitive,jointMatrices){
+  if(!primitive.joints||!primitive.weights)gltfFail('CPU skinning requires JOINTS_0 and WEIGHTS_0');
+  const positions=new Float32Array(primitive.positions.length),normals=primitive.normals?new Float32Array(primitive.normals.length):null;
+  for(let v=0;v<primitive.positions.length/3;v++){
+    let total=0,px=0,py=0,pz=0,nx=0,ny=0,nz=0;
+    for(let k=0;k<4;k++){
+      const at=v*4+k,w=primitive.weights[at],ji=primitive.joints[at];
+      if(w<=0)continue;
+      const m=jointMatrices.subarray(ji*16,ji*16+16),p=v*3,x=primitive.positions[p],y=primitive.positions[p+1],z=primitive.positions[p+2];
+      px+=(m[0]*x+m[4]*y+m[8]*z+m[12])*w;py+=(m[1]*x+m[5]*y+m[9]*z+m[13])*w;pz+=(m[2]*x+m[6]*y+m[10]*z+m[14])*w;
+      if(normals){const n=gltfTransformNormal(m,primitive.normals[p],primitive.normals[p+1],primitive.normals[p+2]);nx+=n[0]*w;ny+=n[1]*w;nz+=n[2]*w;}
+      total+=w;
+    }
+    const p=v*3;if(total>1e-8){positions[p]=px/total;positions[p+1]=py/total;positions[p+2]=pz/total;if(normals){const l=Math.hypot(nx,ny,nz)||1;normals[p]=nx/l;normals[p+1]=ny/l;normals[p+2]=nz/l;}}
+    else{positions[p]=primitive.positions[p];positions[p+1]=primitive.positions[p+1];positions[p+2]=primitive.positions[p+2];if(normals)normals.set(primitive.normals.subarray(p,p+3),p);}
+  }
+  return {positions,normals};
+}
 function gltfNodeWorldMatrices(asset,pose=new Map()){
   const nodes=asset.nodes||[],world=new Array(nodes.length),active=new Set();
   const parent=new Array(nodes.length).fill(-1);
