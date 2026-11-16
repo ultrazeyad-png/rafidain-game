@@ -116,7 +116,25 @@ function drawHero(){dressHero();
     else{hip=Math.sin(ph)*.66*mk+.04*sd*(1-mk);knee=.06+.85*Math.max(0,Math.cos(ph))*mk;}
     push();T(0,24.4,sd*3.6);RZ(hip);sph(6.2,13.8,6.4,HC.pants,0,-6,0);T(0,-11.5,0);RZ(-knee);
     sph(5.1,12.6,5.3,HC.pants,0,-5,0);sph(5.2,6,5.4,HC.boot,0,-8.4,0);T(0,-10.3,0);RZ(knee-hip);sph(8.4,4.4,5.6,HC.boot,1.5,0,0);pop();}
-  fru(13.4,17,15.6,HC.cloth,0,25.5,0);
+  // Iraqi warrior silhouette: a longer, flared dishdasha under the battle vest.
+  fru(14.2,20.5,16.4,'#cbbfa8',0,23.5,0);
+  // Tailored vertical folds and stitched seams on the front of the dishdasha.
+  for(const z of[-9,-5,0,5,9]){
+    box(.55,17,.65,z===0?'#a99a7e':'#b4a68e',13.1,20.5,z,1,.72);
+    box(.35,14,.35,'#eee3cc',13.48,20.5,z+.55,1,.55);
+  }
+  // Collar, button placket and leather waist belt.
+  box(1.1,8,1.2,'#eee3cf',13.4,36.5,0);
+  for(let q=0;q<4;q++)sph(.48,.48,.48,'#9b7848',14.05,38-q*2.1,0);
+  box(2.2,3.1,20.5,'#493326',12.4,29.4,0);
+  box(1.1,4.2,4.4,'#b58a48',13.7,29.4,0);
+  box(.55,2.1,2.1,'#28201a',14.35,29.4,0);
+  // A dark bisht falls behind the shoulders, edged with restrained brass embroidery.
+  fru(4.2,23,16.8,'#211b20',-5.5,25,0);
+  for(const sd of[-1,1]){
+    box(.9,25,1.1,'#b08a4d',-2.4,23,sd*14.5);
+    for(let q=0;q<5;q++)sph(.7,.7,.7,'#d6b36d',-1.9,33-q*4,sd*14.6);
+  }
   // upper body: leans, twists with the stride and the swing, breathes when standing
   push();T(0,30,0);RY(twist);RZ(upLean);RX(Math.sin(time*.8)*.02*(1-mk));T(0,-30+br,0);
   push();T(-5.6,43.5,0);RZ(-.16-Math.sin(time*3)*.03-.2*mk);
@@ -133,11 +151,22 @@ function drawHero(){dressHero();
   sph(2.3,3,2.1,HC.skin2,5.2,hy-.5,0);
   sph(7.6,6.4,8.3,HC.beard,2.1,hy-3.4,0);sph(4.6,4.8,5.2,HC.beard,3.7,hy-5.3,0);sph(1.7,1.4,5.4,HC.beard,5,hy-2,0);
   for(const sd of[-1,1]){sph(1.3,1.5,2.2,'#f4efe6',4.6,hy+1,sd*1.95);sph(.9,1.2,1.3,'#120c0a',5,hy+1,sd*1.95);box(.8,.7,2.6,'#120c0a',4.8,hy+2.4,sd*1.95);}
-  sph(10.8,7.8,10.4,HC.white,-.3,hy+3,0);
-  fru(12.8,14,12.6,HC.white,-2.7,hy-3.4,0);
+  // Iraqi ghutra: layered white cloth, black agal and a red woven-check motif.
+  sph(10.8,7.8,10.4,'#e7dfcf',-.3,hy+3,0);
+  fru(13.2,15.5,13.2,'#e9e0cf',-2.7,hy-3.4,0);
+  // Folded ghutra tails framing the shoulders.
+  fru(3.8,12.5,5.2,'#ded3bd',-1.2,hy-9.5,10.2);
+  fru(3.8,12.5,5.2,'#ded3bd',-1.2,hy-9.5,-10.2);
   for(const d of[[1.25,-1],[1.9,-5],[2.6,-2],[3.14,-6],[3.7,-2],[4.4,-5],[5.05,-1],[2.2,-8.5],[4.1,-8.5],[3.14,-10]]){const r=5.2-d[1]*.15;
-    sph(1.5,1.5,1.5,HC.red,-2.7+Math.cos(d[0])*r,hy+d[1],Math.sin(d[0])*r);}
-  cyl(11.5,1.3,11.1,'#0b090b',-.3,hy+3.4,0);cyl(10.5,1.3,10.1,'#0b090b',-.3,hy+4.8,0);
+    sph(1.5,1.5,1.5,'#9e3434',-2.7+Math.cos(d[0])*r,hy+d[1],Math.sin(d[0])*r);}
+  // Small red woven marks across the front fold make the traditional pattern read at game distance.
+  for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+    const zz=(col-2)*3.5,yy=hy-5-row*2.4;
+    box(.42,.85,1.05,'#a33b38',10.15,yy,zz,1,.9);
+  }
+  // Double black agal rings.
+  cyl(11.8,1.6,11.5,'#171311',-.3,hy+3.7,0);
+  cyl(10.8,1.2,10.6,'#2a211b',-.3,hy+5.05,0);
   pop();
   sph(10.5,4.4,16.5,HC.white,-3.6,42.8,0);
   // arms: weapon in the right hand (+z side), shield or second sword in the left
