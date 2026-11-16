@@ -36,7 +36,7 @@ function gltfSceneInstances(json,meshCount){
   const sceneIndex=json.scene??0;
   if(scenes.length&&(!Number.isInteger(sceneIndex)||sceneIndex<0||sceneIndex>=scenes.length))gltfFail('selected scene index is out of range');
   const scene=scenes[sceneIndex];
-  const roots=scene?scene.nodes:(nodes.map((_,i)=>i).filter(i=>!nodes.some(n=>(n.children||[]).includes(i))));
+  const roots=scene?(scene.nodes||[]):(nodes.map((_,i)=>i).filter(i=>!nodes.some(n=>(n.children||[]).includes(i))));
   if(!Array.isArray(roots))gltfFail('scene nodes must be an array');
   const active=new Set(),visited=new Set();
   const walk=(index,parent)=>{
