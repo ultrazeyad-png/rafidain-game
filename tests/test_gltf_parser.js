@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -463,6 +463,28 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.equal(context.__resolveAnimationClip(asset,'aim'),11);
   assert.equal(context.__resolveAnimationClip(asset,'heal'),12);
   assert.equal(context.__resolveAnimationClip(asset,'unknown'),-1);
+  const enemy=(state,extra={})=>context.__resolveEnemyAction({state,...extra});
+  assert.equal(enemy('idle'),'idle');
+  assert.equal(enemy('chase'),'run');
+  assert.equal(enemy('wind'),'heavy');
+  assert.equal(enemy('strike'),'attack');
+  assert.equal(enemy('stun'),'hurt');
+  assert.equal(enemy('rec'),'idle');
+  assert.equal(enemy('anything'),'idle');
+  assert.equal(enemy('strike',{dead:true}),'death');
+  const boss=(state)=>enemy(state,{boss:true});
+  assert.equal(boss('sleep'),'idle');
+  assert.equal(boss('intro'),'idle');
+  assert.equal(boss('chase'),'walk');
+  assert.equal(boss('sweepW'),'attack');
+  assert.equal(boss('sweep2'),'attack');
+  assert.equal(boss('slamW'),'heavy');
+  assert.equal(boss('leap'),'heavy');
+  assert.equal(boss('dash'),'heavy');
+  assert.equal(boss('stag'),'hurt');
+  assert.equal(boss('parried'),'hurt');
+  assert.equal(boss('rec'),'idle');
+  assert.equal(boss('anything'),'idle');
 }
 
 console.log('GLB parser fixtures passed: skinned mesh world transform application,  CPU vertex skinning and joint palette validation,  CPU skinning weighted translation and identity,  CPU skinning vertex deformation,  animated node world transforms and inverse-bind joint matrices,  linear/step/cubic animation sampling, quaternion interpolation and pose evaluation,  skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
