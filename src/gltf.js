@@ -384,27 +384,46 @@ function gltfExpandPrimitive(p){
   }
   return out;
 }
+function gltfTransformExpanded(data,m){
+  for(let i=0;i<data.length;i+=12){
+    const x=data[i],y=data[i+1],z=data[i+2],nx=data[i+3],ny=data[i+4],nz=data[i+5];
+    data[i]=m[0]*x+m[4]*y+m[8]*z+m[12];data[i+1]=m[1]*x+m[5]*y+m[9]*z+m[13];data[i+2]=m[2]*x+m[6]*y+m[10]*z+m[14];
+    const normal=gltfTransformNormal(m,nx,ny,nz);data[i+3]=normal[0];data[i+4]=normal[1];data[i+5]=normal[2];
+    const tx=data[i+8],ty=data[i+9],tz=data[i+10],tl=Math.hypot(m[0]*tx+m[4]*ty+m[8]*tz,m[1]*tx+m[5]*ty+m[9]*tz,m[2]*tx+m[6]*ty+m[10]*tz)||1;
+    data[i+8]=(m[0]*tx+m[4]*ty+m[8]*tz)/tl;data[i+9]=(m[1]*tx+m[5]*ty+m[9]*tz)/tl;data[i+10]=(m[2]*tx+m[6]*ty+m[10]*tz)/tl;
+  }
+  return data;
+}
 function prepareGLBHero(asset){
-  const entries=[];
-  const instances=asset.instances||asset.meshes.map((_,mesh)=>({mesh,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
+  const entries=[],instances=asset.instances||asset.meshes.map((_,mesh)=>({mesh,node:-1,skin:null,matrix:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}));
   for(const instance of instances){
-    const mesh=asset.meshes[instance.mesh],m=instance.matrix;
+    const mesh=asset.meshes[instance.mesh];
     for(const p of mesh.primitives){
-      const data=gltfExpandPrimitive(p);
-      for(let i=0;i<data.length;i+=12){
-        const x=data[i],y=data[i+1],z=data[i+2],nx=data[i+3],ny=data[i+4],nz=data[i+5];
-        data[i]=m[0]*x+m[4]*y+m[8]*z+m[12];
-        data[i+1]=m[1]*x+m[5]*y+m[9]*z+m[13];
-        data[i+2]=m[2]*x+m[6]*y+m[10]*z+m[14];
-        const normal=gltfTransformNormal(m,nx,ny,nz);
-        data[i+3]=normal[0];data[i+4]=normal[1];data[i+5]=normal[2];
-        const tx=data[i+8],ty=data[i+9],tz=data[i+10];data[i+8]=m[0]*tx+m[4]*ty+m[8]*tz;data[i+9]=m[1]*tx+m[5]*ty+m[9]*tz;data[i+10]=m[2]*tx+m[6]*ty+m[10]*tz;
-      }
-      const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
-      entries.push({buffer,count:p.indices.length,material:p.material,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents,hasUVs:!!p.uvs});
+      let data=gltfExpandPrimitive(p);
+      if(instance.skin!=null){const palette=gltfBuildJointMatrices(asset,instance.skin,instance.node);data=gltfExpandPrimitive(gltfSkinPrimitiveCPU(p,palette));}
+      gltfTransformExpanded(data,instance.matrix);
+      const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,instance.skin!=null?gl.DYNAMIC_DRAW:gl.STATIC_DRAW);
+      entries.push({buffer,count:p.indices.length,material:p.material,primitive:p,node:instance.node,skin:instance.skin,matrix:instance.matrix,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents,hasUVs:!!p.uvs});
     }
   }
   return entries;
+}
+function updateGLBHeroSkinning(now){
+  if(!gltfHero||!gltfHeroGPU||!gltfHero.asset.animations?.length)return;
+  const asset=gltfHero.asset,animation=asset.animations[0];
+  if(!animation.channels.length)return;
+  let first=Infinity,last=0;
+  for(const sampler of animation.samplers){if(sampler.input.length){first=Math.min(first,sampler.input[0]);last=Math.max(last,sampler.input[sampler.input.length-1]);}}
+  if(!Number.isFinite(first)||last<=first)return;
+  const duration=last-first,clipTime=first+(((now||0)%duration)+duration)%duration,pose=gltfEvaluateAnimation(animation,clipTime);
+  const palettes=new Map();
+  for(const item of gltfHeroGPU){
+    if(item.skin==null)continue;
+    let palette=palettes.get(item.skin+':'+item.node);
+    if(!palette){palette=gltfBuildJointMatrices(asset,item.skin,item.node,pose);palettes.set(item.skin+':'+item.node,palette);}
+    const deformed=gltfSkinPrimitiveCPU(item.primitive,palette),data=gltfTransformExpanded(gltfExpandPrimitive(deformed),item.matrix);
+    gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.DYNAMIC_DRAW);
+  }
 }
 async function prepareGLBTextures(asset){
   const out=[];
@@ -461,6 +480,7 @@ if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
 function drawGLBHero(){
   if(!gltfHero||!glOK)return false;
   if(!gltfHeroGPU){try{gltfHeroGPU=prepareGLBHero(gltfHero.asset);}catch(e){gltfHeroError=String(e);return false;}}
+  try{updateGLBHeroSkinning(typeof time==='number'?time:0);}catch(e){gltfHeroError=String(e&&e.message||e);}
   push();T(P.x,P.ry,P.z);RY(-P.a);Sc(gltfHero.scale,gltfHero.scale,gltfHero.scale);
   gl.uniformMatrix4fv(uM,false,cur);gl.uniform3f(uNS,1/(gltfHero.scale*gltfHero.scale),1/(gltfHero.scale*gltfHero.scale),1/(gltfHero.scale*gltfHero.scale));
   gl.uniform1f(uTx,0);gl.uniform1f(uE,0);
