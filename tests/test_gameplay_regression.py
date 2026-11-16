@@ -371,8 +371,9 @@ def verify_regional_mini_bosses() -> None:
         if spawn not in regions:
             raise AssertionError(f"Special-region mini-boss spawn missing: {spawn}")
     for item in ("minis:world.minis", "minis:!!w.minis", "world.minis=true",
-        "loot('dsh',2);loot('sh',3)",
-        "say('سقط '+e.T.name,'#e8c66a',3);save()", "s[0]==='gmini'&&world.minis"):
+        "loot('dsh',2);loot('sh',3);loot('seals',1)",
+        "say('سقط '+e.T.name+' · حصلت على ختم الحارس','#e8c66a',3.4);save()",
+        "أختام الحراس: '+(stats.seals||0)", "s[0]==='gmini'&&world.minis"):
         if item not in game:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
     if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
