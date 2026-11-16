@@ -218,10 +218,10 @@ function prepareGLBHero(asset){
         data[i+2]=m[2]*x+m[6]*y+m[10]*z+m[14];
         const normal=gltfTransformNormal(m,nx,ny,nz);
         data[i+3]=normal[0];data[i+4]=normal[1];data[i+5]=normal[2];
-        const tangent=gltfTransformNormal(m,data[i+8],data[i+9],data[i+10]);data[i+8]=tangent[0];data[i+9]=tangent[1];data[i+10]=tangent[2];
+        const tx=data[i+8],ty=data[i+9],tz=data[i+10];data[i+8]=m[0]*tx+m[4]*ty+m[8]*tz;data[i+9]=m[1]*tx+m[5]*ty+m[9]*tz;data[i+10]=m[2]*tx+m[6]*ty+m[10]*tz;
       }
       const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
-      entries.push({buffer,count:p.indices.length,material:p.material,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents});
+      entries.push({buffer,count:p.indices.length,material:p.material,stride:48,texture:p.material.baseColorTexture,normalTexture:p.material.normalTexture,hasTangents:!!p.tangents,hasUVs:!!p.uvs});
     }
   }
   return entries;
@@ -301,7 +301,7 @@ function drawGLBHero(){
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBMetallic'),m.metallicFactor??1);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBRoughness'),m.roughnessFactor??1);
     if(tex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBTex'),2);}
-    const normalTex=item.normalTexture==null?null:gltfHeroTextures[item.normalTexture];const useNormal=!!(normalTex&&item.hasTangents);
+    const normalTex=item.normalTexture==null?null:gltfHeroTextures[item.normalTexture];const useNormal=!!(normalTex&&item.hasTangents&&item.hasUVs);
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalMap'),useNormal?1:0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBNormalScale'),m.normalScale??1);
     if(useNormal){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,normalTex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBNormalTex'),3);}
     gl.drawArrays(gl.TRIANGLES,0,item.count);
