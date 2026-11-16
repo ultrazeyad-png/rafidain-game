@@ -110,7 +110,7 @@ const CINE=[
   {d:4.5,reg:'duhok',a:[452,62,-978,475,8,-915],b:[458,50,-966,475,8,-915],tod:0,t:'« فرات… گوم. »',v:1}];
 function cineRegion(id){   // swap the world under the film without touching the save
   if(REG===id)return;const f=$('cFade');if(f){f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
-  loadRegion(id);applyWorld();spawnAll();DR=4000;
+  loadRegion(id);applyWorld();setEnvironment(REG);spawnAll();DR=4000;
   if(id==='duhok'){setP('sleep');P.x=475;P.z=-915;P.y=floorAt(475,-915,20);P.ry=P.y;P.a=2.82;P.inv=99;}
   else{P.x=-1800;P.z=-1800;P.y=0;P.ry=0;}ugS=0;}
 function startCine(){cine={i:0,t:0};DR=4000;paused=true;root.classList.add('cine');setP('sleep');P.inv=99;cineShot();music(true);}
