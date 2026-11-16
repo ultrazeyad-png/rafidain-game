@@ -185,6 +185,28 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.equal(parsed.images.length,1);
   assert.equal(parsed.images[0].bytes.length,4);
   assert.equal(parsed.textures[0].source,0);
+  assert.deepEqual({...parsed.textures[0].sampler},{wrapS:10497,wrapT:10497,minFilter:9987,magFilter:9729});
+}
+{
+  const d=baseDocument();
+  d.images=[{bufferView:2,mimeType:'image/png'}];
+  d.bufferViews.push({buffer:0,byteOffset:44,byteLength:4});
+  d.textures=[{source:0,sampler:0}];
+  d.samplers=[{wrapS:33071,wrapT:33648,minFilter:9728,magFilter:9728}];
+  const parsed=parse(makeGLB(d,baseBin()));
+  assert.deepEqual({...parsed.textures[0].sampler},{wrapS:33071,wrapT:33648,minFilter:9728,magFilter:9728});
+}
+{
+  const d=baseDocument();
+  d.images=[{bufferView:2,mimeType:'image/png'}];
+  d.bufferViews.push({buffer:0,byteOffset:44,byteLength:4});
+  d.textures=[{source:0,sampler:4}];
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/references missing sampler/);
+}
+{
+  const d=baseDocument();
+  d.samplers=[{wrapS:123}];
+  expectInvalid(d,baseBin(),/invalid wrap mode/);
 }
 {
   const d = baseDocument();
