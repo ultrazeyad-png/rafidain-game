@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -488,6 +488,29 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
 }
 
 console.log('GLB parser fixtures passed: skinned mesh world transform application,  CPU vertex skinning and joint palette validation,  CPU skinning weighted translation and identity,  CPU skinning vertex deformation,  animated node world transforms and inverse-bind joint matrices,  linear/step/cubic animation sampling, quaternion interpolation and pose evaluation,  skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
+
+{
+  const makeTrack=(end)=>({samplers:[{input:new Float32Array([0,4]),output:new Float32Array([0,0,0,end,0,0]),outputWidth:3,interpolation:'LINEAR'}],channels:[{sampler:0,node:0,path:'translation'}]});
+  const asset={nodes:[{translation:[0,0,0]}],animations:[makeTrack(4),makeTrack(8)]};
+  const one=context.__createPlaybackState(asset),two=context.__createPlaybackState(asset,{speed:.5});
+  context.__advancePlayback(asset,one,0);context.__advancePlayback(asset,two,0);
+  const poseOne=context.__advancePlayback(asset,one,1),poseTwo=context.__advancePlayback(asset,two,1);
+  assert.equal(one.elapsed,1);assert.equal(two.elapsed,.5);
+  assert.deepEqual(Array.from(poseOne.get(0).translation),[1,0,0]);
+  assert.deepEqual(Array.from(poseTwo.get(0).translation),[.5,0,0]);
+  const changed=context.__setPlaybackAnimation(asset,one,{clip:1,transitionDuration:.2});
+  assert.equal(changed.clip,1);assert.equal(changed.elapsed,0);
+  assert.equal(changed.transition.duration,.2);
+  context.__advancePlayback(asset,changed,1);
+  context.__advancePlayback(asset,changed,1.1);
+  assert.ok(changed.elapsed>0&&changed.elapsed<.11);
+  const paused=context.__setPlaybackAnimation(asset,two,{paused:true});
+  context.__advancePlayback(asset,paused,2);
+  const before=paused.elapsed;
+  context.__advancePlayback(asset,paused,3);
+  assert.equal(paused.elapsed,before);
+  assert.throws(()=>context.__setPlaybackAnimation(asset,one,{speed:9}),/speed must be between 0 and 4/);
+}
 
 {
   const animation={samplers:[{input:new Float32Array([2,3,5])}]};
