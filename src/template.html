@@ -420,7 +420,7 @@ function strike(a){
 function hurtE(e,d,heavy,crit){
   e.hp-=d;e.flash=.12;burst(e.x,e.y+e.j+e.T.h*.6,e.z,e.boss?'#8a1424':'#b01c28',heavy?12:7,120,e.y);
   if(e.hp<=0){e.hp=0;e.dead=true;puff(e.x,e.y,e.z,7,9,55);setE(e,'dead');e.j=0;stats.embers+=Math.round(e.T.embers*((ARM[stats.arm]||{}).emb||1));
-    if(e.T.mini){world.minis=true;save();loot('dsh',2);loot('sh',3);say('سقط '+e.T.name,'#e8c66a',3);}
+    if(e.T.mini){world.minis=true;loot('dsh',2);loot('sh',3);say('سقط '+e.T.name,'#e8c66a',3);save();}
     if(!e.boss){if(e.k==='brute'||Math.random()<.22)loot('sh',1);if(e.k==='archer')loot('arrows',3+Math.floor(Math.random()*3));}
     else{loot('sh',e.k==='erra'?4:5);loot('dsh',e.k==='erra'?2:3);}
     if(e.k==='guard'){world.key=true;say('أخذت مفتاح العالم السفلي','#e8c66a',4);snd('rest');save();}burst(e.x,e.y+e.T.h*.5,e.z,'#f0a040',e.boss?60:10,e.boss?260:120,e.y);
