@@ -568,7 +568,7 @@ function upEnemy(e,dt){
   if(e.k==='gmini'&&!e.p2&&e.hp<=T.hp*.5){
     e.p2=true;e.cd=.65;setE(e,'miniTrans');
     const m=MINI_GUARDS[REG];if(m){say(m.n+'… أطلق طوره الأخير!','#c66cff',2.6);voice('boss','هسه تشوف قوتي الحقيقية!');}
-    burst(e.x,e.y+T.h*.55,e.z,'#c66cff',34,190,e.y);shake=8;return;
+    burst(e.x,e.y+T.h*.55,e.z,'#c66cff',34,190,e.y);snd('boss');snd('roar');shake=8;return;
   }
   if(ad>1100)return;
   e.cd-=dt;
@@ -588,7 +588,7 @@ function upEnemy(e,dt){
     case 'wind':if(e.t<T.wind*(e.k==='gmini'&&e.p2 ? .82 : 1)*.6)e.a=turn(e.a,ang,6*dt);if(e.k==='gmini'&&MINI_GUARDS[REG].k==='ghostK'&&!e.blinked&&e.t>=T.wind*.65){const side=(e.sx||1),bx=P.x-Math.cos(P.a)*86+Math.cos(P.a+PI/2)*side*58,bz=P.z-Math.sin(P.a)*86+Math.sin(P.a+PI/2)*side*58;if(!blocked(bx,bz,e.y,T.r)){e.x=bx;e.z=bz;e.a=Math.atan2(P.z-e.z,P.x-e.x);e.blinked=true;burst(e.x,e.y+24,e.z,'#b9a0ff',12,100,e.y);}}if(e.t>=T.wind*(e.k==='gmini'&&e.p2 ? .82 : 1)){setE(e,'strike');if(ad<420)snd('ewh');}break;
     case 'strike':if(T.ranged){if(!e.hit){e.hit=true;(e.k==='archer'?shootArrow:sling)(e);}if(e.t>=T.act)setE(e,'rec');break;}
       if(e.k==='gmini'&&MINI_GUARDS[REG].k==='wolfK')e.j=Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42);const lung=T.lunge*(e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'?1.32:1)*(e.k==='gmini'&&e.p2?1.18:1);stepE(e,lung,dt);if(!e.hit&&hitP(e,T.reach,T.arc,T.dmg*(e.k==='gmini'&&e.p2?1.15:1))){e.hit=true;if(e.k==='gmini'){const mk=MINI_GUARDS[REG].k,col={scorpK:'#a5d64b',crocK:'#55c9bb',ghostK:'#b9a0ff',wolfK:'#c7e4f5'}[mk]||'#c66cff';if(mk==='scorpK')burst(e.x,e.y+18,e.z,'#a5d64b',18,130,e.y);if(e.p2){burst(e.x,e.y+22,e.z,col,22,165,e.y);waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col});}}}if(e.t>=T.act)setE(e,'rec');break;
-    case 'rec':if(e.t>=T.rec){setE(e,'chase');e.cd=T.cool*(.6+Math.random()*.8);}break;
+    case 'rec':if(e.t>=T.rec){setE(e,'chase');e.cd=T.cool*(.6+Math.random()*.8)*(e.k==='gmini'&&e.p2?.78:1);}break;
     case 'stun':moveEnt(e,e.x+Math.cos(e.ka)*e.kv*dt,e.z+Math.sin(e.ka)*e.kv*dt,T.r*.9,true);e.kv*=Math.pow(.02,dt);if(e.t>=.45)setE(e,'chase');break;
   }
   if(e.y<-100&&e.z>AZ0-24)e.z=AZ0-24;
