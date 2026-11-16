@@ -573,6 +573,24 @@ def verify_glb_enemy_boss_asset_acceptance() -> None:
 
 
 
+def verify_region_specific_boss_voice_profiles() -> None:
+    audio = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in ("const voiceProfiles=new Map()", "function registerVoiceProfile(id,profile={})",
+        "function voiceBoss(entity,text)", "voiceProfiles.get(id)||profiles[id]||profiles.narrator",
+        "voiceProfiles.set(id,next)"):
+        if item not in audio:
+            raise AssertionError(f"Voice profile registry missing: {item}")
+    if bosses.count("voiceBoss(b,") < 3:
+        raise AssertionError("Major boss intro, phase transition, and attack taunts must use regional voices")
+    if "voiceBoss(src,src.T&&src.T.name" not in game:
+        raise AssertionError("Major boss parry reaction must use its regional voice profile")
+    if "voiceBoss,registerVoiceProfile" not in game:
+        raise AssertionError("Regional boss voice API is not exposed")
+    print("PASS: major boss dialogue and parry reactions resolve deterministic region-specific voice profiles")
+
+
 def verify_glb_boss_profile_registry() -> None:
     gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
@@ -618,6 +636,7 @@ def main() -> int:
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
     verify_glb_enemy_boss_asset_acceptance()
+    verify_region_specific_boss_voice_profiles()
     verify_glb_boss_profile_registry()
     verify_glb_catalog_audit_and_entity_cleanup()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
