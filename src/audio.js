@@ -138,13 +138,40 @@ function voice(id,text){
 
 /* boss fight: war drums over a low drone */
 let BM=null;
-function bossMusic(on){
+function bossMusic(on,profile){
+  profile=profile||'default';
   if(!AUC)return;
-  try{if(!on){if(BM){clearInterval(BM.iv);BM.g.gain.linearRampToValueAtTime(0,AUC.currentTime+1.2);const m=BM;setTimeout(()=>{try{m.o.forEach(o=>o.stop());}catch(_){}} ,1400);BM=null;}return;}
-    if(BM)return;const g=AUC.createGain(),t=AUC.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+1.5);g.connect(MG);
-    const o=[];for(const f of[55,82.4,110]){const os=AUC.createOscillator(),fl=AUC.createBiquadFilter();os.type='sawtooth';os.frequency.value=f;fl.type='lowpass';fl.frequency.value=380;os.connect(fl);fl.connect(g);os.start();o.push(os);}
+  try{
+    if(!on){if(BM){clearInterval(BM.iv);BM.g.gain.linearRampToValueAtTime(0,AUC.currentTime+1.2);const m=BM;setTimeout(()=>{try{m.o.forEach(o=>o.stop());}catch(_){}} ,1400);BM=null;}return;}
+    if(BM&&BM.profile===profile)return;
+    if(BM){clearInterval(BM.iv);BM.g.gain.linearRampToValueAtTime(0,AUC.currentTime+.35);const old=BM;setTimeout(()=>{try{old.o.forEach(o=>o.stop());}catch(_){}} ,500);BM=null;}
+    const cfg={
+      wolfK:{notes:[65.4,98,130.8,196],filter:720,pulse:'wind'},
+      ghostK:{notes:[55,82.4,123.5,164.8],filter:520,pulse:'echo'},
+      scorpK:{notes:[49,73.4,98,146.8],filter:360,pulse:'metal'},
+      crocK:{notes:[41.2,61.7,82.4,110],filter:260,pulse:'water'},
+      default:{notes:[55,82.4,110],filter:380,pulse:'heavy'}
+    }[profile]||{notes:[55,82.4,110],filter:380,pulse:'heavy'};
+    const g=AUC.createGain(),t=AUC.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+1.5);g.connect(MG);
+    const o=[];cfg.notes.slice(0,3).forEach((f)=>{const os=AUC.createOscillator(),fl=AUC.createBiquadFilter();os.type='sawtooth';os.frequency.value=f;fl.type='lowpass';fl.frequency.value=cfg.filter;os.connect(fl);fl.connect(g);os.start();o.push(os);});
     let n=0;const iv=setInterval(()=>{if(!AUC)return;const k=n%8;n++;
-      if(k===0||k===3||k===4||k===6){tone(k===0?70:90,38,.38,'sine',.32);nz(.18,.12,'lowpass',260,80,1);}
-      if(k===2||k===7)nz(.09,.06,'highpass',2400,1600,1);},235);
-    BM={g,o,iv};}catch(_){}
+      if(cfg.pulse==='wind'){
+        if(k===0||k===4){tone(130,55,.34,'sine',.27);nz(.28,.1,'bandpass',500,1800,.8);}
+        if(k===2||k===6)nz(.12,.07,'highpass',1900,4200,1);
+      }else if(cfg.pulse==='echo'){
+        if(k===0||k===4)ring([440,659,988,1480],.7,.025);
+        if(k===2||k===6){tone(220,110,.48,'sine',.16);nz(.2,.07,'bandpass',1200,420,.7);}
+      }else if(cfg.pulse==='metal'){
+        if(k===0||k===3||k===6)ring([174,263,392,587],.42,.04);
+        if(k===2||k===5)nz(.11,.1,'highpass',2600,1100,2);
+      }else if(cfg.pulse==='water'){
+        if(k===0||k===4){tone(88,34,.55,'sine',.3);nz(.42,.09,'lowpass',420,95,.7);}
+        if(k===2||k===6)nz(.24,.06,'bandpass',700,260,.5);
+      }else{
+        if(k===0||k===3||k===4||k===6){tone(k===0?70:90,38,.38,'sine',.32);nz(.18,.12,'lowpass',260,80,1);}
+        if(k===2||k===7)nz(.09,.06,'highpass',2400,1600,1);
+      }
+    },235);
+    BM={g,o,iv,profile};
+  }catch(_){}
 }
