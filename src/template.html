@@ -379,7 +379,7 @@ function tryAct(){
   return true;
 }
 const CRIT={wind:.32,act:.12,rec:.55,dmg:0,reach:0,lunge:40,cost:0,key:'R',crit:true};
-function critTarget(){for(const e of enemies){if(e.dead||(e.state!=='stag'&&e.state!=='stun')||Math.abs(e.y-P.y)>45)continue;
+function critTarget(){for(const e of enemies){if(e.dead||(e.state!=='stag'&&e.state!=='stun'&&!(e.boss&&e.weakT>0))||Math.abs(e.y-P.y)>45)continue;
   const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<e.T.r+P.r+(e.boss?60:34))return e;}return null;}
 function ownW(w){return w==='shield'||w==='dual'||(w==='glaive'?stats.glaive:!!(stats.own&&stats.own[w]));}
 let lootT=0,lootS='';
@@ -410,7 +410,9 @@ function upgrade(k){const L=wlv(k);if(L>=10)return;const c=upCost(L);if(stats.em
   stats.embers-=c.e;stats.sh-=c.sh;stats.dsh-=c.dsh;stats.wl[k]=L+1;snd('parry');save();renderShrine();}
 function strike(a){
   hitSecret(a);
-  if(a.crit){const e=P.critT;if(e&&!e.dead){const d=Math.round(68*dmgMul()*wpnMul()*(e.boss?1.7:2.6));hurtE(e,d,true,true);hs=.2;shake=13;snd('hit');snd('parry');
+  if(a.crit){const e=P.critT;if(e&&!e.dead){
+    if(e.boss&&e.weakT>0&&e.armor===0&&e.hp<=e.T.hp*.28&&!e.finisherUsed&&startBossFinisher(e))return;
+    const d=Math.round(68*dmgMul()*wpnMul()*(e.boss?1.7:2.6));hurtE(e,d,true,true);hs=.2;shake=13;snd('hit');
     burst(e.x,e.y+e.T.h*.55,e.z,'#c01828',26,200,e.y);say('ضربة قاضية','#f0dca0',1.4);}return;}
   snd(a.heavy?'swingH':'swing');let any=false;const arc=a.arc||(a.v?.75:1.25);
   for(const e of enemies){if(e.dead||e.j>50||Math.abs(e.y-P.y)>55)continue;const dx=e.x-P.x,dz=e.z-P.z,d=Math.hypot(dx,dz);
@@ -1127,7 +1129,7 @@ function drawHUD0(){
   if(world.locked&&boss&&!boss.dead){const bw=VW*.4,bx=(VW-bw)/2,by=VH-16;
     ctx.textAlign='center';ctx.font='600 12.5px '+FONT;ctx.fillStyle='#e6d8c0';ctx.fillText(boss.T.name,VW/2,by-11);
     ctx.font='600 10px '+FONT;ctx.fillStyle=boss.weakT>0?'#f3c66d':'#9ba8b4';
-    ctx.fillText(boss.weakT>0?'نقطة الضعف مكشوفة':('درع الحارس: '+'◆'.repeat(boss.armor==null?2:boss.armor)),VW/2,by-25);
+    ctx.fillText(boss.weakT>0?(boss.hp<=boss.T.hp*.28?'اضغط هجوم لتنفيذ الضربة القاضية':'نقطة الضعف مكشوفة'):('درع الحارس: '+'◆'.repeat(boss.armor==null?2:boss.armor)),VW/2,by-25);
     bar(bx,by,bw,5.5,boss.hp/boss.T.hp,'#9a1c26');}
   if(banner){const k=banner.t/banner.dur,al=Math.min(1,k*5,(1-k)*3);
     ctx.fillStyle='rgba(0,0,0,'+(.55*al).toFixed(3)+')';ctx.fillRect(0,VH*.26-22,VW,44);
