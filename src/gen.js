@@ -151,7 +151,24 @@ function regGen(g){
   if(T.city){for(let j=J0;j<J1;j++)for(let i=0;i<GI;i++){const c=cidx(i,j);if(!nogo[c]||(RIVZ&&j>=13))continue;
       const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>{const ii=i+a,jj=j+b;return ii>=0&&ii<GI&&jj>=J0&&jj<J1&&!nogo[cidx(ii,jj)];});
       if(!edge&&hash(i*3.3+j*7.1)<.55)continue;const h=edge?110+hash(i+j*13)*120:80+hash(i*7+j)*60;
-      blk(i*C+3,j*C+3,(i+1)*C-3,(j+1)*C-3,0,h,['#b8a07a','#a88c64','#c4ae86','#9a8462'][Math.floor(hash(i*1.7+j*2.9)*4)],'cb');}
+      const bx=i*C+3,bz=j*C+3,col=['#b8a07a','#a88c64','#c4ae86','#9a8462'][Math.floor(hash(i*1.7+j*2.9)*4)];
+      blk(bx,bz,bx+C-6,bz+C-6,0,h,col,'cb');
+      // Baghdad roofline: sparse domes and slender minarets break the flat procedural skyline
+      const roofX=bx+C/2,roofZ=bz+C/2,style=hash(i*19.7+j*31.1);
+      if(style>.88){
+        st('sph','#a88e70',18,12,18,roofX,h+6,roofZ);
+        st('cyl','#80664c',3.2,18,3.2,roofX,h+19,roofZ);
+        st('con','#c3a36c',4.2,8,4.2,roofX,h+32,roofZ);
+        st('sph','#d2b77e',2.2,2.2,2.2,roofX,h+38,roofZ,{em:.22});
+      }else if(style>.80){
+        st('sph','#b89a72',22,17,22,roofX,h+8,roofZ);
+        st('cyl','#927454',2.4,8,2.4,roofX,h+20,roofZ);
+      }
+      // a few warm slit windows facing the main approach
+      if(hash(i*7.3+j*11.9)>.91){
+        st('box','#d59a4f',2.4,13,1.2,roofX-18,24,roofZ+C/2-1,{em:.18});
+        st('box','#d59a4f',2.4,13,1.2,roofX+18,24,roofZ+C/2-1,{em:.18});
+      }}
     const G=D[n-2],a=Math.atan2(A[1]-G[1],A[0]-G[0]),gx=lerp(G[0],A[0],.55),gz=lerp(G[1],A[1],.55);
     const ax=Math.abs(A[0]-G[0])>Math.abs(A[1]-G[1]);MGATE=ax?blk(gx-14,gz-270,gx+14,gz+270,G[3],G[3]+190,'#4a4038','mgate'):blk(gx-270,gz-14,gx+270,gz+14,G[3],G[3]+190,'#4a4038','mgate');MGATE.ax2=ax;REGC.gate={x:gx,z:gz};}
 }
