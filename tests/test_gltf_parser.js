@@ -309,7 +309,7 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   const d=baseDocument(),bin=Buffer.alloc(104);baseBin().copy(bin,0);
   d.bufferViews.push({buffer:0,byteOffset:44,byteLength:8},{buffer:0,byteOffset:52,byteLength:24});
   d.accessors.push({bufferView:2,componentType:5126,count:2,type:'SCALAR'},{bufferView:3,componentType:5126,count:2,type:'VEC3'});
-  d.nodes=[{}];d.scenes=[{nodes:[0]}];
+  d.nodes=[{mesh:0}];d.scenes=[{nodes:[0]}];
   bin.writeFloatLE(0,44);bin.writeFloatLE(1,48);
   d.animations=[{samplers:[{input:2,output:3}],channels:[{sampler:0,target:{node:0,path:'rotation'}}]}];
   assert.throws(()=>parse(makeGLB(d,bin)),/animation output width does not match target path/);
