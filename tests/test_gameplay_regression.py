@@ -573,6 +573,19 @@ def verify_glb_enemy_boss_asset_acceptance() -> None:
 
 
 
+def verify_regional_boss_intro_cinematics() -> None:
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+    for item in ("if(isAdapa)", "if(isErra)", "المفاتيح لن تفتح لك طريق العودة",
+        "فوق جبال دهوك… العاصفة تنتظر", "voice:'boss'", "fx:true",
+        "cine={i:0,t:0,boss:b,shots}"):
+        if item not in bosses:
+            raise AssertionError(f"Regional boss intro cinematic element missing: {item}")
+    if "if(cine.boss&&s.voice==='boss')voiceBoss(cine.boss,s.t)" not in systems:
+        raise AssertionError("Boss intro dialogue must use the boss regional voice profile")
+    print("PASS: Baghdad and Duhok have bespoke multi-shot boss introductions with regional character dialogue")
+
+
 def verify_regional_miniboss_voice_routing() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
@@ -649,6 +662,7 @@ def main() -> int:
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
     verify_glb_enemy_boss_asset_acceptance()
+    verify_regional_boss_intro_cinematics()
     verify_regional_miniboss_voice_routing()
     verify_region_specific_boss_voice_profiles()
     verify_glb_boss_profile_registry()
