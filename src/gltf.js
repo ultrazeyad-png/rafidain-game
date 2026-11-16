@@ -12,6 +12,45 @@ function gltfMatMul(a,b){
   for(let c=0;c<4;c++)for(let r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];
   return o;
 }
+function gltfQuatSlerp(a,b,t){
+  let dot=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3],bb=b;
+  if(dot<0){dot=-dot;bb=[-b[0],-b[1],-b[2],-b[3]];}
+  if(dot>.9995){const q=a.map((v,i)=>v+(bb[i]-v)*t),l=Math.hypot(...q)||1;return q.map(v=>v/l);}
+  const theta=Math.acos(Math.max(-1,Math.min(1,dot))),sin=Math.sin(theta);
+  const x=Math.sin((1-t)*theta)/sin,y=Math.sin(t*theta)/sin;
+  return a.map((v,i)=>v*x+bb[i]*y);
+}
+function gltfSampleAnimationSampler(sampler,time,path){
+  const times=sampler.input,values=sampler.output,width=sampler.outputWidth;
+  if(!times.length||!Number.isFinite(time))gltfFail('animation sample requires finite time and keyframes');
+  const cubic=sampler.interpolation==='CUBICSPLINE',stride=width*(cubic?3:1);
+  let hi=0;while(hi<times.length&&times[hi]<time)hi++;
+  if(hi===0)hi=0;else if(hi>=times.length)hi=times.length-1;
+  let lo=Math.max(0,hi-1),t=0,dt=0;
+  if(hi!==lo){dt=times[hi]-times[lo];t=Math.max(0,Math.min(1,(time-times[lo])/dt));}
+  const valueAt=(key,part= cubic?1:0)=>Array.from(values.slice(key*stride+part*width,key*stride+(part+1)*width));
+  if(lo===hi)return valueAt(hi);
+  if(sampler.interpolation==='STEP')return valueAt(lo);
+  if(cubic){
+    const p0=valueAt(lo,1),m0=valueAt(lo,2),p1=valueAt(hi,1),m1=valueAt(hi,0);
+    const t2=t*t,t3=t2*t,h00=2*t3-3*t2+1,h10=t3-2*t2+t,h01=-2*t3+3*t2,h11=t3-t2;
+    const out=p0.map((v,i)=>h00*v+h10*dt*m0[i]+h01*p1[i]+h11*dt*m1[i]);
+    if(path==='rotation'){const l=Math.hypot(...out)||1;return out.map(v=>v/l);}return out;
+  }
+  const a=valueAt(lo),b=valueAt(hi);
+  if(path==='rotation')return gltfQuatSlerp(a,b,t);
+  return a.map((v,i)=>v+(b[i]-v)*t);
+}
+function gltfEvaluateAnimation(animation,time){
+  const pose=new Map();
+  for(const channel of animation.channels){
+    const sampler=animation.samplers[channel.sampler];
+    const value=gltfSampleAnimationSampler(sampler,time,channel.path);
+    let node=pose.get(channel.node);if(!node){node={};pose.set(channel.node,node);}
+    node[channel.path]=value;
+  }
+  return pose;
+}
 function gltfNodeMatrix(n){
   if(n.matrix){
     if(n.matrix.length!==16||!n.matrix.every(Number.isFinite))gltfFail('node matrix must contain 16 finite values');
