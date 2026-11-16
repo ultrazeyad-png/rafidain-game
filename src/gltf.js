@@ -77,3 +77,64 @@ async function loadGLB(url){
   if(!response.ok)gltfFail('HTTP '+response.status+' while loading '+url);
   return parseGLB(await response.arrayBuffer());
 }
+
+
+/* ---------- GLB -> existing WebGL renderer bridge ---------- */
+let gltfHero=null,gltfHeroGPU=null,gltfHeroError='';
+function gltfNormals(positions,indices){
+  const n=new Float32Array(positions.length);
+  for(let i=0;i<indices.length;i+=3){
+    const a=indices[i]*3,b=indices[i+1]*3,c=indices[i+2]*3;
+    const abx=positions[b]-positions[a],aby=positions[b+1]-positions[a+1],abz=positions[b+2]-positions[a+2];
+    const acx=positions[c]-positions[a],acy=positions[c+1]-positions[a+1],acz=positions[c+2]-positions[a+2];
+    const nx=aby*acz-abz*acy,ny=abz*acx-abx*acz,nz=abx*acy-aby*acx;
+    for(const q of[a,b,c]){n[q]+=nx;n[q+1]+=ny;n[q+2]+=nz;}
+  }
+  for(let i=0;i<n.length;i+=3){const l=Math.hypot(n[i],n[i+1],n[i+2])||1;n[i]/=l;n[i+1]/=l;n[i+2]/=l;}
+  return n;
+}
+function gltfExpandPrimitive(p){
+  const srcN=p.normals||gltfNormals(p.positions,p.indices),out=new Float32Array(p.indices.length*6);
+  for(let i=0;i<p.indices.length;i++){
+    const j=p.indices[i],k=i*6,q=j*3;
+    out[k]=p.positions[q];out[k+1]=p.positions[q+1];out[k+2]=p.positions[q+2];
+    out[k+3]=srcN[q];out[k+4]=srcN[q+1];out[k+5]=srcN[q+2];
+  }
+  return out;
+}
+function prepareGLBHero(asset){
+  const entries=[];
+  for(const mesh of asset.meshes)for(const p of mesh.primitives){
+    const data=gltfExpandPrimitive(p),buffer=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+    entries.push({buffer,count:p.indices.length,material:p.material});
+  }
+  return entries;
+}
+async function setGLBHero(url,scale=60){
+  gltfHero=null;gltfHeroGPU=null;gltfHeroError='';
+  try{
+    const asset=await loadGLB(url);
+    if(!asset.meshes.length)gltfFail('model contains no meshes');
+    gltfHero={asset,scale};
+    if(glOK)gltfHeroGPU=prepareGLBHero(asset);
+    return {ok:true,meshes:asset.meshes.length,primitives:asset.bounds};
+  }catch(e){gltfHeroError=String(e&&e.message||e);return {ok:false,error:gltfHeroError};}
+}
+function drawGLBHero(){
+  if(!gltfHero||!glOK)return false;
+  if(!gltfHeroGPU){try{gltfHeroGPU=prepareGLBHero(gltfHero.asset);}catch(e){gltfHeroError=String(e);return false;}}
+  push();T(P.x,P.ry,P.z);RY(-P.a);Sc(gltfHero.scale,gltfHero.scale,gltfHero.scale);
+  gl.uniformMatrix4fv(uM,false,cur);gl.uniform3f(uNS,1/(gltfHero.scale*gltfHero.scale),1/(gltfHero.scale*gltfHero.scale),1/(gltfHero.scale*gltfHero.scale));
+  gl.uniform1f(uTx,0);gl.uniform1f(uE,0);
+  for(const item of gltfHeroGPU){
+    const m=item.material,f=m.baseColorFactor;
+    gl.uniform4f(uC,f[0],f[1],f[2],f[3]);
+    gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);
+    gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aN);
+    gl.vertexAttribPointer(aP,3,gl.FLOAT,false,24,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,24,12);
+    gl.disableVertexAttribArray(aC);gl.vertexAttrib4f(aC,1,1,1,0);
+    gl.drawArrays(gl.TRIANGLES,0,item.count);
+  }
+  pop();bindMesh();gAlpha=1;return true;
+}
