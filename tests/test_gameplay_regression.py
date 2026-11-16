@@ -65,10 +65,10 @@ async def run_suite(base_url: str) -> None:
             print("PASS: Arabic spoken dialogue, distinct character profiles, and mute toggle")
 
             diagnostics = await page.evaluate("""() => {
-                const enabled = toggleDiagnostics(true);
-                const snapshot = diagnosticsSnapshot();
+                const enabled = __g.toggleDiagnostics(true);
+                const snapshot = __g.diagnosticsSnapshot();
                 const visible = document.getElementById("diag").classList.contains("on");
-                toggleDiagnostics(false);
+                __g.toggleDiagnostics(false);
                 return {enabled, visible, snapshot};
             }""")
             if not diagnostics["enabled"] or not diagnostics["visible"]:
