@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__createAnimatedEntity=gltfCreateAnimatedEntity; globalThis.__setEntityAction=gltfSetEntityAction; globalThis.__updateAnimatedEntity=gltfUpdateAnimatedEntity; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -485,6 +485,26 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.equal(boss('parried'),'hurt');
   assert.equal(boss('rec'),'idle');
   assert.equal(boss('anything'),'idle');
+}
+
+
+{
+  const track=end=>({samplers:[{input:new Float32Array([0,2]),output:new Float32Array([0,0,0,end,0,0]),outputWidth:3,interpolation:'LINEAR'}],channels:[{sampler:0,node:0,path:'translation'}]});
+  const asset={nodes:[{translation:[0,0,0]}],meshes:[],instances:[],animations:[{name:'Idle_Breathing',...track(2)},{name:'Attack_Slash',...track(4)}]};
+  const a=context.__createAnimatedEntity('enemy-1',asset);
+  const b=context.__createAnimatedEntity('boss-1',asset,{speed:.5});
+  assert.equal(a.id,'enemy-1');assert.equal(b.id,'boss-1');
+  assert.notEqual(a.playback,b.playback);
+  context.__updateAnimatedEntity(a,0);context.__updateAnimatedEntity(b,0);
+  const pa=context.__updateAnimatedEntity(a,1),pb=context.__updateAnimatedEntity(b,1);
+  assert.deepEqual(Array.from(pa.pose.get(0).translation),[1,0,0]);
+  assert.deepEqual(Array.from(pb.pose.get(0).translation),[.5,0,0]);
+  const switched=context.__setEntityAction(a,'attack');
+  assert.equal(switched.ok,true);assert.equal(a.playback.clip,1);
+  assert.equal(context.__setEntityAction(b,'jump').reason,'clip-not-found');
+  assert.equal(b.playback.clip,0);
+  assert.throws(()=>context.__createAnimatedEntity('',asset),/id must be a non-empty string/);
+  assert.throws(()=>context.__updateAnimatedEntity(null,0),/invalid animated entity instance/);
 }
 
 console.log('GLB parser fixtures passed: skinned mesh world transform application,  CPU vertex skinning and joint palette validation,  CPU skinning weighted translation and identity,  CPU skinning vertex deformation,  animated node world transforms and inverse-bind joint matrices,  linear/step/cubic animation sampling, quaternion interpolation and pose evaluation,  skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
