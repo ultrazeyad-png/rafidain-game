@@ -103,10 +103,9 @@ const CINE=[
   {d:7,reg:'baghdad',tod:0,mk:()=>{const G=REGC.gate,b=MGATE,w=b&&b.ax2===false;return w?[[G.x-120,90,G.z+420,G.x,100,G.z],[G.x+60,70,G.z+330,G.x,110,G.z]]:[[G.x-420,90,G.z-120,G.x,100,G.z],[G.x-330,70,G.z+60,G.x,110,G.z]];},t:'خمس حراس قفلوها بخمس مفاتيح، وكل واحد أخذ مفتاحه لطرف من أطراف البلاد.'},
   {d:6,reg:'baghdad',tod:1,mk:()=>{const b=boss,G=REGC.gate;if(b){b.x=lerp(G.x,AC.x,.45);b.z=lerp(G.z,AC.z,.45);b.y=floorAt(b.x,b.z,40);b.a=Math.atan2(G.z-b.z,G.x-b.x)+PI;b.state='chase';}
      const x=b?b.x:AC.x,z=b?b.z:AC.z,a=b?b.a:0;return [[x+Math.cos(a)*300+Math.sin(a)*120,70,z+Math.sin(a)*300-Math.cos(a)*120,x,120,z],[x+Math.cos(a)*230+Math.sin(a)*60,60,z+Math.sin(a)*230-Math.cos(a)*60,x,130,z]];},t:'بليلة وحدة… انفتحت. واللي يعرف منو فتحها… ساكت.',fx:1},
-  {d:7,reg:'duhok',a:[640,78,-590,652,26,-300],b:[650,54,-480,652,26,-300],tod:1,t:'من ذيچ الليلة انطفت النار بكل البلاد، والموتى گاموا من قبورهم.'},
+  {d:5,reg:'baghdad',tod:1,mk:()=>{const b=boss,G=REGC.gate;if(!b)return [[G.x-90,145,G.z+130,G.x,125,G.z],[G.x-45,120,G.z+85,G.x,125,G.z]];return [[b.x+115,b.y+88,b.z+165,b.x,b.y+72,b.z],[b.x+58,b.y+48,b.z+88,b.x,b.y+70,b.z]];},t:'أدابا… آخر زعماء بغداد، ومعلم الحراس.',fx:1},
+  {d:6,reg:'duhok',a:[640,78,-590,652,26,-300],b:[650,54,-480,652,26,-300],tod:1,t:'من ذيچ الليلة انطفت النار بكل البلاد، والموتى گاموا من قبورهم.'},
   {d:7,reg:'duhok',a:[700,230,-690,475,10,-915],b:[590,95,-800,475,10,-915],tod:0,t:'وبأبعد نقطة بالشمال، بزاخو، رجّال نايم يم آخر موقد… وما يتذكر شي.'},
-  {d:5.5,reg:'duhok',a:[760,145,-880,520,28,-736],b:[650,92,-820,520,34,-736],tod:1,t:'ومرّة چان جسر دلال يربط ضفّتي الخابور… شاهد على ناس عبرت وما رجعت.'},
-  {d:5.5,reg:'duhok',a:[2450,290,520,2220,190,300],b:[2360,235,470,2210,180,310],tod:0,t:'وبالقرى المعلّگة بين الجبال، بعدهم يحافظون على حكاياتهم… حتى لو خيّم الخراب.'},
   {d:4.5,reg:'duhok',a:[452,62,-978,475,8,-915],b:[458,50,-966,475,8,-915],tod:0,t:'« فرات… گوم. »',v:1}];
 function cineRegion(id){   // swap the world under the film without touching the save
   if(REG===id)return;const f=$('cFade');if(f){f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
