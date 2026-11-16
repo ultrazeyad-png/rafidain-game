@@ -97,6 +97,18 @@ function adapaSword(){
   con(3.7,10,2.2,'#e4e0d1',0,-53,0);
   sph(3.2,3.2,3.2,'#287f91',0,10,0);
 }
+function adapaArmBlend(a,b,k){return {t:lerp(a.t,b.t,k),y:lerp(a.y,b.y,k),e:lerp(a.e,b.e,k),w:lerp(a.w,b.w,k),r:lerp(a.r||0,b.r||0,k)};}
+function adapaSwordPose(state,u){
+  // Three readable beats: measure, commit, then recover into the royal guard.
+  const guard={t:.82,y:-.32,e:.98,w:-.2,r:0},off={t:.62,y:.3,e:.82,w:.18,r:0};
+  const wind={c1:{t:1.62,y:.38,e:.08,w:.86,r:-.35},c2:{t:1.55,y:-.62,e:.12,w:.78,r:.3},c3:{t:1.82,y:-.08,e:.02,w:.9,r:0},sp:{t:1.45,y:-.9,e:.22,w:.75,r:-.45},sl:{t:1.95,y:.05,e:.02,w:1.05,r:0}};
+  const strike={c1:{t:.42,y:-.82,e:1.82,w:.92,r:.42},c2:{t:.48,y:.88,e:1.78,w:-.9,r:-.42},c3:{t:.2,y:-.05,e:2.05,w:.5,r:0},sp:{t:.95,y:.98,e:1.65,w:-.95,r:.65},sl:{t:.2,y:.05,e:2.2,w:.9,r:0}};
+  const recover={c1:{t:1.05,y:-.22,e:.62,w:.25,r:.1},c2:{t:1.02,y:.22,e:.65,w:-.22,r:-.1},c3:{t:1.12,y:-.12,e:.55,w:.2,r:0},sp:{t:.9,y:-.18,e:.78,w:.2,r:0},sl:{t:1.18,y:0,e:.48,w:.1,r:0}};
+  const k=state==='sl'?clamp((u-1)/1.15,0,1):clamp(u-1,0,1);
+  if(u<1)return adapaArmBlend(guard,wind[state]||wind.c1,u);
+  if(u<2)return adapaArmBlend(wind[state]||wind.c1,strike[state]||strike.c1,k);
+  return adapaArmBlend(strike[state]||strike.c1,guard,clamp((u-2),0,1));
+}
 function drawNamtar(e){
   const fall=mobFx(e,2.2);if(fall<0)return;
   const st=e.state,p2=e.p2,isAdapa=!!(e.T&&e.T.name&&e.T.name.includes('أدابا'));
@@ -147,6 +159,12 @@ function drawNamtar(e){
     const settle=clamp(e.t/.65,0,1);
     m={t:lerp(1.3,.82,settle),y:-.24,e:lerp(.3,.9,settle),w:lerp(.4,-.18,settle)};
     o={t:.55,y:.22,e:.8,w:.1};
+  }else if(isAdapa&&['c1','c2','c3','sp','sl'].includes(st)){
+    const attack=adapaSwordPose(st,u),counter=clamp((u-.55)/.8,0,1);
+    m=attack;
+    o=adapaArmBlend({t:.62,y:.3,e:.82,w:.18,r:0},
+      {t:.98,y:st==='c2'?.5:-.52,e:1.15,w:st==='c2'?.45:-.45,r:0},counter);
+    lean=lerp(-.035,st==='sl'?.22:st==='c3'?.12:-.08,clamp(u/2,0,1));
   }
   const mvk=(st==='chase'||st==='charge')?1:0,wk=e.walk;
   push();T(e.x,e.y+e.j,e.z);RY(-e.a);if(fall)RZ(fall);Sc(2.15,2.15,2.15);T(0,crouch*.4,0);
