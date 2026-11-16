@@ -87,7 +87,7 @@ async def run_suite(base_url: str) -> None:
             # when the title button is actually visible.
             await page.wait_for_function(
                 "(previous) => performance.timeOrigin !== previous && document.readyState === 'complete'",
-                previous_document,
+                arg=previous_document,
                 timeout=30000,
             )
             if await page.locator("#go").is_visible():
