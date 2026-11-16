@@ -83,7 +83,6 @@ async def run_suite(base_url: str) -> None:
                         beforeHp,
                         afterAttackHp,
                         attackState,
-                        beforeStamina,
                         staminaBeforeRoll,
                         staminaAfterRoll,
                         rollState,
