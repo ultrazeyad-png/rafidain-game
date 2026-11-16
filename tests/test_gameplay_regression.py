@@ -324,6 +324,7 @@ async def run_suite(base_url: str) -> None:
 
 
 def main() -> int:
+    verify_adapa_visual_design()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
