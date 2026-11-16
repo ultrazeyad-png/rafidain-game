@@ -39,13 +39,17 @@ async def run_suite(base_url: str) -> None:
             combat = await page.evaluate(
                 """() => {
                     const g = window.__g;
-                    g.start();
+                    // End the opening cinematic and let the player reach the normal idle state.
+                    if (g.cine) g.endCine();
+                    for (let i = 0; i < 140; i++) g.step(0.02);
                     const p = g.P;
+                    if (p.state !== "idle") throw new Error("Player did not reach idle after intro: " + p.state);
+                    p.inv = 0;
                     const target = g.enemies.find(e => !e.boss && !e.dead);
                     if (!target) throw new Error("No standard enemy available for combat test");
 
-                    // Put a stationary test target in front of the player, away from level geometry.
-                    target.x = p.x + 30;
+                    // Place a controlled target directly in front of the player.
+                    target.x = p.x + 32;
                     target.z = p.z;
                     target.y = p.y;
                     target.hx = target.x;
@@ -59,22 +63,22 @@ async def run_suite(base_url: str) -> None:
                     p.a = 0;
                     p.st = 100;
                     const beforeHp = target.hp;
-                    const beforeStamina = p.st;
 
                     g.act("atk");
+                    g.step(0.02);
                     for (let i = 0; i < 24; i++) g.step(0.02);
                     const afterAttackHp = target.hp;
                     const attackState = p.state;
 
-                    // Finish the attack recovery before testing the dodge action.
-                    for (let i = 0; i < 60; i++) g.step(0.02);
+                    for (let i = 0; i < 70; i++) g.step(0.02);
+                    if (p.state !== "idle") throw new Error("Player did not recover from attack: " + p.state);
+                    p.st = 100;
                     const staminaBeforeRoll = p.st;
                     g.act("roll");
                     g.step(0.02);
                     const rollState = p.state;
                     const invulnerability = p.inv;
                     const staminaAfterRoll = p.st;
-
                     return {
                         beforeHp,
                         afterAttackHp,
