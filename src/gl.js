@@ -69,7 +69,16 @@ void main(){
   vec3 lit=(mix(uAB,uAT,n.y*.5+.5)*(.72+.28*sh)+uSunC*d*sh)*uA;float rim=pow(1.-max(dot(n,normalize(uCam-vW)),0.),3.);lit+=uAT*.5*rim*uA;
   for(int i=0;i<3;i++){vec3 l=uPL[i].xyz-vW;float dd=dot(l,l);lit+=vec3(1.,.5,.18)*uPL[i].w*max(dot(n,normalize(l)),.3)/(1.+dd*.0004);}
   vec3 c=mix(bc.rgb*lit,bc.rgb,max(uE,step(.75,mt)));float f=clamp((dist-uFg.x)/uFg.y,0.,1.)*uF;
-  c=mix(c,uFog,f);c=clamp(c,0.,1.);c=mix(c,c*c*(3.-2.*c),.3);float lu=dot(c,vec3(.299,.587,.114));c=mix(vec3(lu),c,1.1);   // gentle contrast and colour
+  c=mix(c,uFog,f);
+  // Cinematic Mesopotamian grade: restrained saturation, cool shadow bias, warm ember highlights.
+  c=clamp(c,0.,1.);float lum=dot(c,vec3(.299,.587,.114));
+  vec3 shadowTint=vec3(.72,.82,1.04),emberTint=vec3(1.12,.88,.66);
+  c*=mix(shadowTint,vec3(1.),smoothstep(.08,.62,lum));
+  c=mix(c,c*emberTint,smoothstep(.48,.96,lum)*.22);
+  float grey=dot(c,vec3(.299,.587,.114));c=mix(vec3(grey),c,.91);
+  // Soft filmic shoulder keeps fire, sky and pale stone from clipping on mobile displays.
+  c=(c*(2.15*c+.035))/(c*(2.05*c+.52)+.12);
+  c=clamp(c,0.,1.);
   gl_FragColor=vec4(c,bc.a);}`;
   const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;};
   prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);
