@@ -14,6 +14,18 @@ function bossHalf(b){return b.hp<b.T.hp*.5;}
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
   b.cd-=dt;let mvs=0;
+  // Adapa studies Furat's habits without reading inputs or removing dodge windows.
+  let read=null;
+  if(isAdapa){
+    read=b.adapaRead||(b.adapaRead={rolls:0,retreat:0,lastRoll:false,lastDist:ad});
+    const rolling=P.state==='roll';
+    if(rolling&&!read.lastRoll)read.rolls=Math.min(3,read.rolls+1);
+    read.lastRoll=rolling;
+    if(ad>read.lastDist+1.8&&ad>150&&!rolling)read.retreat=Math.min(2,read.retreat+dt);
+    else read.retreat=Math.max(0,read.retreat-dt*.7);
+    if(!rolling)read.rolls=Math.max(0,read.rolls-dt*.12);
+    read.lastDist=ad;
+  }
   if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&b.state!=='parried'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');if(isAdapa){voice('boss','المفاتيح الخمسة ما تنطيك بغداد!');say('المفاتيح الخمسة ما تنطيك بغداد!','#c0242e',2.6);}return;}
   const atk=(m,next)=>{const A=NM[m];if(isAdapa&&!b.vsaid&&['c3','sp','sl'].includes(m)){b.vsaid=true;voice('boss',m==='sl'?'اركع أمام باب الطلسم!':m==='sp'?'لا تدير ظهرك إليّ!':'هذا حدّك يا فرات!');}if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
     const k=b.t-A.w/sp;if(k<A.a){mvs=A.step;if(!b.hit&&hitP(b,A.reach,A.arc,A.dmg))b.hit=true;if(k<dt*1.5)snd('swingH');return;}
@@ -30,7 +42,12 @@ function upNamtar(b,dt){
       b.a=turn(b.a,ang,(ad<160?4.5:6)*dt);
       if(ad>110)mvs=ph2?110:78;else if(ad<70)mvs=-50;else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*44*dt,Math.sin(sa)*44*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
       if(b.cd<=0){const r=Math.random();
-        if(behind&&ad<130)setE(b,'sp');
+        // Repeated rolls invite a delayed overhead feint; sustained retreat invites a clearly telegraphed rush.
+        if(isAdapa&&read&&read.rolls>=1.35&&ad<185){
+          setE(b,'sl');b.hold=.42+Math.random()*.28;read.rolls=Math.max(0,read.rolls-1.35);
+        }else if(isAdapa&&read&&read.retreat>.9&&ad>145&&ad<430){
+          setE(b,ph2&&r<.42?'charge':'leapW');read.retreat=Math.max(0,read.retreat-.9);
+        }else if(behind&&ad<130)setE(b,'sp');
         else if(ad<130){if(ph2&&r<.18)setE(b,'grab');else if(r<.55)setE(b,'c1');else if(r<.82)setE(b,'sl');else setE(b,'sp');b.hold=.25+Math.random()*(ph2?.85:.55);}
         else if(ad<360){if(ph2&&r<.35)setE(b,'stomp');else if(ph2&&r<.6)setE(b,'charge');else if(r<.6){setE(b,'leapW');}else b.cd=.25;}
         else if(r<.5)setE(b,'leapW');else b.cd=.3;}
