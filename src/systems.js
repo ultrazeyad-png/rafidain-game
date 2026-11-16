@@ -123,17 +123,35 @@ function startBossFinisher(e){
     weapon==='spear'?{key:'F5',hand:0,wind:.5,act:.22,rec:.7,impact:'#9de8e1',line:'اخترق درعك… وانتهى أمرك.'}:
     {key:'F1',hand:0,wind:.55,act:.24,rec:.68,impact:'#f2d18a',line:'بحدّ هذا السيف… انتهى عهدك.'};
   const name=e.T.name||'الزعيم';
-  const bossLine=name.includes('أدابا')?'أدابا… لن تحميك مفاتيح بغداد بعد الآن.':
-    name.includes('إرّا')?'عاصفتك انتهت يا إرّا.':
-    name.includes('نمتار')?'ارجع إلى عالم الموتى يا نمتار.':
-    'انتهى عهدك… لن تعود هذه الأرض لقبضتك.';
+  const finisherRegion={
+    baghdad:{title:'خاتمة باب الطلسم',line:'أدابا… لن تحميك مفاتيح بغداد بعد الآن.',color:'#e8c66a',rise:1.18},
+    duhok:{title:'خاتمة فارس العاصفة',line:'إرّا… عاصفتك انتهت، والخابور عاد هادئاً.',color:'#8ad9ef',rise:1.34},
+    muthanna:{title:'خاتمة رسول العالم السفلي',line:'نمتار… ارجع إلى ظلام العالم السفلي.',color:'#b78cff',rise:.88},
+    nineveh:{title:'خاتمة ظلال الحدباء',line:'نرگال… لن تبقى ظلال الحدباء تحت سلطانك.',color:'#9c83d8',rise:1.12},
+    erbil:{title:'خاتمة أسوار القلعة',line:'حارس القلعة… هذه الأسوار تحررت منك.',color:'#d6bd8a',rise:1.1},
+    sulay:{title:'خاتمة حداد الجبل',line:'كاوة… انطفأت نار مطرقتك.',color:'#d18a65',rise:1.06},
+    halabja:{title:'خاتمة سيدة البحيرة',line:'زريبار… البحيرة لن تحمل لعنتك بعد اليوم.',color:'#77d6d0',rise:1.08},
+    kirkuk:{title:'خاتمة نار بابا گرگر',line:'بابا گرگر… خمدت نارك.',color:'#f08b45',rise:1.2},
+    saladin:{title:'خاتمة حارس القمر',line:'سين… غاب قمرك عن هذه الأرض.',color:'#a9b8e8',rise:1.14},
+    diyala:{title:'خاتمة سيد الأفاعي',line:'تيشپاك… انتهى سمّك.',color:'#a6c66a',rise:1.05},
+    anbar:{title:'خاتمة فارس الرمل',line:'فارس الرمل… ابتلعتك الصحراء.',color:'#d5ad72',rise:1.12},
+    karbala:{title:'خاتمة حارس الواحة',line:'عين التمر… عادت الواحة لأهلها.',color:'#d8b66b',rise:1.02},
+    babil:{title:'خاتمة بابل',line:'المتوّج الكاذب… سقط تاجك.',color:'#d9a34c',rise:1.18},
+    najaf:{title:'خاتمة فارس الحيرة',line:'فارس الحيرة… انتهى حرس الرمال.',color:'#c9b18a',rise:1.1},
+    qadis:{title:'خاتمة حارس إيسن',line:'حارس إيسن… ابتلعك تراب مدينتك.',color:'#c6a06a',rise:1.06},
+    wasit:{title:'خاتمة حارس السدّة',line:'حارس السدّة… جرى الماء من جديد.',color:'#72c9d6',rise:1.04},
+    maysan:{title:'خاتمة صياد الهور',line:'صياد الهور… الهور لفظك إلى اليابسة.',color:'#6fc5a1',rise:1.02},
+    dhiqar:{title:'خاتمة ملك أور',line:'أور-نمّو… انتهى عهد الزقورة.',color:'#d7ad63',rise:1.2},
+    basra:{title:'خاتمة حارس الشط',line:'السندباد الغريق… انتهت رحلتك.',color:'#65b9d2',rise:1.08}
+  }[REG]||{title:'خاتمة حارس المنطقة',line:name+'… انتهى عهدك.',color:'#e6b66b',rise:1};
+  const bossLine=finisherRegion.line;
   P.a=Math.atan2(e.z-P.z,e.x-P.x);P.finisherKey=weaponStyle.key;P.finisherWeapon=weapon;P.atk={...CRIT,key:weaponStyle.key,hand:weaponStyle.hand,wind:weaponStyle.wind,act:weaponStyle.act,rec:weaponStyle.rec};P.combo=0;setP('atk');P.t=0;P.inv=99;
   const fx=Math.cos(e.a),fz=Math.sin(e.a),x=e.x,z=e.z,y=e.y;
   const close=weapon==='glaive'||weapon==='spear'?150:weapon==='axe'?112:weapon==='dual'?88:102;
   const shots=[
-    {d:1.35,a:[x+fx*285-fz*150,y+185,z+fz*285+fx*150,x,y+78,z],b:[x+fx*220-fz*115,y+145,z+fz*220+fx*115,x,y+85,z],t:name+'… حان وقت الحساب.',v:1,fx:true},
-    {d:1.25,a:[x+fx*(close+55)-fz*34,y+105,z+fz*(close+55)+fx*34,x,y+e.T.h*.65,z],b:[x+fx*close-fz*22,y+78,z+fz*close+fx*22,x,y+e.T.h*.7,z],t:bossLine},
-    {d:1.35,a:[P.x+fx*close-fz*42,P.y+105,P.z+fz*close+fx*42,x,y+e.T.h*.55,z],b:[P.x+fx*(close-24)-fz*20,P.y+76,P.z+fz*(close-24)+fx*20,x,y+e.T.h*.6,z],t:weaponStyle.line,fx:true,impact:true,col:weaponStyle.impact}
+    {d:1.35,a:[x+fx*285-fz*150,y+185,z+fz*285+fx*150,x,y+78,z],b:[x+fx*220-fz*115,y+145,z+fz*220+fx*115,x,y+85,z],t:finisherRegion.title+'…',v:1,fx:true},
+    {d:1.25,a:[x+fx*(close+55)-fz*34,y+105,z+fz*(close+55)+fx*34,x,y+e.T.h*.65*finisherRegion.rise,z],b:[x+fx*close-fz*22,y+78*finisherRegion.rise,z+fz*close+fx*22,x,y+e.T.h*.7*finisherRegion.rise,z],t:bossLine},
+    {d:1.35,a:[P.x+fx*close-fz*42,P.y+105,P.z+fz*close+fx*42,x,y+e.T.h*.55,z],b:[P.x+fx*(close-24)-fz*20,P.y+76,P.z+fz*(close-24)+fx*20,x,y+e.T.h*.6,z],t:weaponStyle.line,fx:true,impact:true,col:weaponStyle.impact,bossCol:finisherRegion.color}
   ];
   cine={i:0,t:0,boss:e,finisher:true,finisherWeapon:weapon,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true);snd('boss');return true;
 }
@@ -146,7 +164,7 @@ function miniBossFilm(e,m){
   ];
   cine={i:0,t:0,boss:e,mini:true,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true,m.k);return true;
 }
-function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}if(cine.finisher&&s.impact&&cine.boss){const b=cine.boss;burst(b.x,b.y+b.T.h*.68,b.z,s.col||'#f2d18a',42,260,b.y);shake=16;}voice('narrator',s.t);}
+function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}if(cine.finisher&&s.impact&&cine.boss){const b=cine.boss;burst(b.x,b.y+b.T.h*.68,b.z,s.col||'#f2d18a',42,260,b.y);if(s.bossCol)burst(b.x,b.y+b.T.h*.68,b.z,s.bossCol,34,190,b.y);shake=16;}voice('narrator',s.t);}
 function upCine(dt){cine.t+=dt;if(cine.finisher){const a=cine.boss&&cine.boss.finisherPose;P.t=Math.min(a||1.45,P.t+dt);if(cine.boss)cine.boss.t+=dt;}const L=cine.shots||CINE,s=L[cine.i];
   if(cine.boss&&cine.boss.k==='boss'&&cine.i===0){const b=cine.boss;b.t+=dt;b.state='trans';if(b.t>1.6)b.state='intro';}
   if(cine.t>=s.d){cine.i++;cine.t=0;if(cine.i>=L.length){endCine();return;}cineShot();}}
