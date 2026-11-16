@@ -388,11 +388,20 @@ async def run_suite(base_url: str) -> None:
                 """() => ({
                     level: __g.stats.lvl,
                     region: __g.REG,
-                    liveSave: localStorage.getItem("ashes-rafidain-v1"),
+                    liveSave: JSON.parse(localStorage.getItem("ashes-rafidain-v1") || "null"),
                     backup: localStorage.getItem("ashes-rafidain-v1.backup-corrupt")
                 })"""
             )
-            if recovered["level"] != 1 or recovered["region"] != "duhok" or recovered["liveSave"] is not None or recovered["backup"] != partial_raw:
+            fresh = recovered["liveSave"]
+            if (
+                recovered["level"] != 1
+                or recovered["region"] != "duhok"
+                or not fresh
+                or fresh.get("schemaVersion") != 2
+                or fresh.get("reg") != "duhok"
+                or fresh.get("stats", {}).get("lvl") != 1
+                or recovered["backup"] != partial_raw
+            ):
                 raise AssertionError(f"Partial save recovery/backup failed: {recovered}")
             print("PASS: partial save rejected, preserved, and fresh game booted safely")
 
