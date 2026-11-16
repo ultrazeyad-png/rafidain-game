@@ -209,6 +209,24 @@ function drawNamtar(e){
       box(1.1,2.8,1.1,trim,1.5,-7,0,glow,.8);
       pop();
     }
+    // Phase two fractures the ivory cuirass: five hot seams echo the awakened keys.
+    if(p2){
+      const pulse=.72+.28*Math.sin(time*11);
+      for(let q=0;q<5;q++){
+        const x=(q-2)*5.2;
+        push();T(x,39-(q%2)*4,16.25);
+        box(1.05,9+((q%2)*3),.8,'#ff6848',0,0,0,pulse,.92);
+        sph(1.15,1.15,1,'#ffd18a',0,-4.5,0,pulse,.9);
+        pop();
+      }
+      // ember motes circle the crown and shoulders only after the oath breaks
+      for(let q=0;q<5;q++){
+        const a=time*1.35+q*6.283/5;
+        push();T(Math.cos(a)*19,45+Math.sin(a*1.7)*5,Math.sin(a)*17);
+        sph(1.25,1.25,1.25,q%2?'#ff6a45':'#ffd08a',0,0,0,.8,.9);
+        pop();
+      }
+    }
     // royal vertical sash and a hanging seal at the waist
     push();T(4,34,14);box(5,27,2.2,'#7b2028',0,-2,0);box(1.1,27,2.5,trim,0,-2,1.3);pop();
     push();T(0,20,15);sph(4.2,5.2,2.2,trim,0,0,0);box(1.2,5,1.2,'#fff0c8',0,0,2);pop();}
