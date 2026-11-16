@@ -371,6 +371,34 @@ async def run_suite(base_url: str) -> None:
             await browser.close()
 
 
+def verify_major_boss_weakpoints() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    chars = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    for item in (
+        "if(e.armor==null)e.armor=2",
+        "d=Math.round(d*.58)",
+        "if(heavy||crit)",
+        "e.weakT=7",
+        "d=Math.round(d*2.15)",
+        "src.armor=Math.max(0,src.armor-1)",
+        "case 'parried'",
+        "نقطة الضعف مكشوفة",
+        "درع الحارس:",
+    ):
+        if item not in game:
+            raise AssertionError(f"Major-boss armour/weakpoint combat hook missing: {item}")
+    for item in (
+        "function drawBossCore(e)",
+        "if(e.weakT>0)",
+        "drawNamtar(e);drawBossCore(e)",
+        "drawErra(e);drawBossCore(e)",
+        "drawWarrior(e);drawBossCore(e)",
+    ):
+        if item not in chars:
+            raise AssertionError(f"Major-boss weakpoint visual missing: {item}")
+    print("PASS: major-boss armour plates, perfect-parry breaks, exposed weakpoint damage, HUD and core visuals")
+
+
 def verify_regional_mini_bosses() -> None:
     roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
@@ -412,6 +440,7 @@ def verify_regional_mini_bosses() -> None:
 
 def main() -> int:
     verify_adapa_visual_design()
+    verify_major_boss_weakpoints()
     verify_regional_mini_bosses()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
