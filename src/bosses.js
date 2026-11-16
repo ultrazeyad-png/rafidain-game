@@ -121,6 +121,33 @@ function drawNamtar(e){
   if(st==='held'){o={t:2.4,y:-.35,e:.25,w:0};m={t:.5,y:.4,e:.5,w:.6};}
   if(st==='trans'){m={t:2.7,y:.6,e:.4,w:.4};o={t:2.6,y:.6,e:.4,w:0};}
   if(st==='stag'){m={t:.2,y:.3,e:.3,w:.9};o={t:.6,y:0,e:.4,w:0};}
+  // Adapa has a measured royal guard stance, not Namtar's heavy axe posture.
+  if(isAdapa&&st==='sleep'){
+    const breath=Math.sin(time*1.35);
+    lean=breath*.018;
+    m={t:.92+breath*.025,y:-.18,e:.72,w:-.12};
+    o={t:.38-breath*.018,y:.16,e:.78,w:.12};
+  }else if(isAdapa&&st==='intro'){
+    const rise=clamp(e.t/1.4,0,1),breath=Math.sin(time*1.5);
+    lean=-.025+breath*.012;
+    m={t:lerp(.92,1.65,rise),y:lerp(-.18,.12,rise),e:lerp(.72,.12,rise),w:lerp(-.12,.55,rise)};
+    o={t:lerp(.38,1.05,rise),y:lerp(.16,-.28,rise),e:lerp(.78,.3,rise),w:.18};
+  }else if(isAdapa&&st==='chase'){
+    const breath=Math.sin(time*2.1);
+    lean=-.035+breath*.012;
+    m={t:.78+breath*.025,y:-.32,e:.98,w:-.2};
+    o={t:.62,y:.3,e:.82,w:.18};
+  }else if(isAdapa&&st==='trans'){
+    const rise=clamp(e.t/2.3,0,1),pulse=Math.sin(time*12);
+    lean=-.12-rise*.16;
+    m={t:lerp(1.3,2.9,rise),y:lerp(-.1,.25,rise),e:lerp(.5,.08,rise),w:lerp(.2,.85,rise)};
+    o={t:lerp(.8,2.35,rise),y:lerp(.1,-.45,rise),e:lerp(.6,.18,rise),w:.2};
+    crouch=-pulse*rise*1.2;
+  }else if(isAdapa&&st==='rec'){
+    const settle=clamp(e.t/.65,0,1);
+    m={t:lerp(1.3,.82,settle),y:-.24,e:lerp(.3,.9,settle),w:lerp(.4,-.18,settle)};
+    o={t:.55,y:.22,e:.8,w:.1};
+  }
   const mvk=(st==='chase'||st==='charge')?1:0,wk=e.walk;
   push();T(e.x,e.y+e.j,e.z);RY(-e.a);if(fall)RZ(fall);Sc(2.15,2.15,2.15);T(0,crouch*.4,0);
   // legs: greaves and sabatons
@@ -153,7 +180,8 @@ function drawNamtar(e){
     // stepped gold crown, central lapis jewel and five upright points
     cyl(10.5,2.4,10.5,trim,.6,12,0);cyl(8.8,2.2,8.8,'#fff0c8',.6,14,0);
     for(let q=0;q<5;q++){const x=(q-2)*4.1;box(1.7,8,1.7,trim,x,18,0);con(2.2,5.5,2.2,trim,x,24,0);}
-    sph(2.8,3.4,1.8,'#287f91',.6,15,9.4);
+    sph(2.8,3.4,1.8,p2?'#ff563d':'#287f91',.6,15,9.4,p2?1:.82);
+    if(p2){for(let q=0;q<3;q++){push();RY(time*1.8+q*2.094);T(0,15,12+Math.sin(time*3+q)*1.2);sph(1.4,1.4,1.4,'#ffb05a',0,0,0,.85);pop();}}
     for(const sd of[-1,1]){push();T(0,10,sd*8);box(2,8,2,trim,0,2,0);pop();}
   }else{
     for(const sd of[-1,1]){push();T(-1,11,sd*7.5);RX(-sd*.9);RZ(.35);con(3.2,15,3.2,'#cfc6b0',0,7,0);T(0,13,0);RZ(.6);con(2,9,2,'#b9ad94',0,4,0);pop();}
