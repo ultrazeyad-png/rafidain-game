@@ -384,12 +384,13 @@ def verify_regional_mini_bosses() -> None:
         "baghdad:{k:'ghostK'",
         "MINI_ARENA=mini?{region:g.id,kind:mini.k,name:mini.n,x:b1[0]+70,z:b1[1]+70,y:b1[3]}:null",
         "SPAWN.push(['gmini',MINI_ARENA.x,MINI_ARENA.z,MINI_ARENA.y])",
-        "MINI_ARENA={region:'duhok',kind:'wolfK'",
-        "MINI_ARENA={region:'muthanna',kind:'scorpK'",
     )
     missing = [item for item in required if item not in roster]
     if missing:
         raise AssertionError(f"Regional mini-boss roster is incomplete: {missing}")
+    for arena in ("MINI_ARENA={region:'duhok',kind:'wolfK'", "MINI_ARENA={region:'muthanna',kind:'scorpK'"):
+        if arena not in regions:
+            raise AssertionError(f"Special-region mini-boss arena metadata missing: {arena}")
     for spawn in ("['gmini',1720,720,120]", "['gmini',2400,800,0]"):
         if spawn not in regions:
             raise AssertionError(f"Special-region mini-boss spawn missing: {spawn}")
@@ -401,9 +402,9 @@ def verify_regional_mini_bosses() -> None:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
     if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
         raise AssertionError("Regional mini-bosses are missing their dedicated creature renderer")
-    for behavior in ("voice('boss',m.line)", "e.blinked=true", "Math.sin(clamp(e.t/T.act,0,1)*PI)*42", "?1.32:1", "'#a5d64b'"):
+    for behavior in ("voice('boss',m.line)", "e.blinked=true", "Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42)", "?1.32:1", "'#a5d64b'", "case 'miniTrans'", "e.hp<=T.hp*.5", "waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col})", "e.p2?1.18:1"):
         if behavior not in game:
-            raise AssertionError(f"Regional mini-boss signature behavior missing: {behavior}")
+            raise AssertionError(f"Regional mini-boss phase-two behavior missing: {behavior}")
     if "T(e.x,e.y+e.j,e.z)" not in characters:
         raise AssertionError("Wolf mini-boss leap pose is not rendered")
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
