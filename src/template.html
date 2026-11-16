@@ -612,9 +612,37 @@ function upEnemy(e,dt){
         e.orbitT=(e.orbitT||0)+dt;if(e.orbitT>.82){e.orbitT=0;e.sx=-(e.sx||1);}
         moveEnt(e,e.x+Math.cos(ang+PI/2)*(e.sx||1)*T.speed*.72*dt,e.z+Math.sin(ang+PI/2)*(e.sx||1)*T.speed*.72*dt,T.r*.9,true);
       }
-      if(ad>T.range){e.sp=lerp(e.sp||0,T.speed*(e.k==='gmini'&&e.p2?1.18:1)*(adiff(e.a,ang)<.9?1:.35),1-Math.exp(-dt*4));stepE(e,e.sp,dt);}else{e.sp=0;if(e.cd<=0&&dy<40&&adiff(e.a,ang)<.5)setE(e,'wind');}
+      if(ad>T.range){e.sp=lerp(e.sp||0,T.speed*(e.k==='gmini'&&e.p2?1.18:1)*(adiff(e.a,ang)<.9?1:.35),1-Math.exp(-dt*4));stepE(e,e.sp,dt);}else{e.sp=0;if(e.cd<=0&&dy<40&&adiff(e.a,ang)<.5){if(e.k==='gmini'&&MINI_GUARDS[REG].k==='scorpK')e.poisonCast=false;setE(e,'wind');}}
       break;
-    case 'wind':if(e.t<T.wind*(e.k==='gmini'&&e.p2 ? .82 : 1)*.6)e.a=turn(e.a,ang,6*dt);if(e.k==='gmini'&&MINI_GUARDS[REG].k==='ghostK'&&!e.blinked&&e.t>=T.wind*.65){const side=(e.sx||1),bx=P.x-Math.cos(P.a)*86+Math.cos(P.a+PI/2)*side*58,bz=P.z-Math.sin(P.a)*86+Math.sin(P.a+PI/2)*side*58;if(!blocked(bx,bz,e.y,T.r)){e.x=bx;e.z=bz;e.a=Math.atan2(P.z-e.z,P.x-e.x);e.blinked=true;burst(e.x,e.y+24,e.z,'#b9a0ff',12,100,e.y);}}if(e.t>=T.wind*(e.k==='gmini'&&e.p2 ? .82 : 1)){setE(e,'strike');if(ad<420)snd('ewh');}break;
+    case 'wind':{
+      const mini=e.k==='gmini'?MINI_GUARDS[REG].k:'',windDur=T.wind*(e.k==='gmini'&&e.p2?.82:1);
+      if(e.t<windDur*.6){
+        const aim=mini==='crocK'&&e.p2?ang+(e.sx||1)*.34:ang;
+        e.a=turn(e.a,aim,6*dt);
+      }
+      // The ghost leaves a readable afterimage before its short flank teleport.
+      if(mini==='ghostK'&&!e.blinked&&e.t>=windDur*.65){
+        const side=(e.sx||1),bx=P.x-Math.cos(P.a)*86+Math.cos(P.a+PI/2)*side*58,bz=P.z-Math.sin(P.a)*86+Math.sin(P.a+PI/2)*side*58;
+        if(!blocked(bx,bz,e.y,T.r)){
+          burst(e.x,e.y+24,e.z,'#b9a0ff',10,82,e.y);
+          e.x=bx;e.z=bz;e.a=Math.atan2(P.z-e.z,P.x-e.x);e.blinked=true;
+          if(e.p2)e.sx=-side;
+          burst(e.x,e.y+24,e.z,'#b9a0ff',14,115,e.y);
+        }
+      }
+      if(e.t>=windDur){
+        // In phase two, the scorpion announces a venom ring before it expands across the floor.
+        if(mini==='scorpK'&&e.p2&&!e.poisonCast){
+          e.poisonCast=true;
+          say('ابتعد عن حلقة السم!','#a5d64b',1.25);
+          burst(e.x,e.y+12,e.z,'#a5d64b',18,105,e.y);
+          waves.push({x:e.x,z:e.z,r:18,l:1.05,y:e.y,col:'#a5d64b'});
+        }
+        if(mini==='crocK'&&e.p2)e.sx=-(e.sx||1);
+        setE(e,'strike');if(ad<420)snd('ewh');
+      }
+      break;
+    }
     case 'strike':if(T.ranged){if(!e.hit){e.hit=true;(e.k==='archer'?shootArrow:sling)(e);}if(e.t>=T.act)setE(e,'rec');break;}
       if(e.k==='gmini'&&MINI_GUARDS[REG].k==='wolfK')e.j=Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42);const lung=T.lunge*(e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'?1.32:1)*(e.k==='gmini'&&e.p2?1.18:1);stepE(e,lung,dt);if(!e.hit&&hitP(e,T.reach,T.arc,T.dmg*(e.k==='gmini'&&e.p2?1.15:1))){e.hit=true;if(e.k==='gmini'){const mk=MINI_GUARDS[REG].k,col={scorpK:'#a5d64b',crocK:'#55c9bb',ghostK:'#b9a0ff',wolfK:'#c7e4f5'}[mk]||'#c66cff';if(mk==='scorpK')burst(e.x,e.y+18,e.z,'#a5d64b',18,130,e.y);if(e.p2){burst(e.x,e.y+22,e.z,col,22,165,e.y);waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col});}}}if(e.t>=T.act)setE(e,'rec');break;
     case 'rec':if(e.t>=T.rec){if(e.k==='gmini'&&MINI_GUARDS[REG].k==='ghostK')e.blinked=false;setE(e,'chase');e.cd=T.cool*(.6+Math.random()*.8)*(e.k==='gmini'&&e.p2 ? .78 : 1);}break;
