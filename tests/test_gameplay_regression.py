@@ -573,6 +573,22 @@ def verify_glb_enemy_boss_asset_acceptance() -> None:
 
 
 
+def verify_glb_boss_profile_registry() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in ("const gltfBossProfiles=new Map()", "function registerGLBBossProfile(profileId,profile={})",
+        "function getGLBBossProfiles()", "function gltfBossProfileForEntity(entity)",
+        "profile?.modelCategory||gltfModelCategory(gameEntity)", "profile?.scale||entry.scale",
+        "registerGLBBossProfile, getGLBBossProfiles"):
+        if item not in gltf:
+            raise AssertionError(f"Boss profile registry missing: {item}")
+    for item in ("boss.regionId=REG", "boss.profileId='boss:'+REG",
+        "registerGLBBossProfile(boss.profileId,{name:boss.T.name,region:REG,modelCategory:'gb'})"):
+        if item not in game:
+            raise AssertionError(f"Boss spawn is not linked to its region profile: {item}")
+    print("PASS: regional boss profiles validate metadata and route optional models through the existing GLB catalog")
+
+
 def verify_glb_catalog_audit_and_entity_cleanup() -> None:
     gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
     template = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
@@ -602,6 +618,7 @@ def main() -> int:
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
     verify_glb_enemy_boss_asset_acceptance()
+    verify_glb_boss_profile_registry()
     verify_glb_catalog_audit_and_entity_cleanup()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
