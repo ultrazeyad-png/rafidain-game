@@ -94,7 +94,7 @@ function setGLBHeroAction(action){
   const clip=gltfResolveAnimationClip(gltfHero.asset,action);
   if(clip<0)return {ok:false,reason:'clip-not-found',action};
   if(gltfHeroPlayback.clip===clip)return {ok:true,clip,changed:false};
-  const transitionDuration=action==='attack'||action==='heavy'||action==='dodge'?.10:.20;
+  const transitionDuration=action==='attack'||action==='heavy'||action==='dodge'?0.10:0.20;
   const playback=setGLBHeroAnimation({clip,transitionDuration});
   return {ok:true,clip,changed:true,playback};
 }
