@@ -165,6 +165,36 @@ function setGLBHeroAction(action){
   const playback=setGLBHeroAnimation({clip,transitionDuration});
   return {ok:true,clip,changed:true,playback};
 }
+
+function gltfCreateAnimatedEntity(id,asset,options={}){
+  if(typeof id!=='string'||!id.trim())gltfFail('animated entity id must be a non-empty string');
+  if(!asset||!Array.isArray(asset.meshes)||!Array.isArray(asset.nodes))gltfFail('animated entity requires a parsed glTF asset');
+  const playback=gltfCreatePlaybackState(asset,options);
+  return {id,asset,playback,action:'idle',pose:new Map(),jointPalettes:new Map(),lastUpdated:null};
+}
+function gltfSetEntityAction(entity,action,options={}){
+  if(!entity||!entity.asset||!entity.playback)gltfFail('invalid animated entity instance');
+  if(typeof action!=='string'||!action)gltfFail('entity action must be a non-empty string');
+  const clip=gltfResolveAnimationClip(entity.asset,action);
+  if(clip<0)return {ok:false,reason:'clip-not-found',action};
+  if(entity.playback.clip===clip){entity.action=action;return {ok:true,clip,changed:false};}
+  const duration=options.transitionDuration??(['attack','heavy','dodge'].includes(action)?0.10:0.20);
+  entity.playback=gltfSetPlaybackAnimation(entity.asset,entity.playback,{...options,clip,transitionDuration:duration});
+  entity.action=action;
+  return {ok:true,clip,changed:true};
+}
+function gltfUpdateAnimatedEntity(entity,now){
+  if(!entity||!entity.asset||!entity.playback)gltfFail('invalid animated entity instance');
+  const pose=gltfAdvancePlayback(entity.asset,entity.playback,now),palettes=new Map();
+  for(const instance of entity.asset.instances||[]){
+    if(instance.skin==null)continue;
+    const key=instance.skin+':'+instance.node;
+    if(!palettes.has(key))palettes.set(key,gltfBuildJointMatrices(entity.asset,instance.skin,instance.node,pose));
+  }
+  entity.pose=pose;entity.jointPalettes=palettes;entity.lastUpdated=Number.isFinite(now)?now:0;
+  return {id:entity.id,action:entity.action,pose,jointPalettes:palettes,elapsed:entity.playback.elapsed};
+}
+
 function gltfNodeMatrix(n){
   if(n.matrix){
     if(n.matrix.length!==16||!n.matrix.every(Number.isFinite))gltfFail('node matrix must contain 16 finite values');
