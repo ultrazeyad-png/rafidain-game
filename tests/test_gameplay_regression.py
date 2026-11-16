@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import re
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,6 +34,16 @@ def verify_adapa_visual_design() -> None:
         "case 'parried':b.a=turn(b.a,ang,2*dt)",
         "if(isAdapa&&st==='parried')",
         "voice('boss',m==='sl'?",
+        "b.adapaRead||(b.adapaRead={rolls:0,retreat:0,lastRoll:false,lastDist:ad})",
+        "if(rolling&&!read.lastRoll)read.rolls=Math.min(3,read.rolls+1)",
+        "if(ad>read.lastDist+1.8&&ad>150&&!rolling)",
+        "read.rolls>=1.35&&ad<185",
+        "read.retreat>.9&&ad>145&&ad<430",
+        "else if(isAdapa&&st==='stomp'){",
+        "const wind=clamp(e.t/.75,0,1),impact=clamp((e.t-.75)/.24,0,1)",
+        "p2?(st==='stomp'?.72+.28*Math.sin(e.t*19+q*.7):1):0",
+        "if(p2&&st==='stomp')",
+        "q*.065)/.34,0,1)",
         "const isAdapa=b.T&&b.T.name&&b.T.name.includes('أدابا')",
         "باب الطلسم… آخر أبواب بغداد.",
         "أدابا… معلم الحراس، وحارس المفاتيح الخمسة.",
@@ -40,7 +51,18 @@ def verify_adapa_visual_design() -> None:
     missing = [item for item in required if item not in source]
     if missing:
         raise AssertionError(f"Adapa's royal visual identity is incomplete: {missing}")
+    hero = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    for pose in (
+        "else if(st==='roll'){const u=clamp(P.t/.42,0,1),curl=Math.sin(u*PI)",
+        "else if(st==='hurt'){const flinch=Math.max(0,1-P.t/.3)",
+        "else if(st==='roll'){hip=sd>0?.82:-.58;knee=1.22;}",
+        "st==='roll'?5+2*Math.sin(P.t/.42*PI)",
+        "if(P.guard&&wpn!=='shield')",
+    ):
+        if pose not in hero:
+            raise AssertionError(f"Furat's responsive combat animation is missing: {pose}")
     print("PASS: Adapa has royal visuals, five bespoke sword attacks, voiced taunts, and a dedicated perfect-parry reaction")
+    print("PASS: Furat uses curled dodge-roll, flinch recovery, and readable guard poses")
 
 
 async def run_suite(base_url: str) -> None:
@@ -58,6 +80,14 @@ async def run_suite(base_url: str) -> None:
         page_errors: list[str] = []
         page.on("pageerror", lambda error: page_errors.append(str(error)))
 
+        async def reload_and_start() -> None:
+            # Navigate explicitly to a fresh document while retaining localStorage.
+            # This avoids races between JS-triggered reload and Playwright's
+            # execution-context lifecycle.
+            await page.goto(f"{base_url}/dist/index.html?regression_reload=1", wait_until="domcontentloaded")
+            if await page.locator("#go").is_visible():
+                await page.click("#go")
+            await page.wait_for_function("!!window.__g", timeout=30000)
 
         try:
             await page.goto(f"{base_url}/dist/index.html", wait_until="load")
@@ -83,6 +113,40 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError("Opening cinematic is missing its non-interactive film vignette layer")
             print("PASS: opening film stays in Baghdad for four shots, reveals the Talisman Gate and Adapa, then transitions to Zakho")
             print("PASS: cinematic film vignette is present and does not intercept controls")
+
+            ending_flow = await page.evaluate("""() => {
+                const g = __g, oldLetters = g.stats.letters, oldEnded = g.stats.ended;
+                if (g.cine) g.endCine();
+                g.stats.letters = Object.fromEntries(Array.from({length:11}, (_,i) => ["letter-"+i,1]));
+                g.endChoice();
+                const hiddenAt11 = document.querySelector("#end3").hidden;
+                g.stats.letters = Object.fromEntries(Array.from({length:12}, (_,i) => ["letter-"+i,1]));
+                g.endChoice();
+                const visibleAt12 = !document.querySelector("#end3").hidden;
+                const endings = [];
+                for (const key of [1,2,3]) {
+                    g.ending(key);
+                    endings.push({key, saved:g.stats.ended, text:document.querySelector("#endT").textContent});
+                }
+                const unique = new Set(endings.map(x => x.text)).size;
+                document.querySelector("#end").classList.remove("on");
+                document.querySelector("#endC").hidden = false;
+                document.querySelector("#endR").hidden = true;
+                g.stats.letters = oldLetters;
+                g.stats.ended = oldEnded;
+                g.start();
+                return {hiddenAt11, visibleAt12, endings, unique};
+            }""")
+            if ending_flow["hiddenAt11"] is not True or ending_flow["visibleAt12"] is not True:
+                raise AssertionError(f"Secret ending must unlock at 12 collected letters: {ending_flow}")
+            if ending_flow["unique"] != 3 or any(x["key"] != x["saved"] or not x["text"] for x in ending_flow["endings"]):
+                raise AssertionError(f"The three story endings must be distinct and persist their selected ending: {ending_flow}")
+            if not all(any(token in x["text"] for token in tokens) for x, tokens in zip(
+                ending_flow["endings"],
+                [("حط الجمرة",), ("خلّى البوابة مفتوحة",), ("رسائل دجلة",)],
+            )):
+                raise AssertionError(f"Ending narratives do not match their selected choice: {ending_flow}")
+            print("PASS: secret ending unlocks at 12 letters and all three ending choices persist distinct narratives")
 
             ambience = await page.evaluate("""() => {
                 __g.setEnvironment("duhok");
@@ -233,7 +297,7 @@ async def run_suite(base_url: str) -> None:
                     e.state = "strike"; e.t = 0; e.hit = false;
                     const hpBeforeParry = p.hp;
                     g.step(0.02);
-                    const perfectParry = {hp: p.hp, enemyState: e.state, stamina: p.st};
+                    const perfectParry = {hp: p.hp, enemyState: e.state, stamina: p.st, flash: g.parryFlash};
 
                     // Hold guard beyond the perfect-parry window, then receive another strike.
                     for (let i = 0; i < 20; i++) g.step(0.02);
@@ -247,7 +311,7 @@ async def run_suite(base_url: str) -> None:
                     return {hpBeforeParry, perfectParry, normalBlock, staminaBeforeBlock};
                 }"""
             )
-            if defense["perfectParry"]["hp"] != defense["hpBeforeParry"] or defense["perfectParry"]["enemyState"] != "stun":
+            if defense["perfectParry"]["hp"] != defense["hpBeforeParry"] or defense["perfectParry"]["enemyState"] != "stun" or defense["perfectParry"]["flash"] <= 0:
                 raise AssertionError(f"Perfect parry did not stun the attacker without damage: {defense}")
             if defense["normalBlock"]["hp"] != defense["hpBeforeParry"] or not defense["normalBlock"]["stamina"] < defense["staminaBeforeBlock"]:
                 raise AssertionError(f"Normal guard did not trade stamina for blocked damage: {defense}")
@@ -257,7 +321,7 @@ async def run_suite(base_url: str) -> None:
                 """() => {
                     const g = window.__g;
                     g.stats.boat = true; // Skip the one-time Baghdad boat cinematic in this test.
-                    const ids = ["duhok", "muthanna", "nineveh", "anbar", "baghdad"];
+                    const ids = ["duhok","nineveh","erbil","sulay","halabja","kirkuk","saladin","diyala","anbar","karbala","babil","najaf","qadis","wasit","maysan","dhiqar","muthanna","basra","baghdad"];
                     return ids.map(id => {
                         g.travel(id);
                         return {
@@ -280,9 +344,23 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Region did not build world geometry: {result}")
                 expected_mini = {
                     "duhok": "ذيب وادي الخابور",
-                    "muthanna": "ملك عقارب أوروك",
                     "nineveh": "حارس الحدباء المنفي",
+                    "erbil": "ذيب القلعة الأبيض",
+                    "sulay": "ذيب قمة آزمر",
+                    "halabja": "وحش بحيرة زريبار",
+                    "kirkuk": "عقرب النار الأزلية",
+                    "saladin": "طيف الملوية",
+                    "diyala": "عقرب بساتين ديالى",
                     "anbar": "ذيب الرمادي",
+                    "karbala": "عقرب عين التمر",
+                    "babil": "ظل بوابة عشتار",
+                    "najaf": "ذيب بحر النجف",
+                    "qadis": "عقرب تل إيسن",
+                    "wasit": "تمساح سدّة الكوت",
+                    "maysan": "تمساح الهور الأسود",
+                    "dhiqar": "حارس مقبرة أور",
+                    "muthanna": "ملك عقارب أوروك",
+                    "basra": "تمساح شط العرب",
                     "baghdad": "شبح باب الطلسم",
                 }[result["id"]]
                 if len(result["miniBosses"]) != 1 or result["miniBosses"][0]["name"] != expected_mini:
@@ -293,7 +371,37 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Expected region boss was not spawned: {result}")
                 if result["id"] == "duhok" and result["duhokDetails"] < 20:
                     raise AssertionError(f"Zakho/Delal landmark detail count was not preserved through baking: {result}")
-            print("PASS: Duhok, Muthanna, Nineveh, Anbar, and Baghdad load with geometry and bosses")
+            print("PASS: all 19 Iraqi regions load with geometry, regional bosses, and assigned mini-boss identities")
+
+            progression = await page.evaluate("""() => {
+                const g=window.__g, oldProg=g.stats.prog, oldDone=g.stats.done;
+                const order=g.regionOrder, checks=[];
+                g.stats.prog=0;g.stats.done={};
+                checks.push({stage:"fresh",first:g.canGo(order[0]),second:g.canGo(order[1]),baghdad:g.canGo("baghdad")});
+                for(let i=0;i<order.length-1;i++){
+                    const id=order[i];
+                    const current=g.canGo(id);
+                    g.stats.done[id]=true;
+                    g.stats.prog=i+1;
+                    checks.push({stage:id,current,next:order[i+1],nextOpen:g.canGo(order[i+1]),baghdad:g.canGo("baghdad")});
+                }
+                const result={order,checks,baghdadAfterBasra:g.canGo("baghdad")};
+                g.stats.prog=oldProg;g.stats.done=oldDone;
+                return result;
+            }""")
+            if progression["order"][-2:] != ["basra","baghdad"]:
+                raise AssertionError(f"Campaign order must end through Basra then Baghdad: {progression}")
+            fresh = progression["checks"][0]
+            if not fresh["first"] or fresh["second"] or fresh["baghdad"]:
+                raise AssertionError(f"Fresh campaign must unlock only Zakho initially: {fresh}")
+            for check in progression["checks"][1:]:
+                if not check["nextOpen"]:
+                    raise AssertionError(f"Completing {check['stage']} must unlock {check['next']}: {check}")
+            if not progression["baghdadAfterBasra"]:
+                raise AssertionError(f"Baghdad must unlock after Basra is completed: {progression}")
+            if any(check.get("baghdad") for check in progression["checks"] if check["stage"] != "basra"):
+                raise AssertionError(f"Baghdad unlocked before Basra: {progression}")
+            print("PASS: campaign map progression unlocks one region at a time and keeps Baghdad locked until Basra")
 
             await page.evaluate(
                 """() => {
@@ -303,11 +411,7 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.reload(wait_until="load")
-            await page.wait_for_function(
-                "window.__g && window.__g.ok() && window.__g.chunks > 0",
-                timeout=15000,
-            )
+            await reload_and_start()
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
             )
@@ -330,8 +434,9 @@ async def run_suite(base_url: str) -> None:
                 }""",
                 legacy_raw,
             )
-            await page.reload(wait_until="load")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            await reload_and_start()
+            # Migration correctness is independent of asynchronous world baking.
+            await page.wait_for_function("window.__g.REG === 'muthanna'", timeout=30000)
             migrated = await page.evaluate(
                 """() => ({
                     live: JSON.parse(localStorage.getItem("ashes-rafidain-v1")),
@@ -352,15 +457,30 @@ async def run_suite(base_url: str) -> None:
             await page.evaluate(
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
-            await page.reload(wait_until="load")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            await reload_and_start()
+            # A rejected save starts a fresh campaign, whose opening film begins
+            # in Baghdad before handing control back to Zakho.
+            await page.evaluate("() => { if (__g.cine) __g.endCine(); }")
+            await page.wait_for_function("window.__g.REG === 'duhok'", timeout=30000)
+            # Snapshot recovery immediately; renderer/chunk readiness is separate.
             recovered = await page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
+                    region: __g.REG,
+                    liveSave: JSON.parse(localStorage.getItem("ashes-rafidain-v1") || "null"),
                     backup: localStorage.getItem("ashes-rafidain-v1.backup-corrupt")
                 })"""
             )
-            if recovered["level"] != 1 or recovered["backup"] != partial_raw:
+            fresh = recovered["liveSave"]
+            if (
+                recovered["level"] != 1
+                or recovered["region"] != "duhok"
+                or not fresh
+                or fresh.get("schemaVersion") != 2
+                or fresh.get("reg") != "duhok"
+                or fresh.get("stats", {}).get("lvl") != 1
+                or recovered["backup"] != partial_raw
+            ):
                 raise AssertionError(f"Partial save recovery/backup failed: {recovered}")
             print("PASS: partial save rejected, preserved, and fresh game booted safely")
 
@@ -368,6 +488,96 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError("Uncaught browser errors: " + " | ".join(page_errors))
             print("PASS: no uncaught browser page errors")
         finally:
+            await browser.close()
+
+
+async def run_mobile_smoke(base_url: str) -> None:
+    """Exercise touch layout and pointer-driven controls in mobile Chromium."""
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(
+            headless=True,
+            args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
+        )
+        context = await browser.new_context(
+            viewport={"width": 390, "height": 844},
+            screen={"width": 390, "height": 844},
+            device_scale_factor=2,
+            is_mobile=True,
+            has_touch=True,
+        )
+        page = await context.new_page()
+        page_errors: list[str] = []
+        page.on("pageerror", lambda error: page_errors.append(str(error)))
+        try:
+            await page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await page.evaluate("() => { if (window.__g) window.__g.stats.intro = 1; }")
+            await page.click("#go")
+            await page.wait_for_function(
+                "window.__g && window.__g.REG === 'duhok' && window.__g.ok()",
+                timeout=20000,
+            )
+            layout = await page.evaluate("""() => {
+                const ids = ['jz','cz','bAtk','bRoll','bHeal','bJump','bLock','bMap'];
+                const rect = el => {
+                    const r = el.getBoundingClientRect();
+                    return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,
+                            display:getComputedStyle(el).display,pointerEvents:getComputedStyle(el).pointerEvents,
+                            touchAction:getComputedStyle(el).touchAction};
+                };
+                return {width:innerWidth,height:innerHeight,controls:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))]))};
+            }""")
+            for control, rect in layout["controls"].items():
+                if rect["display"] == "none" or rect["pointerEvents"] == "none" or rect["width"] <= 0 or rect["height"] <= 0:
+                    raise AssertionError(f"Mobile control is hidden or has no hit area: {control}: {rect}")
+                if rect["left"] < -2 or rect["top"] < -2 or rect["right"] > layout["width"] + 2 or rect["bottom"] > layout["height"] + 2:
+                    raise AssertionError(f"Mobile control falls outside viewport: {control}: {rect}")
+            if layout["controls"]["jz"]["touchAction"] != "none" or layout["controls"]["cz"]["touchAction"] != "none":
+                raise AssertionError(f"Virtual sticks must suppress browser gestures: {layout}")
+            conditional = await page.evaluate("""() => ({
+                bowVisible:document.getElementById('bBow').classList.contains('on'),
+                bowOwned:!!(__g.stats.own&&__g.stats.own.bow),
+                castVisible:document.getElementById('bCast').classList.contains('on'),
+                castAvailable:!!(__g.stats.spell&&__g.stats.tabs&&__g.stats.tabs[__g.stats.spell]),
+                blockVisible:document.getElementById('bBlock').classList.contains('on'),
+                shieldEquipped:__g.stats.wpn==='shield'
+            })""")
+            if (conditional["bowVisible"] != conditional["bowOwned"]
+                or conditional["castVisible"] != conditional["castAvailable"]
+                or conditional["blockVisible"] != conditional["shieldEquipped"]):
+                raise AssertionError(f"Conditional mobile action visibility does not match equipment: {conditional}")
+            await page.evaluate("""() => {
+                const el=document.getElementById('jz'),r=el.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+r.height*.5;
+                el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:41,pointerType:'touch',clientX:x,clientY:y}));
+                el.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:41,pointerType:'touch',clientX:x+35,clientY:y-25}));
+            }""")
+            joystick = await page.evaluate("() => ({x:__g.input.jx,y:__g.input.jy})")
+            if abs(joystick["x"]) < .1 or abs(joystick["y"]) < .1:
+                raise AssertionError(f"Virtual joystick did not update movement input: {joystick}")
+            await page.evaluate("""() => document.getElementById('jz').dispatchEvent(
+                new PointerEvent('pointerup',{bubbles:true,pointerId:41,pointerType:'touch'}))""")
+            reset = await page.evaluate("() => ({x:__g.input.jx,y:__g.input.jy})")
+            if reset != {"x":0,"y":0}:
+                raise AssertionError(f"Virtual joystick did not reset after touch release: {reset}")
+            await page.evaluate("""() => {
+                const el=document.getElementById('cz'),r=el.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+r.height*.5,before=__g.cam.yaw;
+                el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:42,pointerType:'touch',clientX:x,clientY:y}));
+                el.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:42,pointerType:'touch',clientX:x+40,clientY:y+10}));
+                window.__mobileCameraChanged=__g.cam.yaw!==before&&__g.input.camDown;
+                el.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:42,pointerType:'touch'}));
+            }""")
+            camera = await page.evaluate("() => ({changed:window.__mobileCameraChanged,down:__g.input.camDown})")
+            if not camera["changed"] or camera["down"]:
+                raise AssertionError(f"Touch camera drag did not update/release correctly: {camera}")
+            await page.dispatch_event("#bRoll","pointerdown",{"pointerId":43,"pointerType":"touch","bubbles":True,"cancelable":True})
+            action = await page.evaluate("() => __g.P.buf && __g.P.buf.a")
+            await page.dispatch_event("#bRoll","pointerup",{"pointerId":43,"pointerType":"touch","bubbles":True})
+            if action != "roll":
+                raise AssertionError(f"Mobile dodge button did not trigger roll action: {action}")
+            if page_errors:
+                raise AssertionError("Mobile runtime JavaScript errors: " + " | ".join(page_errors))
+            print("PASS: mobile Chromium portrait layout, touch hit areas, joystick, camera drag, dodge button, and runtime errors")
+        finally:
+            await context.close()
             await browser.close()
 
 
@@ -452,11 +662,43 @@ def verify_weapon_and_boss_specific_finishers() -> None:
     print("PASS: five weapon-specific finisher poses, boss-specific lines and impact effects")
 
 
+def verify_dijla_endings() -> None:
+    depth = (ROOT / "src" / "depth.js").read_text(encoding="utf-8")
+    story = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    letters = [letter for letter in re.findall(r"letter:'([^']*)'", depth) if letter]
+    if len(letters) != 18:
+        raise AssertionError(f"Dijla's letter collection should contain 18 readable letters, found {len(letters)}")
+    required = (
+        "function endChoice(){paused=true;$('end3').hidden=Object.keys(stats.letters||{}).length<12",
+        "function ending(k)",
+        "فرات حط الجمرة اللي بصدره بقفل البوابة",
+        "خلّى البوابة مفتوحة، ونزل لتحت يدوّر على دجلة",
+        "وگرا رسائل دجلة بصوت عالي",
+        "stats.ended=k;save();",
+    )
+    for item in required:
+        if item not in story:
+            raise AssertionError(f"Story ending condition or branch missing: {item}")
+    for item in (
+        "$('end1').addEventListener('click',()=>ending(1))",
+        "$('end2').addEventListener('click',()=>ending(2))",
+        "$('end3').addEventListener('click',()=>ending(3))",
+        "$('endR').addEventListener('click',()=>{$('end').classList.remove('on');wipe();",
+        "endChoice,ending",
+    ):
+        if item not in game:
+            raise AssertionError(f"Ending UI action is not connected: {item}")
+    print("PASS: 18 Dijla letters, 12-letter secret-ending gate, three distinct endings, and restart action")
+
+
 def verify_regional_mini_bosses() -> None:
     roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     characters = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    depth = (ROOT / "src" / "depth.js").read_text(encoding="utf-8")
+    audio = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
     required = (
         "const MINI_GUARDS=",
         "nineveh:{k:'ghostK'",
@@ -483,12 +725,18 @@ def verify_regional_mini_bosses() -> None:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
     if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
         raise AssertionError("Regional mini-bosses are missing their dedicated creature renderer")
-    for behavior in ("voice('boss',m.line)", "e.blinked=true", "Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42)", "?1.32:1", "'#a5d64b'", "case 'miniTrans'", "e.hp<=T.hp*.5", "waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col})", "e.p2?1.18:1"):
-        if behavior not in game:
+    for behavior in ("voice('boss',m.line)", "e.orbitT=(e.orbitT||0)+dt", "Math.cos(ang+PI/2)", "MINI_GUARDS[REG].k==='ghostK')e.blinked=false", "burst(e.x,e.y+24,e.z,'#b9a0ff',10,82,e.y)", "mini==='scorpK'&&e.p2&&!e.poisonCast", "waves.push({x:e.x,z:e.z,r:18,l:1.05,y:e.y,col:'#a5d64b'})", "mini==='crocK'&&e.p2?ang+(e.sx||1)*.34:ang", "e.rippleCast=false", "e.k==='gmini'&&MINI_GUARDS[REG].k==='crocK'&&e.p2&&!e.rippleCast", "waves.push({x:e.x,z:e.z,r:34,l:1.15,y:e.y,col:'#55c9bb'})", "e.blinked=true", "e.feintMoved=false", "mini==='wolfK'&&e.p2&&!e.feintMoved&&e.t>=windDur*.42", "moveEnt(e,e.x-Math.cos(ang)*42,e.z-Math.sin(ang)*42,T.r*.9,true)", "Math.sin(clamp(e.t/T.act,0,1)*PI)*(e.p2?62:42)", "?1.32:1", "const tailSnap=st==='strike'?Math.sin(strike*PI):st==='wind'?wind:0", "const recoil=st==='strike'?Math.sin(strike*PI):st==='rec'?Math.sin(Math.min(1,e.t/.28)*PI):0", "const arm=st==='wind'?lerp(.5,2.8,wind):st==='strike'?lerp(2.8,-1.35,strike)", "'#a5d64b'", "case 'miniTrans'", "e.hp<=T.hp*.5", "waves.push({x:e.x,z:e.z,r:24,l:.95,y:e.y,col})", "e.p2?1.18:1"):
+        if behavior not in game + depth:
             raise AssertionError(f"Regional mini-boss phase-two behavior missing: {behavior}")
     if "T(e.x,e.y+e.j,e.z)" not in characters:
         raise AssertionError("Wolf mini-boss leap pose is not rendered")
-    print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
+    for cue in ("e.k==='gmini'&&e.state==='wind'", "pulse=.72+.28*Math.sin(time*13)", "if(kind==='scorpK')", "else if(kind==='crocK')", "else if(kind==='ghostK')", "ctx.moveTo(p[0]-2.5,p[1]-12)", "snd(kind==='scorpK'?'miniScorp'"):
+        if cue not in game:
+            raise AssertionError(f"Mini-boss attack telegraph cue missing: {cue}")
+    for cue in ("case 'miniScorp'", "case 'miniCroc'", "case 'miniGhost'", "case 'miniWolf'"):
+        if cue not in audio:
+            raise AssertionError(f"Mini-boss warning sound missing: {cue}")
+    print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, persistence, and wind-up telegraph")
 
 
 def main() -> int:
@@ -496,6 +744,7 @@ def main() -> int:
     verify_major_boss_weakpoints()
     verify_boss_finisher()
     verify_weapon_and_boss_specific_finishers()
+    verify_dijla_endings()
     verify_regional_mini_bosses()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -503,6 +752,7 @@ def main() -> int:
     thread.start()
     try:
         asyncio.run(run_suite(f"http://127.0.0.1:{server.server_port}"))
+        asyncio.run(run_mobile_smoke(f"http://127.0.0.1:{server.server_port}"))
     finally:
         server.shutdown()
         server.server_close()

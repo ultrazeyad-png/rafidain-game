@@ -112,23 +112,29 @@ function drawScorp(e){if(Math.hypot(e.x-P.x,e.z-P.z)>DR)return;const fall=mobFx(
   sph(30,10,20,c,0,10,0);for(let q=0;q<4;q++)sph(9,7,18-q*2,d,-14-q*7,10,0);
   for(const sd of[-1,1])for(let q=0;q<4;q++){push();T(8-q*7,8,sd*9);RX(sd*(.9+Math.sin(wk+q)*.25));RZ(.2);sph(2.4,14,2.4,d,0,-7,0);pop();}
   for(const sd of[-1,1]){push();T(16,10,sd*9);RY(sd*-.4+(st==='wind'?sd*.4:0));sph(14,4,4,c,6,0,0);sph(10,7,6,d,15,0,sd*2);pop();}
-  const sw=st==='wind'?Math.min(1,e.t/e.T.wind)*.8:st==='strike'?-.6:0;
-  push();T(-38,12,0);for(let q=0;q<5;q++){RZ(.55+sw*.25);T(0,7,0);sph(5.6-q*.6,8,5.6-q*.6,q%2?c:d,0,0,0);}con(2.4,8,2.4,'#e0d8a0',0,6,0,st==='wind'?.6:0);pop();
+  const wind=clamp(e.t/e.T.wind,0,1),strike=clamp(e.t/e.T.act,0,1);
+  const sw=st==='wind'?.22+wind*.72:st==='strike'?-.78+.18*strike:st==='rec'?.12*Math.sin(e.t*9):0;
+  const tailSnap=st==='strike'?Math.sin(strike*PI):st==='wind'?wind:0;
+  push();T(-38,12,0);RZ(.55+sw*.25+tailSnap*.3);for(let q=0;q<5;q++){RZ(.55+sw*.25);T(0,7,0);sph(5.6-q*.6,8,5.6-q*.6,q%2?c:d,0,0,0);}con(2.4,8,2.4,'#e0d8a0',0,6,0,st==='wind'?.6:st==='strike'?.85:0);pop();
   for(const sd of[-1,1])sph(1.4,1.4,1.4,'#ff3020',18,14,sd*3,1);pop();gFlash=false;gAlpha=1;}
 function drawCroc(e){if(Math.hypot(e.x-P.x,e.z-P.z)>DR)return;const fall=mobFx(e,1.1);if(fall<0)return;const S=e.T.sc||1,st=e.state,c=e.T.sc>1?'#2a3a24':'#4a5a34',d='#2a3420',wk=e.walk*1.6;
-  const open=st==='wind'?Math.min(1,e.t/e.T.wind)*.7:st==='strike'?.1:.05;
-  push();T(e.x,e.y,e.z);RY(-e.a);if(fall)RX(fall);Sc(S,S,S);
+  const wind=clamp(e.t/e.T.wind,0,1),strike=clamp(e.t/e.T.act,0,1);
+  const open=st==='wind'?wind*.9:st==='strike'?.08+.16*Math.sin(strike*PI):st==='rec'?Math.max(0,.12-e.t*.35):.035;
+  const recoil=st==='strike'?Math.sin(strike*PI):st==='rec'?Math.sin(Math.min(1,e.t/.28)*PI):0;
+  push();T(e.x,e.y,e.z);RY(-e.a);if(fall)RX(fall);Sc(S,S,S);RZ(-.16*recoil);
   sph(54,12,22,c,0,9,0);for(let q=0;q<7;q++)con(2.4,4,2.4,d,20-q*7,15,0);
   push();T(-26,9,0);RY(Math.sin(time*2+e.hx)*.25);sph(46,8,10,c,-20,0,0);sph(20,5,5,d,-44,0,0);pop();
   push();T(26,10,0);RZ(open*.5);sph(30,5,13,c,14,1,0);pop();push();T(26,8,0);RZ(-open*.5);sph(28,3.6,12,'#6a7a4a',13,-1,0);pop();
   for(const sd of[-1,1]){sph(3,3,3,'#e0c040',30,15,sd*7,1);for(const fx of[14,-14]){push();T(fx,6,sd*12);RX(sd*(.9+Math.sin(wk+fx)*.3));sph(3.6,10,3.6,d,0,-4,0);pop();}}
   pop();gFlash=false;gAlpha=1;}
 function drawGhost(e){if(Math.hypot(e.x-P.x,e.z-P.z)>DR)return;const fall=mobFx(e,1.4);if(fall<0)return;const S=e.T.sc||1,st=e.state,al=e.T.sc>1?.7:.55,c=e.T.sc>1?'#c8b8ff':'#d0d8e8';
-  gAlpha=Math.min(gAlpha,al+(st==='wind'?.3:0));const fl=6+Math.sin(time*2+e.hx)*4;
+  gAlpha=Math.min(gAlpha,al+(st==='wind'?.3:0));const wind=st==='wind'?clamp(e.t/e.T.wind,0,1):0,strike=st==='strike'?clamp(e.t/e.T.act,0,1):0;
+  const fl=6+Math.sin(time*2+e.hx)*4+wind*7+strike*5;
   push();T(e.x,e.y+fl,e.z);RY(-e.a);Sc(S,S,S);
   for(let q=0;q<6;q++){const a=q/6*6.283+time;box(1.6,26+Math.sin(time*3+q)*4,6,c,Math.cos(a)*7,8,Math.sin(a)*8,0,al*.8);}
   sph(13,22,15,c,0,26,0,.3);sph(8,9,8,c,1,44,0,.3);for(const sd of[-1,1])sph(1.8,2.4,1.8,'#0a0a20',7,45,sd*2.6,1);
-  const arm=st==='wind'?2.4:st==='strike'?1.2:.5;for(const sd of[-1,1]){push();T(0,36,sd*10);RZ(arm);sph(3,18,3,c,0,-8,0,.3);pop();}
+  const arm=st==='wind'?lerp(.5,2.8,wind):st==='strike'?lerp(2.8,-1.35,strike):st==='rec'?.5+Math.sin(e.t*12)*.12:.5;
+  for(const sd of[-1,1]){push();T(0,36,sd*10);RZ(arm*(sd>0?1:-1));sph(3,18,3,c,0,-8,0,.3);if(st==='strike')sph(1.6,10,1.6,'#e4d8ff',3,-16,sd*2,.45);pop();}
   pop();gFlash=false;gAlpha=1;}
 /* ---------- music: a few notes of a maqam over a quiet drone, different in each land ---------- */
 const MQ={hijaz:[0,1,4,5,7,8,10,12],bayat:[0,1.5,3,5,7,8,10,12],saba:[0,1.5,3,4,7,8,10,12],rast:[0,2,3.5,5,7,9,10.5,12],kurd:[0,1,3,5,7,8,10,12]};

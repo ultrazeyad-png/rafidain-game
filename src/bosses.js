@@ -14,6 +14,18 @@ function bossHalf(b){return b.hp<b.T.hp*.5;}
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
   b.cd-=dt;let mvs=0;
+  // Adapa studies Furat's habits without reading inputs or removing dodge windows.
+  let read=null;
+  if(isAdapa){
+    read=b.adapaRead||(b.adapaRead={rolls:0,retreat:0,lastRoll:false,lastDist:ad});
+    const rolling=P.state==='roll';
+    if(rolling&&!read.lastRoll)read.rolls=Math.min(3,read.rolls+1);
+    read.lastRoll=rolling;
+    if(ad>read.lastDist+1.8&&ad>150&&!rolling)read.retreat=Math.min(2,read.retreat+dt);
+    else read.retreat=Math.max(0,read.retreat-dt*.7);
+    if(!rolling)read.rolls=Math.max(0,read.rolls-dt*.12);
+    read.lastDist=ad;
+  }
   if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&b.state!=='parried'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');if(isAdapa){voice('boss','المفاتيح الخمسة ما تنطيك بغداد!');say('المفاتيح الخمسة ما تنطيك بغداد!','#c0242e',2.6);}return;}
   const atk=(m,next)=>{const A=NM[m];if(isAdapa&&!b.vsaid&&['c3','sp','sl'].includes(m)){b.vsaid=true;voice('boss',m==='sl'?'اركع أمام باب الطلسم!':m==='sp'?'لا تدير ظهرك إليّ!':'هذا حدّك يا فرات!');}if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
     const k=b.t-A.w/sp;if(k<A.a){mvs=A.step;if(!b.hit&&hitP(b,A.reach,A.arc,A.dmg))b.hit=true;if(k<dt*1.5)snd('swingH');return;}
@@ -30,7 +42,12 @@ function upNamtar(b,dt){
       b.a=turn(b.a,ang,(ad<160?4.5:6)*dt);
       if(ad>110)mvs=ph2?110:78;else if(ad<70)mvs=-50;else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*44*dt,Math.sin(sa)*44*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
       if(b.cd<=0){const r=Math.random();
-        if(behind&&ad<130)setE(b,'sp');
+        // Repeated rolls invite a delayed overhead feint; sustained retreat invites a clearly telegraphed rush.
+        if(isAdapa&&read&&read.rolls>=1.35&&ad<185){
+          setE(b,'sl');b.hold=.42+Math.random()*.28;read.rolls=Math.max(0,read.rolls-1.35);
+        }else if(isAdapa&&read&&read.retreat>.9&&ad>145&&ad<430){
+          setE(b,ph2&&r<.42?'charge':'leapW');read.retreat=Math.max(0,read.retreat-.9);
+        }else if(behind&&ad<130)setE(b,'sp');
         else if(ad<130){if(ph2&&r<.18)setE(b,'grab');else if(r<.55)setE(b,'c1');else if(r<.82)setE(b,'sl');else setE(b,'sp');b.hold=.25+Math.random()*(ph2?.85:.55);}
         else if(ad<360){if(ph2&&r<.35)setE(b,'stomp');else if(ph2&&r<.6)setE(b,'charge');else if(r<.6){setE(b,'leapW');}else b.cd=.25;}
         else if(r<.5)setE(b,'leapW');else b.cd=.3;}
@@ -52,8 +69,18 @@ function upNamtar(b,dt){
         if(Math.hypot(P.x-b.x,P.z-b.z)<100&&P.y-arY()<20)hurtP(Math.round(38*(b.dm||1)),b.x,b.z);if(ph2)elemHit(b,3);if(ph2)waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});bRec(b,ph2?.7:1.05);}
       break;}
     case 'stomp':b.a=turn(b.a,ang,2*dt);
-      if(b.elem&&b.elem!=='shadow'){if(b.t>.5&&b.n<1){b.n=1;elemHit(b,6);}if(b.t>1.6){b.n=0;bRec(b,.5);}break;}
-      if(b.t>.75&&b.n<1){b.n=1;shake=9;snd('land');waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});puff(b.x,b.y,b.z,10,12,120);}
+      if(b.elem&&b.elem!=='shadow'&&!(isAdapa&&ph2)){if(b.t>.5&&b.n<1){b.n=1;elemHit(b,6);}if(b.t>1.6){b.n=0;bRec(b,.5);}break;}
+      if(b.t>.75&&b.n<1){
+        b.n=1;shake=isAdapa&&ph2?13:9;snd('land');
+        if(isAdapa&&ph2){
+          if(!b.keyPulseSaid){b.keyPulseSaid=true;voice('boss','خمسة عهود… وخمسة قبور ستُفتح!');}
+          // Five expanding rings: the awakened keys strike the court in sequence.
+          for(let q=0;q<5;q++)waves.push({x:b.x,z:b.z,y:arY(),r:18+q*17,l:1.15+q*.09});
+          burst(b.x,arY()+5,b.z,'#d8ad54',24,190,arY());
+          burst(b.x,arY()+8,b.z,'#c0242e',12,145,arY());
+          if(Math.hypot(P.x-b.x,P.z-b.z)<118&&P.state!=='roll')hurtP(Math.round(26*(b.dm||1)),b.x,b.z);
+        }else{waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});puff(b.x,b.y,b.z,10,12,120);}
+      }
       if(b.t>1.35&&b.n<2){b.n=2;shake=9;snd('land');waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});}
       if(b.t>1.9){b.n=0;bRec(b,.5);}break;
     case 'charge':if(b.t<.6){b.a=turn(b.a,ang,6*dt);break;}
@@ -151,6 +178,12 @@ function drawNamtar(e){
     lean=-.035+breath*.012;
     m={t:.78+breath*.025,y:-.32,e:.98,w:-.2};
     o={t:.62,y:.3,e:.82,w:.18};
+  }else if(isAdapa&&st==='stomp'){
+    const wind=clamp(e.t/.75,0,1),impact=clamp((e.t-.75)/.24,0,1),settle=clamp((e.t-.99)/.48,0,1);
+    lean=lerp(-.34,.2,impact)*(1-settle);
+    crouch=-12*wind*(1-impact)+5*impact*(1-settle);
+    m={t:lerp(1.05,2.25,wind)*(1-settle)+.82*settle,y:lerp(-.2,.58,wind),e:lerp(.9,.12,impact),w:lerp(-.1,.9,impact)};
+    o={t:lerp(.65,1.85,wind)*(1-settle)+.55*settle,y:lerp(.2,-.55,wind),e:lerp(.8,.18,impact),w:.12};
   }else if(isAdapa&&st==='trans'){
     const rise=clamp(e.t/2.3,0,1),pulse=Math.sin(time*12);
     lean=-.12-rise*.16;
@@ -190,7 +223,53 @@ function drawNamtar(e){
   sph(14,18,17.5,body,0,36.5,0);sph(9.6,12,14,plate,3.6,38,0);
   for(let q=0;q<3;q++)cyl(14.4-q,.9,17.6-q,isAdapa?trim:'#2a201a',0,27.5+q*3.4,0);
   cyl(15,4,18,isAdapa?trim:'#3a2c1e',0,24,0);sph(4,4.4,4,isAdapa?'#f7d77c':'#a88a4a',6.6,24,0);
-  if(isAdapa){for(let q=0;q<3;q++){push();T(0,38-q*5,16);box(2.2,3,1.2,trim,0,0,0);pop();}
+  if(isAdapa){
+    // layered lamellar plates: five rows of individually raised bronze-and-ivory scales
+    for(let row=0;row<3;row++)for(let col=-2;col<=2;col++){
+      const x=col*4.15,y=42-row*5.1,z=15.1-Math.abs(col)*.22;
+      sph(3.35,2.65,1.05,row===1?'#d9c8a2':plate,x,y,z);
+      sph(.48,.48,.34,trim,x,y,z+1.02);
+    }
+    // three engraved breastplate ribs and the royal vertical sash
+    for(let q=0;q<3;q++){push();T(0,38-q*5,16);box(2.2,3,1.2,trim,0,0,0);pop();}
+    // five ancient keys hang from the belt; they flare with the second phase
+    for(let q=0;q<5;q++){
+      const x=(q-2)*5.1,glow=p2?(st==='stomp'?.72+.28*Math.sin(e.t*19+q*.7):1):0;
+      push();T(x,20.5,14.2);RZ((q-2)*.09);
+      cyl(1.05,7.5,1.05,trim,0,-2.2,0,glow,.72);
+      sph(2.15,2.15,.85,p2?'#ff6747':'#287f91',0,2.5,0,glow,.9);
+      box(3.8,1.1,1.1,trim,0,-5.5,0,glow,.8);
+      box(1.1,2.8,1.1,trim,1.5,-7,0,glow,.8);
+      pop();
+    }
+    // During the oath stomp, five key sparks rise in sequence from the belt.
+    if(p2&&st==='stomp'){
+      const pulse=clamp((e.t-.52)/.55,0,1);
+      for(let q=0;q<5;q++){
+        const rise=clamp((e.t-.58-q*.065)/.34,0,1),a=time*2.2+q*6.283/5;
+        push();T(Math.cos(a)*(17+rise*5),23+rise*25,Math.sin(a)*(15+rise*5));
+        sph(1.5+rise,1.5+rise,1.5+rise,q%2?'#ff6848':'#ffd18a',0,0,0,pulse,.92);
+        pop();
+      }
+    }
+    // Phase two fractures the ivory cuirass: five hot seams echo the awakened keys.
+    if(p2){
+      const pulse=.72+.28*Math.sin(time*11);
+      for(let q=0;q<5;q++){
+        const x=(q-2)*5.2;
+        push();T(x,39-(q%2)*4,16.25);
+        box(1.05,9+((q%2)*3),.8,'#ff6848',0,0,0,pulse,.92);
+        sph(1.15,1.15,1,'#ffd18a',0,-4.5,0,pulse,.9);
+        pop();
+      }
+      // ember motes circle the crown and shoulders only after the oath breaks
+      for(let q=0;q<5;q++){
+        const a=time*1.35+q*6.283/5;
+        push();T(Math.cos(a)*19,45+Math.sin(a*1.7)*5,Math.sin(a)*17);
+        sph(1.25,1.25,1.25,q%2?'#ff6a45':'#ffd08a',0,0,0,.8,.9);
+        pop();
+      }
+    }
     // royal vertical sash and a hanging seal at the waist
     push();T(4,34,14);box(5,27,2.2,'#7b2028',0,-2,0);box(1.1,27,2.5,trim,0,-2,1.3);pop();
     push();T(0,20,15);sph(4.2,5.2,2.2,trim,0,0,0);box(1.2,5,1.2,'#fff0c8',0,0,2);pop();}
@@ -204,10 +283,24 @@ function drawNamtar(e){
   if(isAdapa){
     // stepped gold crown, central lapis jewel and five upright points
     cyl(10.5,2.4,10.5,trim,.6,12,0);cyl(8.8,2.2,8.8,'#fff0c8',.6,14,0);
-    for(let q=0;q<5;q++){const x=(q-2)*4.1;box(1.7,8,1.7,trim,x,18,0);con(2.2,5.5,2.2,trim,x,24,0);}
+    for(let q=0;q<5;q++){
+      const x=(q-2)*4.1;
+      box(1.7,8,1.7,trim,x,18,0);
+      con(2.2,5.5,2.2,trim,x,24,0);
+      if(q===0||q===4){push();T(x,21,0);RZ(q===0?-.22:.22);con(1.5,7,1.5,trim,0,3.2,0);pop();}
+    }
+    // stepped diadem, raised side wings and the lapis centrepiece
+    box(18,1.6,2.4,trim,.6,17,0);
+    for(const sd of[-1,1]){push();T(.6,14,sd*7.4);RX(sd*.35);con(2.2,8,2.2,trim,0,4,0);pop();}
     sph(2.8,3.4,1.8,p2?'#ff563d':'#287f91',.6,15,9.4,p2?1:.82);
     if(p2){for(let q=0;q<3;q++){push();RY(time*1.8+q*2.094);T(0,15,12+Math.sin(time*3+q)*1.2);sph(1.4,1.4,1.4,'#ffb05a',0,0,0,.85);pop();}}
     for(const sd of[-1,1]){push();T(0,10,sd*8);box(2,8,2,trim,0,2,0);pop();}
+    // fine ceremonial grooves across the pale mask; the central fracture wakes in phase two
+    box(.7,12,.7,p2?'#ff624b':'#9d8150',8.7,5.5,0,p2?1:0,.85);
+    for(const sd of[-1,1]){
+      box(2.8,.7,.7,trim,8.4,7.7,sd*2.3);
+      box(1.8,.65,.7,p2?'#ff684e':'#9d8150',8.6,2.7,sd*2.1,p2?1:0,.8);
+    }
   }else{
     for(const sd of[-1,1]){push();T(-1,11,sd*7.5);RX(-sd*.9);RZ(.35);con(3.2,15,3.2,'#cfc6b0',0,7,0);T(0,13,0);RZ(.6);con(2,9,2,'#b9ad94',0,4,0);pop();}
   }

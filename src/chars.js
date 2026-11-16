@@ -81,6 +81,7 @@ function drawHero(){dressHero();
   m.t-=ws;m.e+=.25*mk;o.t+=ws;o.e+=.25*mk;twist=sw*.16*mk;lean=-.1*mk;
   if(wpn==='glaive'){m={t:.7,y:.2,e:.5,w:.3};o={t:.5,y:-.5,e:.8,w:0};}
   if(wpn==='shield'){o={t:.35+ws,y:0,e:.9,w:0};if(P.guard){guardUp=true;o={t:.95,y:-.55,e:.9,w:0};lean=-.06;}}
+  if(P.guard&&wpn!=='shield'){guardUp=true;m={t:.9,y:.25,e:1.05,w:-.15};o={t:1.05,y:-.35,e:1.1,w:.15};lean=-.08;}
   let tilt=0;
   if(st==='atk'){const a=P.atk,hd=a.hand||0,p=keyPose(P.finisherKey||a.key||'A',atkU(a,P.t));lean=p.ln;
     twist=-p.y*.36*(hd===1?-1:1);if(hd===2)twist=0;
@@ -91,7 +92,8 @@ function drawHero(){dressHero();
     let i=0;while(i<hk.length-2&&u>hk[i+1][0])i++;const a=hk[i],b=hk[i+1],k0=clamp((u-a[0])/(b[0]-a[0]),0,1),k=k0*k0*(3-2*k0),f=j=>a[j]+(b[j]-a[j])*k;
     o={t:f(1),y:f(2),e:f(3),w:f(4)};tilt=u>.36&&u<.84?-.45*Math.sin(clamp((u-.36)/.48,0,1)*PI):0;lean=-tilt*.15;
     if(u>.15&&u<.95)o.item=flask;}
-  else if(st==='hurt'){lean=.32;twist=.25;}
+  else if(st==='roll'){const u=clamp(P.t/.42,0,1),curl=Math.sin(u*PI);m={t:1.55,y:-.28,e:1.8,w:-.3};o={t:1.42,y:.32,e:1.72,w:.25};lean=-.18-.16*curl;twist=.12*Math.sin(u*PI*2);}
+  else if(st==='hurt'){const flinch=Math.max(0,1-P.t/.3);lean=.32*flinch;twist=.25*flinch;m={t:1.2,y:-.22,e:1.25,w:-.25};o={t:1.1,y:.28,e:1.35,w:.2};}
   else if(st==='cast'){o={t:1.75,y:-.25,e:.15,w:0};lean=-.1;}
   else if(st==='aim'){const k=clamp(P.t/.3,0,1),rel=P.t>.38;o={t:1.55,y:-.15,e:.05,w:-.2,item:bowHeld};m={t:1.45,y:lerp(-.1,.25,k),e:rel?.4:lerp(.4,2.4,k),w:.5};twist=.35;lean=-.05;}
   else if(st==='grabbed'){lean=.25+Math.sin(time*14)*.08;m={t:1.2+Math.sin(time*12)*.3,y:.4,e:.8,w:.6};o={t:1.4,y:-.6,e:1.2,w:0};}
@@ -106,10 +108,11 @@ function drawHero(){dressHero();
   push();T(P.x,P.ry,P.z);RY(-P.a);
   if(st==='roll'){T(0,20,0);RZ(-6.283*P.t/.42);Sc(.8,.8,.8);T(0,-25,0);}
   if(rootLean){T(0,9.5*Math.min(1,Math.abs(rootLean)),0);RZ(rootLean);}
-  const crouch=st==='land'?3.5*(1-P.t/.26):st==='atk'?1.6:0,bob=Math.abs(Math.cos(P.walk))*1.5*mk-crouch;T(0,bob,0);
+  const crouch=st==='land'?3.5*(1-P.t/.26):st==='atk'?1.6:st==='roll'?5+2*Math.sin(P.t/.42*PI):0,bob=Math.abs(Math.cos(P.walk))*1.5*mk-crouch;T(0,bob,0);
   // legs with knees (drawn from the hips so the feet stay planted)
   for(const sd of[-1,1]){const ph=P.walk+(sd>0?0:PI);let hip,knee;
     if(P.air){hip=sd>0?.75:-.3;knee=sd>0?1.1:.5;}
+    else if(st==='roll'){hip=sd>0?.82:-.58;knee=1.22;}
     else if(st==='atk'||st==='land'){hip=sd>0?.5:-.42;knee=sd>0?.5:.2;}
     else if(st==='sleep'||st==='wake'){hip=.04*sd;knee=.05;}
     else if(guardUp&&mk<.2){hip=sd>0?-.25:.3;knee=.3;}
@@ -124,6 +127,23 @@ function drawHero(){dressHero();
   sph(1.3,34,1.5,HC.gold,.7,-17,8.6);sph(1.3,34,1.5,HC.gold,.7,-17,-8.6);pop();
   sph(11.2,17.5,14.8,HC.vest,0,37.5,0);sph(4.2,11.5,7.2,HC.cloth,3.7,38.6,0);
   cyl(11.8,3.4,14.8,HC.red,0,31,0);sph(2.6,3.8,3.6,HC.gold,5.6,31,0);
+  // Furat's travel-worn leather harness, bronze shoulder guards and belt kit
+  push();T(8.8,38.2,0);RY(.12);
+  box(2.2,17.5,3.1,'#302019',0,0,0);
+  for(let q=0;q<4;q++)sph(1.15,1.15,1.15,HC.gold,1.25,-6.2+q*4.1,0);
+  pop();
+  for(const sd of[-1,1]){
+    push();T(1.2,43.5,sd*10.1);RZ(sd*.12);
+    sph(5.8,5.1,5.3,'#493023',0,0,0);
+    sph(4.4,1.1,4.1,HC.gold,1.2,1.8,0);
+    sph(1.15,1.15,1.15,HC.gold,4.4,-.2,sd*1.1);
+    pop();
+  }
+  push();T(10.9,31,0);sph(2.4,3.2,3.4,HC.gold,0,0,0);
+  sph(1.2,1.8,1.8,'#6b3328',1.5,0,0);pop();
+  push();T(1.4,29.5,10.2);RZ(-.12);
+  box(4.2,5.8,3.2,'#38251c',0,-1.5,0);
+  box(4.5,.9,3.5,HC.gold,0,1.1,0);pop();
   push();T(5.2,29.6,-3.4);RZ(.18+.14*mk+sw*.1*mk);sph(1.7,9.5,3.2,HC.red,0,-4.2,0);pop();
   // head (turns a little against the torso so the eyes stay forward)
   push();T(.3,45,0);RY(-twist*.6);RZ(-upLean*.5+tilt);T(-.3,-45,0);

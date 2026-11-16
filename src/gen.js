@@ -151,9 +151,52 @@ function regGen(g){
   if(T.city){for(let j=J0;j<J1;j++)for(let i=0;i<GI;i++){const c=cidx(i,j);if(!nogo[c]||(RIVZ&&j>=13))continue;
       const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>{const ii=i+a,jj=j+b;return ii>=0&&ii<GI&&jj>=J0&&jj<J1&&!nogo[cidx(ii,jj)];});
       if(!edge&&hash(i*3.3+j*7.1)<.55)continue;const h=edge?110+hash(i+j*13)*120:80+hash(i*7+j)*60;
-      blk(i*C+3,j*C+3,(i+1)*C-3,(j+1)*C-3,0,h,['#b8a07a','#a88c64','#c4ae86','#9a8462'][Math.floor(hash(i*1.7+j*2.9)*4)],'cb');}
+      const bx=i*C+3,bz=j*C+3,col=['#b8a07a','#a88c64','#c4ae86','#9a8462'][Math.floor(hash(i*1.7+j*2.9)*4)];
+      blk(bx,bz,bx+C-6,bz+C-6,0,h,col,'cb');
+      // Baghdad roofline: sparse domes and slender minarets break the flat procedural skyline
+      const roofX=bx+C/2,roofZ=bz+C/2,style=hash(i*19.7+j*31.1);
+      if(style>.88){
+        st('sph','#a88e70',18,12,18,roofX,h+6,roofZ);
+        st('cyl','#80664c',3.2,18,3.2,roofX,h+19,roofZ);
+        st('con','#c3a36c',4.2,8,4.2,roofX,h+32,roofZ);
+        st('sph','#d2b77e',2.2,2.2,2.2,roofX,h+38,roofZ,{em:.22});
+      }else if(style>.80){
+        st('sph','#b89a72',22,17,22,roofX,h+8,roofZ);
+        st('cyl','#927454',2.4,8,2.4,roofX,h+20,roofZ);
+      }
+      // a few warm slit windows facing the main approach
+      if(hash(i*7.3+j*11.9)>.91){
+        st('box','#d59a4f',2.4,13,1.2,roofX-18,24,roofZ+C/2-1,{em:.18});
+        st('box','#d59a4f',2.4,13,1.2,roofX+18,24,roofZ+C/2-1,{em:.18});
+      }}
     const G=D[n-2],a=Math.atan2(A[1]-G[1],A[0]-G[0]),gx=lerp(G[0],A[0],.55),gz=lerp(G[1],A[1],.55);
-    const ax=Math.abs(A[0]-G[0])>Math.abs(A[1]-G[1]);MGATE=ax?blk(gx-14,gz-270,gx+14,gz+270,G[3],G[3]+190,'#4a4038','mgate'):blk(gx-270,gz-14,gx+270,gz+14,G[3],G[3]+190,'#4a4038','mgate');MGATE.ax2=ax;REGC.gate={x:gx,z:gz};}
+    const ax=Math.abs(A[0]-G[0])>Math.abs(A[1]-G[1]);MGATE=ax?blk(gx-14,gz-270,gx+14,gz+270,G[3],G[3]+190,'#4a4038','mgate'):blk(gx-270,gz-14,gx+270,gz+14,G[3],G[3]+190,'#4a4038','mgate');MGATE.ax2=ax;REGC.gate={x:gx,z:gz};
+    // Adapa's arena: a broken ceremonial court framing the Talisman Gate.
+    // Decorative meshes only; the combat floor and navigation remain unchanged.
+    const sideX=ax?0:1,sideZ=ax?1:0;
+    for(let q=0;q<6;q++){
+      const side=q%2?1:-1,depth=150+Math.floor(q/2)*105;
+      const px=gx+(ax?side*depth:side*depth),pz=gz+(ax?side*depth:side*depth);
+      const h= q<2?118: q<4?86:58;
+      st('cyl','#76634e',13,h,13,px, h/2,pz);
+      st('cyl','#b59a70',18,9,18,px,h+3,pz);
+      if(q===1||q===4){st('box','#4b3b30',38,12,18,px+24,h+10,pz-8,{rz:.35});}
+      st('sph','#9a7b54',5,5,5,px,h+12,pz,{em:.12});
+    }
+    // Five weathered oath-stones echo the five keys carried by Adapa.
+    for(let q=0;q<5;q++){
+      const t=q-2,px=gx+(ax?t*54:0),pz=gz+(ax?0:t*54);
+      sb(34,7,24,'#74634f',px,4,pz);
+      sb(22,46,16,'#8f795c',px,28,pz);
+      st('sph',q===2?'#c49b45':'#6e8790',5,7,4,px,54,pz+10,{em:q===2?.32:.08});
+    }
+    // Fallen lintels and fractured paving at the edge of the duelling court.
+    for(let q=0;q<4;q++){
+      const px=gx+(q-1.5)*92,pz=gz+(ax?250:-250);
+      sb(74,9,18,'#655746',px,3,pz, q%2?.12:-.16);
+      st('box','#514438',26,8,20,px+30,8,pz+18,{rz:.28});
+    }
+  }
 }
 let REGS={hs:1,ds:1};
 /* ---------- landmarks ---------- */
@@ -175,8 +218,35 @@ function decoLm(){const L=REGC&&REGC.lm;if(!L)return;const {x,y,z}=L,s=(a,b,c,co
     case 'mudhif':for(let q=0;q<9;q++){const a=PI*q/8;st('box','#c8b070',8,4,120,x+Math.cos(a)*55-0,y+Math.sin(a)*55,z,{rz:0});}st('cyl','#c8b070',110,120,110,x,y+2,z,{rx:PI/2,rz:PI/2});sb(116,4,120,'#a89050',x,y,z);break;
     case 'ziggurat':sb(220,40,220,'#b89a6a',x,y+20,z);sb(160,40,160,'#a88a5a',x,y+60,z);sb(100,40,100,'#b89a6a',x,y+100,z);sb(60,30,60,'#a88a5a',x,y+135,z);sb(30,80,120,'#9a7c50',x+120,y+40,z,0);break;
     case 'boat':st('sph','#6a4a2a',90,20,26,x,y+10,z);sb(80,3,22,'#8a6a40',x,y+18,z);sc(4,70,4,'#5a3a20',x,y+50,z);st('box','#e0d8c8',2,50,40,x+6,y+60,z);break;
-    case 'gate':sb(60,180,60,'#6a5848',x-60,y+90,z);sb(60,180,60,'#6a5848',x+60,y+90,z);sb(180,40,60,'#5a4838',x,y+200,z);
-      for(let q=0;q<5;q++)sb(10,10,62,'#e0c050',x-40+q*20,y+200,z,1);break;}
+    case 'gate':
+      // Baghdad's Talisman Gate: massive dark timber leaves beneath a carved stone arch
+      sb(60,180,60,'#6a5848',x-60,y+90,z);sb(60,180,60,'#6a5848',x+60,y+90,z);
+      sb(180,40,60,'#5a4838',x,y+200,z);
+      sb(94,132,12,'#241b18',x,y+70,z+32);
+      sb(42,126,5,'#493027',x-22,y+70,z+40);sb(42,126,5,'#493027',x+22,y+70,z+40);
+      sb(3,126,7,'#c39b55',x,y+70,z+44);
+      for(let q=0;q<9;q++){
+        const px=x-39+q*9.7;
+        sb(2.2,124,2.2,q%2?'#725038':'#8a6440',px,y+70,z+45);
+        for(const yy of[22,62,102])st('sph','#c49b55',2.2,2.2,1.2,px,y+yy,z+47);
+      }
+      // five key sockets echo the five keys carried by Adapa
+      for(let q=0;q<5;q++){
+        const px=x-40+q*20;
+        st('sph','#e0c050',5.5,5.5,2.2,px,y+202,z+34,{em:.55});
+        sb(2.2,13,2.2,'#e0c050',px,y+190,z+36,1);
+      }
+      // stepped crown stones, relief bands and hanging red standards
+      for(let q=0;q<7;q++)sb(22,8,68,'#b59b70',x-72+q*24,y+222,z);
+      for(const sd of[-1,1]){
+        sb(5,78,5,'#8d2529',x+sd*104,y+142,z+35);
+        st('con','#8d2529',17,26,4,x+sd*104,y+92,z+35,{rz:PI});
+        st('sph','#e0c050',4,4,4,x+sd*104,y+188,z+36,{em:.45});
+        for(let q=0;q<3;q++)sb(5,3,70,'#c4a777',x+sd*60,y+48+q*54,z+32);
+      }
+      st('sph','#287f91',13,16,5,x,y+224,z+34,{em:.6});
+      for(let q=0;q<5;q++)sb(10,10,62,'#e0c050',x-40+q*20,y+200,z,1);
+      break;}
 }
 /* ---------- Baghdad's city blocks ---------- */
 function cityBlock(b){const w=b.x1-b.x0,d=b.z1-b.z0,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
