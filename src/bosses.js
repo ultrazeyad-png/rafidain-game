@@ -222,20 +222,34 @@ function drawNamtar(e){
 function bossFilm(b){
   if(world.bf)return false;world.bf=true;
   const fx=Math.cos(b.a),fz=Math.sin(b.a),h=b.k==='erra'?200:240,M=b.k==='erra'?.85:1;
-  const isAdapa=b.T&&b.T.name&&b.T.name.includes('أدابا');
-  const shots=isAdapa?[
-    {d:2.5,a:[b.x+(fx*310-fz*130),b.y+155,b.z+(fz*310+fx*130),b.x,b.y+90,b.z],
-      b:[b.x+(fx*245-fz*95),b.y+135,b.z+(fz*245+fx*95),b.x,b.y+112,b.z],t:'باب الطلسم… آخر أبواب بغداد.',v:1},
-    {d:2.1,a:[b.x+(fx*125-fz*28),b.y+92,b.z+(fz*125+fx*28),b.x,b.y+158,b.z],
-      b:[b.x+(fx*92-fz*18),b.y+82,b.z+(fz*92+fx*18),b.x,b.y+164,b.z],t:'أدابا… معلم الحراس، وحارس المفاتيح الخمسة.'},
-    {d:1.8,a:[P.x-Math.cos(ang2(b))*175,P.y+105,P.z-Math.sin(ang2(b))*135,b.x,b.y+125,b.z],
-      b:[P.x-Math.cos(ang2(b))*135,P.y+90,P.z-Math.sin(ang2(b))*105,b.x,b.y+132,b.z],t:'هنا ينتهي الطريق.'}
-  ]:[
-    {d:2.8,a:[b.x+(fx*150-fz*60)*M,b.y+25*M,b.z+(fz*150+fx*60)*M,b.x,b.y+h*.7,b.z],b:[b.x+(fx*240-fz*110)*M,b.y+45*M,b.z+(fz*240+fx*110)*M,b.x,b.y+h*.6,b.z],t:b.T.name,v:1},
-    {d:1.7,a:[P.x-Math.cos(ang2(b))*150,P.y+90,P.z-Math.sin(ang2(b))*120,b.x,b.y+h*.5,b.z],b:[P.x-Math.cos(ang2(b))*120,P.y+80,P.z-Math.sin(ang2(b))*95,b.x,b.y+h*.5,b.z],t:''}
-  ];
-  cine={i:0,t:0,boss:b,shots};
-  paused=true;root.classList.add('cine');cineShot();snd('roar');return true;}
+  const isAdapa=b.T&&b.T.name&&b.T.name.includes('أدابا'),isErra=b.k==='erra';
+  const side=(d,lat,y)=>[b.x+fx*d-fz*lat,b.y+y,b.z+fz*d+fx*lat,b.x,b.y+y*.58,b.z];
+  let shots;
+  if(isAdapa){
+    shots=[
+      {d:2.4,a:side(360,-155,170),b:side(285,-110,148),t:'بغداد… آخر مدينة تقف قبل الظلام.',v:1,fx:true,voice:'narrator'},
+      {d:2.0,a:side(175,22,110),b:side(112,14,94),t:'أدابا… معلم الحراس، وحارس المفاتيح الخمسة.',fx:true,voice:'boss'},
+      {d:1.8,a:[P.x-Math.cos(ang2(b))*205,P.y+112,P.z-Math.sin(ang2(b))*155,b.x,b.y+130,b.z],
+        b:[P.x-Math.cos(ang2(b))*145,P.y+92,P.z-Math.sin(ang2(b))*112,b.x,b.y+138,b.z],t:'المفاتيح لن تفتح لك طريق العودة.',voice:'boss'},
+      {d:1.45,a:[b.x+fx*82-fz*30,b.y+88,b.z+fz*82+fx*30,b.x,b.y+122,b.z],
+        b:[b.x+fx*64-fz*18,b.y+78,b.z+fz*64+fx*18,b.x,b.y+128,b.z],t:'اقترب يا فرات…',fx:true,voice:'boss'}
+    ];
+  }else if(isErra){
+    shots=[
+      {d:2.5,a:side(330,-150,205),b:side(260,-110,180),t:'فوق جبال دهوك… العاصفة تنتظر.',v:1,fx:true},
+      {d:2.0,a:side(160,55,125),b:side(108,30,105),t:'إرّا… فارس العاصفة وحارس الجسر.',fx:true,voice:'boss'},
+      {d:1.9,a:[P.x-Math.cos(ang2(b))*190,P.y+115,P.z-Math.sin(ang2(b))*140,b.x,b.y+115,b.z],
+        b:[P.x-Math.cos(ang2(b))*138,P.y+88,P.z-Math.sin(ang2(b))*105,b.x,b.y+125,b.z],t:'اعبر إن كنت تجرؤ.',voice:'boss'}
+    ];
+  }else{
+    shots=[
+      {d:2.6,a:side(190,-75,35*M),b:side(275,-115,65*M),t:b.T.name,v:1,fx:true},
+      {d:1.9,a:[P.x-Math.cos(ang2(b))*190,P.y+105,P.z-Math.sin(ang2(b))*135,b.x,b.y+h*.5,b.z],
+        b:[P.x-Math.cos(ang2(b))*130,P.y+82,P.z-Math.sin(ang2(b))*98,b.x,b.y+h*.55,b.z],t:'واجه حارسك… إن استطعت.',voice:'boss'}
+    ];
+  }
+  cine={i:0,t:0,boss:b,shots};paused=true;root.classList.add('cine');cineShot();snd('roar');return true;
+}
 function ang2(b){return Math.atan2(b.z-P.z,b.x-P.x);}
 
 /* lightning that lands where you stand, and around him */
