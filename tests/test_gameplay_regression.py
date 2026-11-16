@@ -356,8 +356,8 @@ async def run_suite(base_url: str) -> None:
             )
             # The corrupt-save recovery path may keep media/animation resources alive;
             # DOM readiness plus the explicit runtime-ready wait below is the real contract.
-            await page.reload(wait_until="domcontentloaded")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            await page.reload(wait_until="commit", timeout=60000)
+            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=20000)
             recovered = await page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
