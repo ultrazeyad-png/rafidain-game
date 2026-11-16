@@ -408,6 +408,84 @@ async def run_suite(base_url: str) -> None:
             await browser.close()
 
 
+async def run_mobile_smoke(base_url: str) -> None:
+    """Exercise touch layout and pointer-driven controls in mobile Chromium."""
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(
+            headless=True,
+            args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
+        )
+        context = await browser.new_context(
+            viewport={"width": 390, "height": 844},
+            screen={"width": 390, "height": 844},
+            device_scale_factor=2,
+            is_mobile=True,
+            has_touch=True,
+        )
+        page = await context.new_page()
+        page_errors: list[str] = []
+        page.on("pageerror", lambda error: page_errors.append(str(error)))
+        try:
+            await page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await page.evaluate("() => { if (window.__g) window.__g.stats.intro = 1; }")
+            await page.click("#go")
+            await page.wait_for_function(
+                "window.__g && window.__g.REG === 'duhok' && window.__g.ok()",
+                timeout=20000,
+            )
+            layout = await page.evaluate("""() => {
+                const ids = ['jz','cz','bAtk','bRoll','bHeal','bJump','bLock','bBlock','bCast','bBow','bMap'];
+                const rect = el => {
+                    const r = el.getBoundingClientRect();
+                    return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,
+                            display:getComputedStyle(el).display,pointerEvents:getComputedStyle(el).pointerEvents,
+                            touchAction:getComputedStyle(el).touchAction};
+                };
+                return {width:innerWidth,height:innerHeight,controls:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))]))};
+            }""")
+            for control, rect in layout["controls"].items():
+                if rect["display"] == "none" or rect["pointerEvents"] == "none" or rect["width"] <= 0 or rect["height"] <= 0:
+                    raise AssertionError(f"Mobile control is hidden or has no hit area: {control}: {rect}")
+                if rect["left"] < -2 or rect["top"] < -2 or rect["right"] > layout["width"] + 2 or rect["bottom"] > layout["height"] + 2:
+                    raise AssertionError(f"Mobile control falls outside viewport: {control}: {rect}")
+            if layout["controls"]["jz"]["touchAction"] != "none" or layout["controls"]["cz"]["touchAction"] != "none":
+                raise AssertionError(f"Virtual sticks must suppress browser gestures: {layout}")
+            await page.evaluate("""() => {
+                const el=document.getElementById('jz'),r=el.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+r.height*.5;
+                el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:41,pointerType:'touch',clientX:x,clientY:y}));
+                el.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:41,pointerType:'touch',clientX:x+35,clientY:y-25}));
+            }""")
+            joystick = await page.evaluate("() => ({x:__g.input.jx,y:__g.input.jy})")
+            if abs(joystick["x"]) < .1 or abs(joystick["y"]) < .1:
+                raise AssertionError(f"Virtual joystick did not update movement input: {joystick}")
+            await page.evaluate("""() => document.getElementById('jz').dispatchEvent(
+                new PointerEvent('pointerup',{bubbles:true,pointerId:41,pointerType:'touch'}))""")
+            reset = await page.evaluate("() => ({x:__g.input.jx,y:__g.input.jy})")
+            if reset != {"x":0,"y":0}:
+                raise AssertionError(f"Virtual joystick did not reset after touch release: {reset}")
+            await page.evaluate("""() => {
+                const el=document.getElementById('cz'),r=el.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+r.height*.5,before=__g.cam.yaw;
+                el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:42,pointerType:'touch',clientX:x,clientY:y}));
+                el.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:42,pointerType:'touch',clientX:x+40,clientY:y+10}));
+                window.__mobileCameraChanged=__g.cam.yaw!==before&&__g.input.camDown;
+                el.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:42,pointerType:'touch'}));
+            }""")
+            camera = await page.evaluate("() => ({changed:window.__mobileCameraChanged,down:__g.input.camDown})")
+            if not camera["changed"] or camera["down"]:
+                raise AssertionError(f"Touch camera drag did not update/release correctly: {camera}")
+            await page.dispatch_event("#bRoll","pointerdown",{"pointerId":43,"pointerType":"touch","bubbles":True,"cancelable":True})
+            action = await page.evaluate("() => __g.P.buf && __g.P.buf.a")
+            await page.dispatch_event("#bRoll","pointerup",{"pointerId":43,"pointerType":"touch","bubbles":True})
+            if action != "roll":
+                raise AssertionError(f"Mobile dodge button did not trigger roll action: {action}")
+            if page_errors:
+                raise AssertionError("Mobile runtime JavaScript errors: " + " | ".join(page_errors))
+            print("PASS: mobile Chromium portrait layout, touch hit areas, joystick, camera drag, dodge button, and runtime errors")
+        finally:
+            await context.close()
+            await browser.close()
+
+
 def verify_major_boss_weakpoints() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     chars = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
@@ -548,6 +626,7 @@ def main() -> int:
     thread.start()
     try:
         asyncio.run(run_suite(f"http://127.0.0.1:{server.server_port}"))
+        asyncio.run(run_mobile_smoke(f"http://127.0.0.1:{server.server_port}"))
     finally:
         server.shutdown()
         server.server_close()
