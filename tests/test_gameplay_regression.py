@@ -413,7 +413,7 @@ def verify_boss_finisher() -> None:
     for item in (
         "function startBossFinisher(e)",
         "finisher:true,finisherWeapon:weapon,shots",
-        "name+'… حان وقت الحساب.'",
+        "const bossLine=finisherRegion.line",
         "weaponStyle.line",
         "if(cine.finisher){const a=cine.boss&&cine.boss.finisherPose;P.t=Math.min(a||1.45,P.t+dt)",
         "if(cine&&cine.finisher)",
