@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__createAnimatedEntity=gltfCreateAnimatedEntity; globalThis.__setEntityAction=gltfSetEntityAction; globalThis.__updateAnimatedEntity=gltfUpdateAnimatedEntity; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__gltfModelCategory=gltfModelCategory; globalThis.__registerGLBModelCatalog=registerGLBModelCatalog; globalThis.__getGLBModelCatalog=getGLBModelCatalog; globalThis.__createPlaybackState = gltfCreatePlaybackState; globalThis.__setPlaybackAnimation = gltfSetPlaybackAnimation; globalThis.__advancePlayback = gltfAdvancePlayback; globalThis.__resolveAnimationClip = gltfResolveAnimationClip; globalThis.__resolveEnemyAction = gltfResolveEnemyAction; globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__createAnimatedEntity=gltfCreateAnimatedEntity; globalThis.__setEntityAction=gltfSetEntityAction; globalThis.__updateAnimatedEntity=gltfUpdateAnimatedEntity; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -541,4 +541,21 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
   assert.equal(context.__animationLocalTime(animation,8,false),5);
   assert.throws(()=>context.__animationLocalTime(animation,NaN,true),/elapsed time must be finite/);
   assert.throws(()=>context.__animationLocalTime({samplers:[]},0,true),/no keyframe times/);
+}
+
+{
+  assert.equal(context.__gltfModelCategory({k:'guard'}), 'guard');
+  assert.equal(context.__gltfModelCategory({k:'archer'}), 'husk');
+  assert.equal(context.__gltfModelCategory({k:'sling'}), 'husk');
+  assert.equal(context.__gltfModelCategory({k:'boss'}), 'boss');
+  assert.equal(context.__gltfModelCategory({k:'gmini'}), 'gmini');
+  const catalog = context.__registerGLBModelCatalog({
+    guard: {url:'assets/enemies/guard.glb', scale:48},
+    boss: {url:'assets/bosses/namtar.glb', scale:72}
+  });
+  assert.equal(catalog.ok, true);
+  assert.deepEqual(Array.from(catalog.categories), ['guard','boss']);
+  assert.equal(context.__getGLBModelCatalog().length, 2);
+  assert.throws(() => context.__registerGLBModelCatalog({wolf:{url:'',scale:1}}), /catalog entry/);
+  assert.throws(() => context.__registerGLBModelCatalog({wolf:{url:'wolf.glb',scale:0}}), /positive and finite/);
 }
