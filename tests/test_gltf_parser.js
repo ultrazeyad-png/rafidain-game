@@ -572,6 +572,7 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
   assert.equal(report.readyForAnimatedCharacter,true);
   assert.equal(report.summary.primitives,2);
   assert.equal(report.summary.skinnedPrimitives,1);
+  assert.equal(report.summary.skinnedInstances,1);
   assert.equal(report.summary.animationClips,1);
   assert.equal(report.summary.normalMappedPrimitives,1);
   assert.equal(report.warnings.some(w=>w.includes('missing normals')),true);
@@ -579,5 +580,11 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
   const staticOnly = context.__inspectGLBAsset({meshes:[{primitives:[{material:{}}]}],nodes:[],instances:[{mesh:0,skin:null}],skins:[],animations:[],images:[],textures:[]});
   assert.equal(staticOnly.readyForAnimatedCharacter,false);
   assert.equal(staticOnly.warnings.length>=3,true);
+  const detached = context.__inspectGLBAsset({
+    meshes:[{primitives:[{joints:new Uint16Array(4),weights:new Float32Array(4),normals:new Float32Array(3),uvs:new Float32Array(2),material:{}}]}],
+    nodes:[{}],instances:[{mesh:0,skin:null}],skins:[{joints:[0]}],animations:[{channels:[{node:0}]}],images:[],textures:[]
+  });
+  assert.equal(detached.readyForAnimatedCharacter,false);
+  assert.equal(detached.warnings.some(w=>w.includes('not attached to a skin')),true);
   assert.throws(()=>context.__inspectGLBAsset(null),/requires a parsed GLB asset/);
 }
