@@ -64,6 +64,21 @@ function gltfEvaluateAnimation(animation,time){
   }
   return pose;
 }
+function gltfBlendAnimationPoses(asset,fromPose,toPose,alpha){
+  if(!Number.isFinite(alpha))gltfFail('animation blend alpha must be finite');
+  const t=Math.max(0,Math.min(1,alpha)),out=new Map(),nodes=new Set([...fromPose.keys(),...toPose.keys()]);
+  for(const index of nodes){
+    const base=asset.nodes[index]||{},a=fromPose.get(index)||{},b=toPose.get(index)||{},mixed={};
+    for(const path of ['translation','rotation','scale']){
+      const av=a[path]||base[path],bv=b[path]||base[path];
+      if(!av&&!bv)continue;
+      const x=av||bv,y=bv||av;
+      mixed[path]=path==='rotation'?gltfQuatSlerp(x,y,t):x.map((v,i)=>v+(y[i]-v)*t);
+    }
+    if(Object.keys(mixed).length)out.set(index,mixed);
+  }
+  return out;
+}
 function gltfNodeMatrix(n){
   if(n.matrix){
     if(n.matrix.length!==16||!n.matrix.every(Number.isFinite))gltfFail('node matrix must contain 16 finite values');
@@ -361,7 +376,7 @@ async function loadGLB(url){
 
 /* ---------- GLB -> existing WebGL renderer bridge ---------- */
 let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';
-let gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true};
+let gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true,transition:null,currentPose:new Map()};
 function gltfNormals(positions,indices){
   const n=new Float32Array(positions.length);
   for(let i=0;i<indices.length;i+=3){
@@ -425,23 +440,38 @@ function prepareGLBHero(asset){
 function setGLBHeroAnimation(options={}){
   if(!gltfHero)gltfFail('no GLB hero is loaded');
   const next={...gltfHeroPlayback};
-  if(options.clip!=null){if(!Number.isInteger(options.clip)||options.clip<0||options.clip>=gltfHero.asset.animations.length)gltfFail('animation clip index is out of range');next.clip=options.clip;}
+  if(options.clip!=null){
+    if(!Number.isInteger(options.clip)||options.clip<0||options.clip>=gltfHero.asset.animations.length)gltfFail('animation clip index is out of range');
+    if(options.clip!==next.clip){
+      const duration=options.transitionDuration??0;
+      if(!Number.isFinite(duration)||duration<0||duration>10)gltfFail('transitionDuration must be between 0 and 10 seconds');
+      if(duration>0&&next.currentPose?.size)next.transition={fromPose:next.currentPose,duration,elapsed:0};
+      else next.transition=null;
+      next.clip=options.clip;next.elapsed=0;next.lastTime=null;
+    }
+  }
   if(options.speed!=null){if(!Number.isFinite(options.speed)||options.speed<0||options.speed>4)gltfFail('animation speed must be between 0 and 4');next.speed=options.speed;}
   if(options.paused!=null){if(typeof options.paused!=='boolean')gltfFail('animation paused must be boolean');next.paused=options.paused;}
   if(options.loop!=null){if(typeof options.loop!=='boolean')gltfFail('animation loop must be boolean');next.loop=options.loop;}
   if(options.position!=null){if(!Number.isFinite(options.position)||options.position<0)gltfFail('animation position must be a non-negative finite number');next.elapsed=options.position;next.lastTime=null;}
   gltfHeroPlayback=next;
-  return {clip:next.clip,speed:next.speed,paused:next.paused,loop:next.loop,position:next.elapsed};
+  return {clip:next.clip,speed:next.speed,paused:next.paused,loop:next.loop,position:next.elapsed,transition:next.transition?next.transition.duration:0};
 }
 function updateGLBHeroSkinning(now){
-
   if(!gltfHero||!gltfHeroGPU||!gltfHero.asset.animations?.length)return;
   const asset=gltfHero.asset,playback=gltfHeroPlayback,animation=asset.animations[playback.clip];
   if(!animation?.channels.length)return;
   const clock=Number.isFinite(now)?now:0;
   if(playback.lastTime==null)playback.lastTime=clock;
-  else{if(!playback.paused)playback.elapsed+=Math.max(0,clock-playback.lastTime)*playback.speed;playback.lastTime=clock;}
-  const clipTime=gltfAnimationLocalTime(animation,playback.elapsed,playback.loop),pose=gltfEvaluateAnimation(animation,clipTime);
+  else{const dt=Math.max(0,clock-playback.lastTime);if(!playback.paused){playback.elapsed+=dt*playback.speed;if(playback.transition)playback.transition.elapsed+=dt;}playback.lastTime=clock;}
+  const clipTime=gltfAnimationLocalTime(animation,playback.elapsed,playback.loop);
+  let pose=gltfEvaluateAnimation(animation,clipTime);
+  if(playback.transition){
+    const alpha=playback.transition.elapsed/playback.transition.duration;
+    pose=gltfBlendAnimationPoses(asset,playback.transition.fromPose,pose,alpha);
+    if(alpha>=1)playback.transition=null;
+  }
+  playback.currentPose=pose;
   const palettes=new Map();
   for(const item of gltfHeroGPU){
     if(item.skin==null)continue;
