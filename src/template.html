@@ -280,7 +280,7 @@ let RW=800,RH=390,rot=false,DPR=1,S=1,VW=500,VH=250;
 let time=0,last=0,shake=0,hs=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,ctxKey='',ugS=0;
 const input={jx:0,jy:0,wx:0,wz:0,ku:false,kd:false,kl:false,kr:false,cl:false,cr:false,atkDown:false,hold:0,hv:false,camDown:false,block:false};
 const stats={lvl:1,vig:0,end:0,str:0,embers:0,seals:0,wpn:'shield',glaive:false,tod:1,q:0,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:null,boat:false,ended:0};
-const world={shrine:0,lit:[true],bossDead:false,minis:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
+const world={shrine:0,lit:[true],bossDead:false,minis:false,miniFilm:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
 const RS={};   // saved state of every region visited
 const seen=new Uint8Array(GI*GJ);
 const P={x:226,z:0,y:0,ry:0,spd:0,vy:0,a:0,r:13,hp:100,st:100,sd:0,state:'idle',t:0,inv:0,combo:0,comboT:0,atk:SW[0],hit:false,buf:null,rd:0,kb:0,walk:0,flasks:3,guard:false,gt:0,stepN:0,mdir:0,mvk:0,air:false,mv:false,ma:0};
@@ -295,7 +295,7 @@ const cost=()=>120+(stats.lvl-1)*70;
 
 /*@AUDIO@*/
 /* ================= save ================= */
-function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,minis:world.minis,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
+function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,minis:world.minis,miniFilm:world.miniFilm,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
   localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}}
 function saveRecord(v){return !!v&&typeof v==='object'&&!Array.isArray(v)&&(Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);}
 function validSaveShape(d){
@@ -325,7 +325,7 @@ function load(){let raw=null;try{
   if(!stats.gk)stats.gk=pickGuardians();if(stats.unl&&!stats.prog)stats.prog=1;if(!WPN[stats.wpn]||!ownW(stats.wpn))stats.wpn='shield';return true;
 }catch(_){try{if(raw&&!localStorage.getItem(SAVE_CORRUPT_BACKUP))localStorage.setItem(SAVE_CORRUPT_BACKUP,raw);}catch(__){}return false;}}
 function applyWorld(){const w=RS[REG]||{};   // call after loadRegion
-  Object.assign(world,{shrine:clamp(w.shrine|0,0,SHR.length-1),lit:w.lit&&w.lit.length===SHR.length?w.lit:SHR.map((q,i)=>i===0),bossDead:!!w.bossDead,minis:!!w.minis,stain:w.stain&&w.stain.amt?w.stain:null,locked:false,
+  Object.assign(world,{shrine:clamp(w.shrine|0,0,SHR.length-1),lit:w.lit&&w.lit.length===SHR.length?w.lit:SHR.map((q,i)=>i===0),bossDead:!!w.bossDead,minis:!!w.minis,miniFilm:!!w.miniFilm,stain:w.stain&&w.stain.amt?w.stain:null,locked:false,
     door:!!w.door,frags:w.frags?[!!w.frags[0],!!w.frags[1]]:[false,false],key:!!w.key,gate:!!w.gate,brz:w.brz||[],mgate:!!w.mgate,sec:!!w.sec,secSeen:false,npc:w.npc||{},items:w.items||{}});
   seen.fill(0);if(w.seen&&w.seen.length===seen.length)seen.set(w.seen);}
 function hasSave(){try{return !!localStorage.getItem(SAVE);}catch(_){return false;}}
@@ -420,7 +420,7 @@ function strike(a){
 function hurtE(e,d,heavy,crit){
   e.hp-=d;e.flash=.12;burst(e.x,e.y+e.j+e.T.h*.6,e.z,e.boss?'#8a1424':'#b01c28',heavy?12:7,120,e.y);
   if(e.hp<=0){e.hp=0;e.dead=true;puff(e.x,e.y,e.z,7,9,55);setE(e,'dead');e.j=0;stats.embers+=Math.round(e.T.embers*((ARM[stats.arm]||{}).emb||1));
-    if(e.T.mini){world.minis=true;loot('dsh',2);loot('sh',3);loot('seals',1);say('سقط '+e.T.name+' · حصلت على ختم الحارس','#e8c66a',3.4);save();}
+    if(e.T.mini){bossMusic(false);world.minis=true;loot('dsh',2);loot('sh',3);loot('seals',1);say('سقط '+e.T.name+' · حصلت على ختم الحارس','#e8c66a',3.4);save();}
     if(!e.boss){if(e.k==='brute'||Math.random()<.22)loot('sh',1);if(e.k==='archer')loot('arrows',3+Math.floor(Math.random()*3));}
     else{loot('sh',e.k==='erra'?4:5);loot('dsh',e.k==='erra'?2:3);}
     if(e.k==='guard'){world.key=true;say('أخذت مفتاح العالم السفلي','#e8c66a',4);snd('rest');save();}burst(e.x,e.y+e.T.h*.5,e.z,'#f0a040',e.boss?60:10,e.boss?260:120,e.y);
@@ -569,7 +569,7 @@ function upEnemy(e,dt){
   e.cd-=dt;
   switch(e.state){
     case 'idle':{const hx=e.hx-e.x,hz=e.hz-e.z;if(Math.hypot(hx,hz)>6){e.a=Math.atan2(hz,hx);stepE(e,T.speed*.7,dt);}
-      if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m){say(m.n,'#d6b7ff',2.8);voice('boss',m.line);}}setE(e,'chase');}break;}
+      if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m&&!world.miniFilm){world.miniFilm=true;save();miniBossFilm(e,m);return;}if(m){say(m.n,'#d6b7ff',2.8);voice('boss',m.line);}}setE(e,'chase');}break;}
     case 'chase':
       if(!alive||ad>T.aggro*2.2||dy>150||Math.hypot(e.x-e.hx,e.z-e.hz)>650){setE(e,'idle');break;}
       if(T.ranged){   // keeps its distance and throws
@@ -919,6 +919,28 @@ function buildWorld(){
   sb(6,90,100,'#2a1c14',WX-3,45,0);st('cyl','#2a1c14',100,6,100,WX-3,90,0,{rz:PI/2});sb(70,210,70,tc,WX+20,105,-100);sb(70,210,70,tc,WX+20,105,100);sb(82,12,82,wc,WX+20,216,-100);sb(82,12,82,wc,WX+20,216,100);
   // far ziggurats
   for(const z of[[WX+900,0,1.3],[1200,WZ1+900,1],[600,WZ0-800,.9],[-800,300,1]]){for(let i=0;i<4;i++){const w=460*z[2]*(1-i*.22);sb(w,66*z[2],w,'#2e1f30',z[0],33*z[2]+i*66*z[2],z[1]);}}
+  }
+  // Regional mini-boss arena: a non-blocking, themed ring of standing stones.
+  if(MINI_ARENA){
+    const a=MINI_ARENA,theme={
+      wolfK:{stone:'#7896ad',dark:'#263746',glow:'#c7e8ff'},
+      ghostK:{stone:'#9384b8',dark:'#342b4a',glow:'#d7c8ff'},
+      scorpK:{stone:'#778d43',dark:'#29351c',glow:'#c7df72'},
+      crocK:{stone:'#4d9389',dark:'#1e3d3b',glow:'#9be2d2'}
+    }[a.kind]||{stone:'#817665',dark:'#332b25',glow:'#d4ac50'};
+    const ay=floorAt(a.x,a.z,a.y+30),y=ay>-900?ay:a.y;
+    st('cyl',theme.dark,390,5,390,a.x,y+2,a.z);
+    st('cyl',theme.stone,330,3,330,a.x,y+5,a.z);
+    st('cyl',theme.dark,250,2,250,a.x,y+7,a.z);
+    for(let k=0;k<8;k++){
+      const q=k*Math.PI/4,x=a.x+Math.cos(q)*178,z=a.z+Math.sin(q)*178,fy=floorAt(x,z,y+24),py=fy>-900?fy:y;
+      sb(28,104+(k%2)*18,28,theme.dark,x,py+52,z);
+      sb(19,82+(k%2)*18,19,theme.stone,x,py+52,z);
+      st('cyl',theme.glow,27,5,27,x,py+105+(k%2)*18,z,{em:.22});
+      st('sph',theme.glow,7,7,7,x,py+111+(k%2)*18,z,{em:.45});
+    }
+    st('cyl',theme.glow,54,3,54,a.x,y+10,a.z,{em:.28});
+    st('sph',theme.glow,10,8,10,a.x,y+17,a.z,{em:.55});
   }
   // torches
   for(const l of LIGHTS){if(l.shr!=null)continue;sb(4,26,4,'#3a2a22',l.x,l.y-18,l.z);sb(7,9,7,'#ffb040',l.x,l.y,l.z,1);}
@@ -1316,7 +1338,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>
