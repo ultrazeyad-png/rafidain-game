@@ -197,9 +197,19 @@ function drawNamtar(e){
 function bossFilm(b){
   if(world.bf)return false;world.bf=true;
   const fx=Math.cos(b.a),fz=Math.sin(b.a),h=b.k==='erra'?200:240,M=b.k==='erra'?.85:1;
-  cine={i:0,t:0,boss:b,shots:[
+  const isAdapa=b.T&&b.T.name&&b.T.name.includes('أدابا');
+  const shots=isAdapa?[
+    {d:2.5,a:[b.x+(fx*310-fz*130),b.y+155,b.z+(fz*310+fx*130),b.x,b.y+90,b.z],
+      b:[b.x+(fx*245-fz*95),b.y+135,b.z+(fz*245+fx*95),b.x,b.y+112,b.z],t:'باب الطلسم… آخر أبواب بغداد.',v:1},
+    {d:2.1,a:[b.x+(fx*125-fz*28),b.y+92,b.z+(fz*125+fx*28),b.x,b.y+158,b.z],
+      b:[b.x+(fx*92-fz*18),b.y+82,b.z+(fz*92+fx*18),b.x,b.y+164,b.z],t:'أدابا… معلم الحراس، وحارس المفاتيح الخمسة.'},
+    {d:1.8,a:[P.x-Math.cos(ang2(b))*175,P.y+105,P.z-Math.sin(ang2(b))*135,b.x,b.y+125,b.z],
+      b:[P.x-Math.cos(ang2(b))*135,P.y+90,P.z-Math.sin(ang2(b))*105,b.x,b.y+132,b.z],t:'هنا ينتهي الطريق.'}
+  ]:[
     {d:2.8,a:[b.x+(fx*150-fz*60)*M,b.y+25*M,b.z+(fz*150+fx*60)*M,b.x,b.y+h*.7,b.z],b:[b.x+(fx*240-fz*110)*M,b.y+45*M,b.z+(fz*240+fx*110)*M,b.x,b.y+h*.6,b.z],t:b.T.name,v:1},
-    {d:1.7,a:[P.x-Math.cos(ang2(b))*150,P.y+90,P.z-Math.sin(ang2(b))*120,b.x,b.y+h*.5,b.z],b:[P.x-Math.cos(ang2(b))*120,P.y+80,P.z-Math.sin(ang2(b))*95,b.x,b.y+h*.5,b.z],t:''}]};
+    {d:1.7,a:[P.x-Math.cos(ang2(b))*150,P.y+90,P.z-Math.sin(ang2(b))*120,b.x,b.y+h*.5,b.z],b:[P.x-Math.cos(ang2(b))*120,P.y+80,P.z-Math.sin(ang2(b))*95,b.x,b.y+h*.5,b.z],t:''}
+  ];
+  cine={i:0,t:0,boss:b,shots};
   paused=true;root.classList.add('cine');cineShot();snd('roar');return true;}
 function ang2(b){return Math.atan2(b.z-P.z,b.x-P.x);}
 
