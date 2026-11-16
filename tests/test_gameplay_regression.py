@@ -64,6 +64,19 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError(f"Dialogue mute toggle failed: {speech}")
             print("PASS: Arabic spoken dialogue, distinct character profiles, and mute toggle")
 
+            diagnostics = await page.evaluate("""() => {
+                const enabled = toggleDiagnostics(true);
+                const snapshot = diagnosticsSnapshot();
+                const visible = document.getElementById("diag").classList.contains("on");
+                toggleDiagnostics(false);
+                return {enabled, visible, snapshot};
+            }""")
+            if not diagnostics["enabled"] or not diagnostics["visible"]:
+                raise AssertionError(f"Performance diagnostics toggle failed: {diagnostics}")
+            if not diagnostics["snapshot"]["webgl"] or diagnostics["snapshot"]["width"] <= 0 or diagnostics["snapshot"]["height"] <= 0:
+                raise AssertionError(f"Performance diagnostics snapshot incomplete: {diagnostics}")
+            print("PASS: runtime performance diagnostics toggle and renderer snapshot")
+
             combat = await page.evaluate(
                 """() => {
                     const g = window.__g;
