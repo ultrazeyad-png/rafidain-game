@@ -509,10 +509,14 @@ def verify_glb_gameplay_entity_render_binding() -> None:
         "function removeGLBEntity(id)",
         "entity.asset.textures[item.texture]?.source",
         "entity.asset.textures[item.normalTexture]?.source",
+        "function registerGLBModelCatalog(catalog={})",
+        "async function bindGLBModelForEntity(gameEntity,overrides={})",
+        "function gltfModelCategory(entity)",
     ):
         if item not in gltf:
             raise AssertionError(f"GLB entity runtime binding missing: {item}")
-    for item in ("bindGLBModel, getGLBEntityId", "drawGLBEntity, removeGLBEntity"):
+    for item in ("bindGLBModelForEntity, registerGLBModelCatalog", "drawGLBEntity, removeGLBEntity",
+        "function bindConfiguredGLBEntities()", "bindConfiguredGLBEntities();"):
         if item not in game:
             raise AssertionError(f"GLB entity API is not exposed to gameplay: {item}")
     for item in ("getGLBEntityId(e)", "syncGLBEntityAction(glbId,e)",
