@@ -256,10 +256,13 @@ function drawGLBHero(){
     const texIndex=item.texture==null?-1:gltfHero.asset.textures[item.texture]?.source??-1;
     const tex=texIndex>=0?gltfHeroTextures[texIndex]:null;
     gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),tex?1:0);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),1);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBMetallic'),m.metallicFactor??1);
+    gl.uniform1f(gl.getUniformLocation(prog,'uGLBRoughness'),m.roughnessFactor??1);
     if(tex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(gl.getUniformLocation(prog,'uGLBTex'),2);}
     gl.drawArrays(gl.TRIANGLES,0,item.count);
   }
-  gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1f(gl.getUniformLocation(prog,'uGLBTexture'),0);gl.uniform1f(gl.getUniformLocation(prog,'uGLBMaterial'),0);gl.activeTexture(gl.TEXTURE0);
   const uvLoc=gl.getAttribLocation(prog,'uv');if(uvLoc>=0)gl.disableVertexAttribArray(uvLoc);
   pop();bindMesh();gAlpha=1;return true;
 }
