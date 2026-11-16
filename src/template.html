@@ -112,6 +112,22 @@ body{background:#050509;color:#eadfc9}
 #diag{border-color:#a77a45;background:rgba(3,5,9,.9)}
 @media(max-height:520px){#title .card{padding:12px 18px}#title .sub{margin:4px 0 10px}#title .hint{margin-top:10px;padding-top:8px}#bAtk{width:68px;height:68px}#bRoll,#bJump{width:54px;height:54px}#bHeal{width:52px;height:52px}}
 
+
+/* ASHES VISUAL PASS 02 — battlefield controls and status bars */
+:root{--ash-metal:#302b2b;--ash-edge:rgba(226,197,143,.78);--ash-glint:rgba(255,244,216,.22)}
+.btn{border-radius:17px 8px 17px 8px;border-width:1px 2px 3px;background-image:linear-gradient(145deg,rgba(255,255,255,.2),transparent 34%,rgba(0,0,0,.3)),linear-gradient(180deg,rgba(46,39,38,.72),rgba(7,7,12,.52));font-size:13px;letter-spacing:.2px;text-shadow:0 2px 3px #000,0 0 8px rgba(0,0,0,.8);box-shadow:0 7px 18px rgba(0,0,0,.62),inset 0 1px var(--ash-glint),inset 0 -3px 8px rgba(0,0,0,.35);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.btn.dn{filter:brightness(1.55);transform:scale(.94) translateY(1px)}
+#bAtk{border-radius:23px 9px 23px 9px;border-width:1px 2px 4px;background-image:linear-gradient(145deg,rgba(255,225,205,.28),transparent 42%,rgba(0,0,0,.36)),linear-gradient(145deg,rgba(143,35,43,.96),rgba(55,10,18,.96));box-shadow:0 0 0 3px rgba(150,35,43,.18),0 8px 22px rgba(0,0,0,.7),inset 0 1px rgba(255,255,255,.28),inset 0 -4px 9px rgba(0,0,0,.45);font-size:16px}
+#bRoll,#bJump,#bLock,#bHeal,#bBlock,#bBow,#bCast{border-radius:15px 7px 15px 7px}
+#bRoll{background-image:linear-gradient(145deg,rgba(255,255,255,.2),transparent 38%),linear-gradient(145deg,rgba(46,83,135,.96),rgba(14,26,48,.96))}
+#bJump{background-image:linear-gradient(145deg,rgba(255,255,255,.2),transparent 38%),linear-gradient(145deg,rgba(139,99,35,.96),rgba(49,29,12,.96))}
+#bHeal{background-image:linear-gradient(145deg,rgba(255,255,255,.2),transparent 38%),linear-gradient(145deg,rgba(35,119,73,.96),rgba(9,39,25,.96))}
+#bLock{background-image:linear-gradient(145deg,rgba(255,255,255,.2),transparent 38%),linear-gradient(145deg,rgba(103,64,148,.96),rgba(34,17,55,.96))}
+#bMap{border-radius:7px 15px 7px 15px;border-width:1px 2px 3px;letter-spacing:.4px}
+#jb{border-radius:24px 10px 24px 10px;border-color:rgba(215,179,107,.55);background:linear-gradient(145deg,rgba(38,30,28,.52),rgba(6,6,10,.38));box-shadow:0 8px 22px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.12)}
+#jk{border-radius:14px 6px 14px 6px;background:linear-gradient(145deg,rgba(239,218,177,.65),rgba(113,83,56,.56));border:1px solid rgba(255,239,207,.72);box-shadow:0 2px 12px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.45)}
+@media(max-width:420px){#bAtk{width:76px;height:76px;right:18px;bottom:18px}#bRoll{right:104px;bottom:14px}#bJump{right:92px;bottom:88px}#bHeal{right:20px;bottom:112px}#bLock{right:172px;bottom:18px}}
+
 </style>
 </head>
 <body>
@@ -1128,7 +1144,14 @@ function proj(x,y,z){const w=VP[3]*x+VP[7]*y+VP[11]*z+VP[15];if(w<=0)return null
   return [((VP[0]*x+VP[4]*y+VP[8]*z+VP[12])/w*.5+.5)*VW,(1-((VP[1]*x+VP[5]*y+VP[9]*z+VP[13])/w*.5+.5))*VH];}
 
 /* ================= HUD ================= */
-function bar(x,y,w,h,v,col){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(x-1,y-1,w+2,h+2);ctx.fillStyle=col;ctx.fillRect(x,y,w*clamp(v,0,1),h);ctx.strokeStyle='rgba(220,200,170,.45)';ctx.lineWidth=.6;ctx.strokeRect(x-1,y-1,w+2,h+2);}
+function bar(x,y,w,h,v,col){
+  const r=Math.min(4,h/2),fill=w*clamp(v,0,1);
+  const path=(a,b,c,d)=>{ctx.beginPath();ctx.moveTo(a+r,b);ctx.lineTo(a+c-r,b);ctx.quadraticCurveTo(a+c,b,a+c,b+r);ctx.lineTo(a+c,b+d-r);ctx.quadraticCurveTo(a+c,b+d,a+c-r,b+d);ctx.lineTo(a+r,b+d);ctx.quadraticCurveTo(a,b+d,a,b+d-r);ctx.lineTo(a,b+r);ctx.quadraticCurveTo(a,b,a+r,b);ctx.closePath();};
+  ctx.save();ctx.shadowColor='rgba(0,0,0,.72)';ctx.shadowBlur=5;ctx.fillStyle='rgba(3,3,7,.88)';path(x-1,y-1,w+2,h+2);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(70,61,55,.55)';path(x,y,w,h);ctx.fill();
+  if(fill>0){const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'rgba(255,255,255,.42)');g.addColorStop(.28,col);g.addColorStop(1,col);ctx.fillStyle=g;path(x,y,fill,h);ctx.fill();ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(x+2,y+1,Math.max(0,fill-4),Math.max(1,h*.16));}
+  ctx.strokeStyle='rgba(231,207,164,.72)';ctx.lineWidth=.75;path(x-.5,y-.5,w+1,h+1);ctx.stroke();ctx.restore();
+}
 function compass(){   // north, and the way back to embers you dropped
   const x=VW/2+52,y=15,r=11,pt=(th,rr)=>{const a=th-cam.yaw;return [x+Math.sin(a)*rr,y-Math.cos(a)*rr];};
   ctx.save();ctx.fillStyle='rgba(20,15,12,.62)';ctx.strokeStyle='rgba(225,195,145,.85)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();
