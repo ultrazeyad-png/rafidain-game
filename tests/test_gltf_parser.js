@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__parseGLB = parseGLB;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -109,4 +109,15 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   d.scenes = [{nodes:[0]}];
   assert.throws(() => parse(makeGLB(d, baseBin())), /node hierarchy contains a cycle/);
 }
+
+{
+  const m = new Float32Array([2,0,0,0, 0,1,0,0, 0,0,0.5,0, 0,0,0,1]);
+  const n = context.__transformNormal(m, 1, 1, 1);
+  const len = Math.hypot(0.5, 1, 2);
+  assert.ok(Math.abs(n[0] - 0.5/len) < 1e-6);
+  assert.ok(Math.abs(n[1] - 1/len) < 1e-6);
+  assert.ok(Math.abs(n[2] - 2/len) < 1e-6);
+  assert.throws(() => context.__transformNormal(new Float32Array(16), 0, 1, 0), /singular normal matrix/);
+}
+
 console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
