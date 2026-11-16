@@ -14,13 +14,13 @@ function bossHalf(b){return b.hp<b.T.hp*.5;}
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
   b.cd-=dt;let mvs=0;
-  if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&b.state!=='parried'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');if(isAdapa){voice('boss','المفاتيح الخمسة ما تنطيك بغداد!');say('المفاتيح الخمسة ما تنطيك بغداد!','#c0242e',2.6);}return;}
-  const atk=(m,next)=>{const A=NM[m];if(isAdapa&&!b.vsaid&&['c3','sp','sl'].includes(m)){b.vsaid=true;voice('boss',m==='sl'?'اركع أمام باب الطلسم!':m==='sp'?'لا تدير ظهرك إليّ!':'هذا حدّك يا فرات!');}if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
+  if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&b.state!=='parried'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');if(isAdapa){voiceBoss(b,'المفاتيح الخمسة ما تنطيك بغداد!');say('المفاتيح الخمسة ما تنطيك بغداد!','#c0242e',2.6);}return;}
+  const atk=(m,next)=>{const A=NM[m];if(isAdapa&&!b.vsaid&&['c3','sp','sl'].includes(m)){b.vsaid=true;voiceBoss(b,m==='sl'?'اركع أمام باب الطلسم!':m==='sp'?'لا تدير ظهرك إليّ!':'هذا حدّك يا فرات!');}if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
     const k=b.t-A.w/sp;if(k<A.a){mvs=A.step;if(!b.hit&&hitP(b,A.reach,A.arc,A.dmg))b.hit=true;if(k<dt*1.5)snd('swingH');return;}
     if(k>=A.a+A.r/sp){if(next){setE(b,next);}else bRec(b,ph2?.3:.55);}};
   switch(b.state){
     case 'sleep':if(world.locked)setE(b,'intro');break;
-    case 'intro':b.a=turn(b.a,ang,3*dt);if(b.t>1.4){if(isAdapa)voice('boss','أنا أدابا… وحارس هذا الباب.');setE(b,'chase');b.cd=.5;}break;
+    case 'intro':b.a=turn(b.a,ang,3*dt);if(b.t>1.4){if(isAdapa)voiceBoss(b,'أنا أدابا… وحارس هذا الباب.');setE(b,'chase');b.cd=.5;}break;
     case 'trans':b.a=turn(b.a,ang,2*dt);shake=Math.max(shake,b.t<1.6?4:0);
       if(Math.random()<dt*40)parts.push({x:b.x+(Math.random()-.5)*60,y:b.y+Math.random()*150,z:b.z+(Math.random()-.5)*60,vx:(Math.random()-.5)*60,vz:(Math.random()-.5)*60,vy:60+Math.random()*80,l:.9,m:.9,col:Math.random()<.5?'#2a0c14':'#c0242e',s:2.6,g:-30,f:-999});
       if(b.t>.9&&!b.hit){b.hit=true;elemHit(b,5);waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.2});if(Math.hypot(dx,dz)<120)hurtP(Math.round(18*(b.dm||1)),b.x,b.z);}
