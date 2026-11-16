@@ -99,7 +99,7 @@ function upAnzu(b,dt){
 let cine=null,todO=null;
 /* the opening film starts under Baghdad, where it all happened, then goes north to Zakho where he sleeps */
 const CINE=[
-  {d:7,reg:'baghdad',tod:0,mk:()=>{const G=REGC.gate,D=REGC.D;return [[D[3][0],700,D[3][1]+900,G.x,60,G.z],[D[4][0],560,D[4][1]+760,G.x,60,G.z]];},t:'من زمان، تحت بغداد، اكو بوابة تفصل دنيانا عن العالم السفلي… عالم الموتى.'},
+  {d:7,reg:'baghdad',tod:0,mk:()=>{const G=REGC.gate,D=REGC.D;return [[D[3][0],700,D[3][1]+900,G.x,60,G.z],[D[4][0],560,D[4][1]+760,G.x,60,G.z]];},t:'من زمان، تحت بغداد، ورا باب الطلسم، اكو بوابة تفصل دنيانا عن العالم السفلي… عالم الموتى.'},
   {d:7,reg:'baghdad',tod:0,mk:()=>{const G=REGC.gate,b=MGATE,w=b&&b.ax2===false;return w?[[G.x-120,90,G.z+420,G.x,100,G.z],[G.x+60,70,G.z+330,G.x,110,G.z]]:[[G.x-420,90,G.z-120,G.x,100,G.z],[G.x-330,70,G.z+60,G.x,110,G.z]];},t:'خمس حراس قفلوها بخمس مفاتيح، وكل واحد أخذ مفتاحه لطرف من أطراف البلاد.'},
   {d:6,reg:'baghdad',tod:1,mk:()=>{const b=boss,G=REGC.gate;if(b){b.x=lerp(G.x,AC.x,.45);b.z=lerp(G.z,AC.z,.45);b.y=floorAt(b.x,b.z,40);b.a=Math.atan2(G.z-b.z,G.x-b.x)+PI;b.state='chase';}
      const x=b?b.x:AC.x,z=b?b.z:AC.z,a=b?b.a:0;return [[x+Math.cos(a)*300+Math.sin(a)*120,70,z+Math.sin(a)*300-Math.cos(a)*120,x,120,z],[x+Math.cos(a)*230+Math.sin(a)*60,60,z+Math.sin(a)*230-Math.cos(a)*60,x,130,z]];},t:'بليلة وحدة… انفتحت. واللي يعرف منو فتحها… ساكت.',fx:1},
