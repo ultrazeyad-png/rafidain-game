@@ -617,19 +617,28 @@ async function setGLBHero(url,scale=60){
   }catch(e){gltfHeroError=String(e&&e.message||e);return {ok:false,error:gltfHeroError};}
 }
 if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
-  if(!gltfHero)return;
-  gltfHeroGPU=null;gltfHeroTextures=[];
-  prepareGLBTextures(gltfHero.asset).then(textures=>{
-    gltfHeroTextures=textures;
-    if(glOK)gltfHeroGPU=prepareGLBHero(gltfHero.asset);
-  }).catch(error=>{gltfHeroError=String(error&&error.message||error);});
+  if(gltfHero){
+    gltfHeroGPU=null;gltfHeroTextures=[];
+    prepareGLBTextures(gltfHero.asset).then(textures=>{
+      gltfHeroTextures=textures;
+      if(glOK)gltfHeroGPU=prepareGLBHero(gltfHero.asset);
+    }).catch(error=>{gltfHeroError=String(error&&error.message||error);});
+  }
+  for(const entity of gltfEntityInstances.values()){
+    entity.gpu=null;entity.textures=[];
+    prepareGLBTextures(entity.asset).then(textures=>{
+      entity.textures=textures;
+      if(glOK)entity.gpu=prepareGLBHero(entity.asset);
+    }).catch(error=>{entity.error=String(error&&error.message||error);});
+  }
 });
 
 const gltfEntityInstances=new Map();
 async function loadGLBEntity(id,url,options={}){
   if(typeof id!=='string'||!id.trim())gltfFail('entity id must be a non-empty string');
   if(gltfEntityInstances.has(id))return {ok:false,reason:'duplicate-id',id};
-  const entity={id,url,asset:null,playback:null,gpu:null,textures:[],scale:options.scale??60,error:'',action:'idle'};
+  const scale=options.scale??60;if(!Number.isFinite(scale)||scale<=0)gltfFail('entity scale must be a positive finite number');
+  const entity={id,url,asset:null,playback:null,gpu:null,textures:[],scale,error:'',action:'idle'};
   gltfEntityInstances.set(id,entity);
   try{
     entity.asset=await loadGLB(url);
