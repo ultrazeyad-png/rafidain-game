@@ -278,7 +278,7 @@ async def run_suite(base_url: str) -> None:
                 """() => {
                     const g = window.__g;
                     g.stats.boat = true; // Skip the one-time Baghdad boat cinematic in this test.
-                    const ids = ["duhok", "muthanna", "nineveh", "anbar", "baghdad"];
+                    const ids = ["duhok","nineveh","erbil","sulay","halabja","kirkuk","saladin","diyala","anbar","karbala","babil","najaf","qadis","wasit","maysan","dhiqar","muthanna","basra","baghdad"];
                     return ids.map(id => {
                         g.travel(id);
                         return {
@@ -301,9 +301,23 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Region did not build world geometry: {result}")
                 expected_mini = {
                     "duhok": "ذيب وادي الخابور",
-                    "muthanna": "ملك عقارب أوروك",
                     "nineveh": "حارس الحدباء المنفي",
+                    "erbil": "ذيب القلعة الأبيض",
+                    "sulay": "ذيب قمة آزمر",
+                    "halabja": "وحش بحيرة زريبار",
+                    "kirkuk": "عقرب النار الأزلية",
+                    "saladin": "طيف الملوية",
+                    "diyala": "عقرب بساتين ديالى",
                     "anbar": "ذيب الرمادي",
+                    "karbala": "عقرب عين التمر",
+                    "babil": "ظل بوابة عشتار",
+                    "najaf": "ذيب بحر النجف",
+                    "qadis": "عقرب تل إيسن",
+                    "wasit": "تمساح سدّة الكوت",
+                    "maysan": "تمساح الهور الأسود",
+                    "dhiqar": "حارس مقبرة أور",
+                    "muthanna": "ملك عقارب أوروك",
+                    "basra": "تمساح شط العرب",
                     "baghdad": "شبح باب الطلسم",
                 }[result["id"]]
                 if len(result["miniBosses"]) != 1 or result["miniBosses"][0]["name"] != expected_mini:
@@ -314,7 +328,7 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Expected region boss was not spawned: {result}")
                 if result["id"] == "duhok" and result["duhokDetails"] < 20:
                     raise AssertionError(f"Zakho/Delal landmark detail count was not preserved through baking: {result}")
-            print("PASS: Duhok, Muthanna, Nineveh, Anbar, and Baghdad load with geometry and bosses")
+            print("PASS: all 19 Iraqi regions load with geometry, regional bosses, and assigned mini-boss identities")
 
             await page.evaluate(
                 """() => {
