@@ -277,7 +277,7 @@ const WPN={
 };
 
 let RW=800,RH=390,rot=false,DPR=1,S=1,VW=500,VH=250;
-let time=0,last=0,shake=0,hs=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,ctxKey='',ugS=0;
+let time=0,last=0,shake=0,hs=0,parryFlash=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,ctxKey='',ugS=0;
 const input={jx:0,jy:0,wx:0,wz:0,ku:false,kd:false,kl:false,kr:false,cl:false,cr:false,atkDown:false,hold:0,hv:false,camDown:false,block:false};
 const stats={lvl:1,vig:0,end:0,str:0,embers:0,seals:0,wpn:'shield',glaive:false,tod:1,q:0,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:null,boat:false,ended:0};
 const world={shrine:0,lit:[true],bossDead:false,minis:false,miniFilm:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
@@ -461,7 +461,7 @@ function hurtP(d,fx,fz,src){
   if(P.guard&&adiff(fa,P.a)<1.3){
     const perfect=P.gt<.25;
     burst(P.x+Math.cos(P.a)*13,P.y+34,P.z+Math.sin(P.a)*13,perfect?'#ffffff':'#ffd890',perfect?18:9,perfect?170:110,P.y);if(!perfect)snd('block');shake=perfect?6:3;
-    if(perfect){hs=.07;snd('parry');if(src&&src.boss&&!src.dead){
+    if(perfect){hs=.12;parryFlash=1;snd('parry');if(src&&src.boss&&!src.dead){
       if(src.armor==null)src.armor=2;
       if(src.armor>0)src.armor=Math.max(0,src.armor-1);
       setE(src,'parried');src.cd=.55;
@@ -753,6 +753,7 @@ function markSeen(){
 }
 function ambient(dt){
   if(shake>0)shake=Math.max(0,shake-dt*30);
+  if(parryFlash>0)parryFlash=Math.max(0,parryFlash-dt*5.5);
   if(banner&&(banner.t+=dt)>=banner.dur)banner=null;
   ugS=lerp(ugS,clamp((-P.y-20)/50,0,1),Math.min(1,dt*3));
   for(let i=dust.length-1;i>=0;i--){const d=dust[i];d.l+=dt;if(d.l>=d.m){dust.splice(i,1);continue;}d.x+=d.vx*dt;d.z+=d.vz*dt;d.y+=d.vy*dt;d.vx*=1-2.5*dt;d.vz*=1-2.5*dt;}
@@ -1153,6 +1154,7 @@ function drawHUD0(){
   let g=ctx.createRadialGradient(VW/2,VH*.5,VH*.45,VW/2,VH*.5,VW*.72);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,'+lerp(TOD[(todO!=null?todO:stats.tod)%3].vg,.62,ugS).toFixed(2)+')');
   ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
   if(P.hp<maxHp()*.3&&P.state!=='dead'){ctx.fillStyle='rgba(150,10,20,'+(.1+.06*Math.sin(time*6)).toFixed(3)+')';ctx.fillRect(0,0,VW,VH);}
+  if(parryFlash>0){const k=parryFlash,r=15+(1-k)*34;ctx.save();ctx.globalAlpha=k*.48;ctx.strokeStyle='#f3d18a';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(VW/2,VH*.48,r,0,Math.PI*2);ctx.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2;ctx.beginPath();ctx.moveTo(VW/2+Math.cos(a)*(r+5),VH*.48+Math.sin(a)*(r+5));ctx.lineTo(VW/2+Math.cos(a)*(r+13),VH*.48+Math.sin(a)*(r+13));ctx.stroke();}ctx.restore();}
   for(const e of enemies){if(e.boss||e.dead||e.hp>=e.T.hp||Math.hypot(e.x-P.x,e.z-P.z)>520)continue;const p=proj(e.x,e.y+e.T.h+12,e.z);if(!p)continue;
     ctx.fillStyle='rgba(0,0,0,.65)';ctx.fillRect(p[0]-16,p[1]-1,32,5);ctx.fillStyle='#d02a34';ctx.fillRect(p[0]-15,p[1],30*e.hp/e.T.hp,3);}
   if(lock&&!lock.dead){const p=proj(lock.x,lock.y+lock.j+lock.T.h*.62,lock.z);if(p){ctx.strokeStyle='#fff';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(p[0],p[1],6+Math.sin(time*6),0,7);ctx.stroke();ctx.fillStyle='#d9a8ff';ctx.beginPath();ctx.arc(p[0],p[1],2,0,7);ctx.fill();}}
@@ -1411,7 +1413,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get parryFlash(){return parryFlash;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>
