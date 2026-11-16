@@ -424,6 +424,28 @@ def verify_boss_finisher() -> None:
     print("PASS: exposed-core critical finisher trigger, three-shot cinematic, and standard boss reward/death flow")
 
 
+def verify_weapon_and_boss_specific_finishers() -> None:
+    systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+    chars = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    for item in (
+        "weapon==='dual'?{key:'F2',hand:2",
+        "weapon==='glaive'?{key:'F3'",
+        "weapon==='axe'?{key:'F4'",
+        "weapon==='spear'?{key:'F5'",
+        "name.includes('أدابا')",
+        "name.includes('إرّا')",
+        "name.includes('نمتار')",
+        "impact:true,col:weaponStyle.impact",
+        "burst(b.x,b.y+b.T.h*.68,b.z,s.col",
+    ):
+        if item not in systems:
+            raise AssertionError(f"Weapon/boss-specific finisher choreography missing: {item}")
+    for item in ("F1:[[", "F2:[[", "F3:[[", "F4:[[", "F5:[[", "P.finisherKey||a.key||'A'"):
+        if item not in chars:
+            raise AssertionError(f"Dedicated finisher weapon animation missing: {item}")
+    print("PASS: five weapon-specific finisher poses, boss-specific lines and impact effects")
+
+
 def verify_regional_mini_bosses() -> None:
     roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
@@ -467,6 +489,7 @@ def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
     verify_boss_finisher()
+    verify_weapon_and_boss_specific_finishers()
     verify_regional_mini_bosses()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
