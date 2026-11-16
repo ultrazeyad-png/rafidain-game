@@ -151,6 +151,7 @@ const FONT='"Noto Naskh Arabic","Geeza Pro","Amiri","Times New Roman",serif';
 const SAVE='ashes-rafidain-v1';
 const SAVE_SCHEMA=2;
 const SAVE_BACKUP=SAVE+'.backup-v1';
+const SAVE_CORRUPT_BACKUP=SAVE+'.backup-corrupt';
 function hash(n){const s=Math.sin(n*127.1)*43758.5453;return s-Math.floor(s);}
 
 /* ================= world data ================= */
@@ -310,15 +311,15 @@ function migrateSave(d,raw){
   localStorage.setItem(SAVE,JSON.stringify(migrated));
   return migrated;
 }
-function load(){try{
-  const raw=localStorage.getItem(SAVE);if(!raw)return false;
-  const parsed=JSON.parse(raw),d=migrateSave(parsed,raw);if(!d)return false;
+function load(){let raw=null;try{
+  raw=localStorage.getItem(SAVE);if(!raw)return false;
+  const parsed=JSON.parse(raw),d=migrateSave(parsed,raw);if(!d){if(!localStorage.getItem(SAVE_CORRUPT_BACKUP))localStorage.setItem(SAVE_CORRUPT_BACKUP,raw);return false;}
   for(const k of Object.keys(d.stats))if(k!=='__proto__'&&k!=='constructor'&&k!=='prototype')stats[k]=d.stats[k];
   for(const k of Object.keys(d.rs))if(k!=='__proto__'&&k!=='constructor'&&k!=='prototype')RS[k]=d.rs[k];
   REG=d.reg;
   stats.wl=saveRecord(stats.wl)?stats.wl:{};stats.own=saveRecord(stats.own)?stats.own:{};stats.done=saveRecord(stats.done)?stats.done:{};
   if(!stats.gk)stats.gk=pickGuardians();if(stats.unl&&!stats.prog)stats.prog=1;if(!WPN[stats.wpn]||!ownW(stats.wpn))stats.wpn='shield';return true;
-}catch(_){return false;}}
+}catch(_){try{if(raw&&!localStorage.getItem(SAVE_CORRUPT_BACKUP))localStorage.setItem(SAVE_CORRUPT_BACKUP,raw);}catch(__){}return false;}}
 function applyWorld(){const w=RS[REG]||{};   // call after loadRegion
   Object.assign(world,{shrine:clamp(w.shrine|0,0,SHR.length-1),lit:w.lit&&w.lit.length===SHR.length?w.lit:SHR.map((q,i)=>i===0),bossDead:!!w.bossDead,stain:w.stain&&w.stain.amt?w.stain:null,locked:false,
     door:!!w.door,frags:w.frags?[!!w.frags[0],!!w.frags[1]]:[false,false],key:!!w.key,gate:!!w.gate,brz:w.brz||[],mgate:!!w.mgate,sec:!!w.sec,secSeen:false,npc:w.npc||{},items:w.items||{}});
