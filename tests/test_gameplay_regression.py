@@ -352,7 +352,9 @@ async def run_suite(base_url: str) -> None:
             await page.evaluate(
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
-            await page.reload(wait_until="load")
+            # The corrupt-save recovery path may keep media/animation resources alive;
+            # DOM readiness plus the explicit runtime-ready wait below is the real contract.
+            await page.reload(wait_until="domcontentloaded")
             await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
             recovered = await page.evaluate(
                 """() => ({
