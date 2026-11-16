@@ -675,6 +675,14 @@ function updateGLBEntity(id,now){
   }
   return {ok:true,id,action:entity.action,elapsed:entity.playback.elapsed};
 }
+function syncGLBEntityAction(id,gameEntity){
+  const entity=gltfEntityInstances.get(id);
+  if(!entity||!entity.asset)return {ok:false,reason:'entity-not-loaded',id};
+  const action=gltfResolveEnemyAction(gameEntity);
+  if(entity.action===action)return {ok:true,action,changed:false};
+  const result=setGLBEntityAction(id,action);
+  return {...result,action};
+}
 function removeGLBEntity(id){
   const entity=gltfEntityInstances.get(id);if(!entity)return false;
   if(glOK){for(const item of entity.gpu||[])gl.deleteBuffer(item.buffer);for(const texture of entity.textures||[])gl.deleteTexture(texture);}
