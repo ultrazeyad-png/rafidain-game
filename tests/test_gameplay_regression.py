@@ -246,7 +246,7 @@ async def run_suite(base_url: str) -> None:
                             blocks: g.B.length,
                             chunks: g.chunks,
                             enemies: g.enemies.length,
-                            miniBosses: g.enemies.filter(e => e.k === "gmini" && !e.dead).map(e => e.T.name),
+                            miniBosses: g.enemies.filter(e => e.k === "gmini" && !e.dead).map(e => ({name:e.T.name,scale:e.T.sc})),
                             boss: !!g.boss,
                             duhokDetails: g.duhokDetails()
                         };
@@ -258,8 +258,17 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Travel loaded the wrong region: {result}")
                 if result["blocks"] <= 0 or result["chunks"] <= 0:
                     raise AssertionError(f"Region did not build world geometry: {result}")
-                if len(result["miniBosses"]) != 1:
-                    raise AssertionError(f"Region must spawn exactly one assigned gmini encounter: {result}")
+                expected_mini = {
+                    "duhok": "ذيب وادي الخابور",
+                    "muthanna": "ملك عقارب أوروك",
+                    "nineveh": "حارس الحدباء المنفي",
+                    "anbar": "ذيب الرمادي",
+                    "baghdad": "شبح باب الطلسم",
+                }[result["id"]]
+                if len(result["miniBosses"]) != 1 or result["miniBosses"][0]["name"] != expected_mini:
+                    raise AssertionError(f"Region must spawn its assigned gmini encounter ({expected_mini}): {result}")
+                if result["miniBosses"][0]["scale"] <= 1:
+                    raise AssertionError(f"Regional mini-boss must use its enlarged boss model: {result}")
                 if not result["boss"]:
                     raise AssertionError(f"Expected region boss was not spawned: {result}")
                 if result["id"] == "duhok" and result["duhokDetails"] < 20:
@@ -346,6 +355,7 @@ def verify_regional_mini_bosses() -> None:
     roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    characters = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
     required = (
         "const MINI_GUARDS=",
         "nineveh:{k:'ghostK'",
@@ -365,7 +375,9 @@ def verify_regional_mini_bosses() -> None:
         "say('سقط '+e.T.name,'#e8c66a',3);save()", "s[0]==='gmini'&&world.minis"):
         if item not in game:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
-    print("PASS: 19 regional mini-boss identities are assigned, spawned, rewarded, and persisted")
+    if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
+        raise AssertionError("Regional mini-bosses are missing their dedicated creature renderer")
+    print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
 
 
 def main() -> int:
