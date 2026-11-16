@@ -116,14 +116,26 @@ function startCine(){cine={i:0,t:0};DR=4000;paused=true;root.classList.add('cine
 function startBossFinisher(e){
   if(!e||!e.boss||e.dead||cine||e.finisherUsed||e.armor!==0||e.weakT<=0)return false;
   e.finisherUsed=true;e.finishing=true;e.state='finisher';e.t=0;
-  P.a=Math.atan2(e.z-P.z,e.x-P.x);P.atk=CRIT;P.combo=0;setP('atk');P.t=.34;P.inv=99;
-  const fx=Math.cos(e.a),fz=Math.sin(e.a),x=e.x,z=e.z,y=e.y,n=e.T.name;
+  const weapon=stats.wpn||'shield';
+  const weaponStyle=weapon==='dual'?{key:'F2',hand:2,wind:.52,act:.24,rec:.68,impact:'#bce8ff',line:'نصلان… وضربة واحدة.'}:
+    weapon==='glaive'?{key:'F3',hand:0,wind:.56,act:.26,rec:.66,impact:'#ff9b58',line:'من مدى الموت… لا مهرب.'}:
+    weapon==='axe'?{key:'F4',hand:0,wind:.6,act:.24,rec:.64,impact:'#ff7048',line:'سأحطم عرشك!' }:
+    weapon==='spear'?{key:'F5',hand:0,wind:.5,act:.22,rec:.7,impact:'#9de8e1',line:'اخترق درعك… وانتهى أمرك.'}:
+    {key:'F1',hand:0,wind:.55,act:.24,rec:.68,impact:'#f2d18a',line:'بحدّ هذا السيف… انتهى عهدك.'};
+  const name=e.T.name||'الزعيم';
+  const bossLine=name.includes('أدابا')?'أدابا… لن تحميك مفاتيح بغداد بعد الآن.':
+    name.includes('إرّا')?'عاصفتك انتهت يا إرّا.':
+    name.includes('نمتار')?'ارجع إلى عالم الموتى يا نمتار.':
+    'انتهى عهدك… لن تعود هذه الأرض لقبضتك.';
+  P.a=Math.atan2(e.z-P.z,e.x-P.x);P.finisherKey=weaponStyle.key;P.finisherWeapon=weapon;P.atk={...CRIT,key:weaponStyle.key,hand:weaponStyle.hand,wind:weaponStyle.wind,act:weaponStyle.act,rec:weaponStyle.rec};P.combo=0;setP('atk');P.t=0;P.inv=99;
+  const fx=Math.cos(e.a),fz=Math.sin(e.a),x=e.x,z=e.z,y=e.y;
+  const close=weapon==='glaive'||weapon==='spear'?150:weapon==='axe'?112:weapon==='dual'?88:102;
   const shots=[
-    {d:1.45,a:[x+fx*265-fz*120,y+165,z+fz*265+fx*120,x,y+75,z],b:[x+fx*205-fz*90,y+130,z+fz*205+fx*90,x,y+85,z],t:n+'… انتهى عهدك.',v:1,fx:true},
-    {d:1.25,a:[x+fx*115-fz*24,y+94,z+fz*115+fx*24,x,y+e.T.h*.66,z],b:[x+fx*76-fz*16,y+70,z+fz*76+fx*16,x,y+e.T.h*.7,z],t:'فرات: هذا الطريق ينتهي هنا.'},
-    {d:1.15,a:[P.x+fx*95-fz*30,P.y+88,P.z+fz*95+fx*30,x,y+e.T.h*.55,z],b:[P.x+fx*62-fz*18,P.y+68,P.z+fz*62+fx*18,x,y+e.T.h*.6,z],t:'الضربة الأخيرة!',fx:true}
+    {d:1.35,a:[x+fx*285-fz*150,y+185,z+fz*285+fx*150,x,y+78,z],b:[x+fx*220-fz*115,y+145,z+fz*220+fx*115,x,y+85,z],t:name+'… حان وقت الحساب.',v:1,fx:true},
+    {d:1.25,a:[x+fx*(close+55)-fz*34,y+105,z+fz*(close+55)+fx*34,x,y+e.T.h*.65,z],b:[x+fx*close-fz*22,y+78,z+fz*close+fx*22,x,y+e.T.h*.7,z],t:bossLine},
+    {d:1.35,a:[P.x+fx*close-fz*42,P.y+105,P.z+fz*close+fx*42,x,y+e.T.h*.55,z],b:[P.x+fx*(close-24)-fz*20,P.y+76,P.z+fz*(close-24)+fx*20,x,y+e.T.h*.6,z],t:weaponStyle.line,fx:true,impact:true,col:weaponStyle.impact}
   ];
-  cine={i:0,t:0,boss:e,finisher:true,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true);snd('boss');return true;
+  cine={i:0,t:0,boss:e,finisher:true,finisherWeapon:weapon,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true);snd('boss');return true;
 }
 function miniBossFilm(e,m){
   if(cine||!e||!m)return false;
@@ -134,12 +146,12 @@ function miniBossFilm(e,m){
   ];
   cine={i:0,t:0,boss:e,mini:true,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true,m.k);return true;
 }
-function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}voice('narrator',s.t);}
-function upCine(dt){cine.t+=dt;if(cine.finisher){P.t=Math.min(.65,P.t+dt);if(cine.boss)cine.boss.t+=dt;}const L=cine.shots||CINE,s=L[cine.i];
+function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}if(cine.finisher&&s.impact&&cine.boss){const b=cine.boss;burst(b.x,b.y+b.T.h*.68,b.z,s.col||'#f2d18a',42,260,b.y);waves.push({x:b.x,z:b.z,r:18,l:.65,y:b.y,col:s.col||'#f2d18a'});shake=16;}voice('narrator',s.t);}
+function upCine(dt){cine.t+=dt;if(cine.finisher){const a=cine.boss&&cine.boss.finisherPose;P.t=Math.min(a||1.45,P.t+dt);if(cine.boss)cine.boss.t+=dt;}const L=cine.shots||CINE,s=L[cine.i];
   if(cine.boss&&cine.boss.k==='boss'&&cine.i===0){const b=cine.boss;b.t+=dt;b.state='trans';if(b.t>1.6)b.state='intro';}
   if(cine.t>=s.d){cine.i++;cine.t=0;if(cine.i>=L.length){endCine();return;}cineShot();}}
 function endCine(){voiceStop();if(cine&&cine.finisher){
-  const b=cine.boss;cine=null;todO=null;root.classList.remove('cine');paused=false;P.inv=0;setP('idle');
+  const b=cine.boss;cine=null;todO=null;root.classList.remove('cine');paused=false;P.inv=0;P.finisherKey=null;P.finisherWeapon=null;setP('idle');
   cam.x=P.x;cam.y=P.y+58;cam.z=P.z;cam.d=165;bossMusic(false);snd('rest');b.finishing=false;b.armor=0;b.weakT=0;
   hurtE(b,b.hp,true,true);$('cT').textContent='';save();return;
 }if(!(cine&&cine.mini))setTimeout(()=>regionMusic(true),900);if(cine&&!cine.boss&&!cine.boat&&REG!=='duhok')cineRegion('duhok');if(cine&&cine.boss){const b=cine.boss,isMini=!!cine.mini;cine=null;todO=null;root.classList.remove('cine');paused=false;setE(b,'chase');b.cd=.6;b.hit=false;if(isMini){const m=MINI_GUARDS[REG];bossMusic(true,m&&m.k);if(m)voice('boss',m.line);}$('cT').textContent='';return;}
