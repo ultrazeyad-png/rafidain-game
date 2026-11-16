@@ -68,6 +68,7 @@ const GOV=[
   npc:{id:'bag',name:'الوراق العجوز',look:OLD,l:['بشارع المتنبي چنا نبيع الكتب، وهسه بس الريح تقلّب صفحاتها.','أدابا… معلم الحراس. هو اللي كتب كل شي، وهو اللي شطب اسمك من كل شي.','{R}','البوابة تحت باب الطلسم. خمس مفاتيح، ولا وحدة أقل.']},
   boss:{n:'أدابا، معلم الحراس',w:'sword',el:'all',hp:2000,look:{a:'#e0d8c8',a2:'#6a6458',t:'#e0c050',c:'#f0e8d8',sk:'#b08460',bd:'#d8d0c0',helm:'crown',e:'#ffffff'}}}];
 const GOVM={};for(const g of GOV)GOVM[g.id]=g;
+const MINI_GUARDS={nineveh:{k:'ghostK',n:'حارس الحدباء المنفي'},erbil:{k:'wolfK',n:'ذيب القلعة الأبيض'},sulay:{k:'wolfK',n:'ذيب قمة آزمر'},halabja:{k:'crocK',n:'وحش بحيرة زريبار'},kirkuk:{k:'scorpK',n:'عقرب النار الأزلية'},saladin:{k:'ghostK',n:'طيف الملوية'},diyala:{k:'scorpK',n:'عقرب بساتين ديالى'},anbar:{k:'wolfK',n:'ذيب الرمادي'},karbala:{k:'scorpK',n:'عقرب عين التمر'},babil:{k:'ghostK',n:'ظل بوابة عشتار'},najaf:{k:'wolfK',n:'ذيب بحر النجف'},qadis:{k:'scorpK',n:'عقرب تل إيسن'},wasit:{k:'crocK',n:'تمساح سدّة الكوت'},maysan:{k:'crocK',n:'تمساح الهور الأسود'},dhiqar:{k:'ghostK',n:'حارس مقبرة أور'},muthanna:{k:'scorpK',n:'ملك عقارب أوروك'},basra:{k:'crocK',n:'تمساح شط العرب'},baghdad:{k:'ghostK',n:'شبح باب الطلسم'},duhok:{k:'wolfK',n:'ذيب وادي الخابور'}};
 const ORDER=['duhok','nineveh','erbil','sulay','halabja','kirkuk','saladin','diyala','anbar','karbala','babil','najaf','qadis','wasit','maysan','dhiqar','muthanna','basra','baghdad'];
 function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function rng(seed){let s=seed||1;return ()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
@@ -130,6 +131,7 @@ function regGen(g){
     :g.ter==='marsh'?['husk','croc','sling','archer','croc']:g.ter==='city'?['spear','archer','brute','ghost','ghost']:['husk','spear','archer','brute','wolf',g.id==='saladin'?'ghost':'husk'];
   SPAWN=[];const put=(k,d,m)=>{for(let q=0;q<m;q++){const a=R()*6.283,r=d[2]*(.25+R()*.5);SPAWN.push([pool[Math.floor(R()*pool.length)],d[0]+Math.cos(a)*r,d[1]+Math.sin(a)*r,d[3]]);}};
   put(0,D[1],3);put(0,D[2],3);put(0,D[3],2);put(0,D[4],3);put(0,D[5],2);put(0,b1,3);put(0,b2,3);SPAWN.push(['brute',D[4][0],D[4][1],D[4][3]]);
+  const mini=MINI_GUARDS[g.id];if(mini)SPAWN.push(['gmini',b1[0]+70,b1[1]+70,b1[3]]);
   ITEMS=[{k:'shard',x:b2[0],y:b2[3],z:b2[1]-30,n:2},{k:'shard',x:D[3][0]+80,y:D[3][3],z:D[3][1]-60},{k:'arrows',x:D[2][0]-60,y:D[2][3],z:D[2][1]+40,n:6}];
   if(idx>=8)ITEMS.push({k:'dshard',x:b2[0]+50,y:b2[3],z:b2[1]+30});
   for(const it of ITEMS)it.y=floorAt(it.x,it.z,it.y+30);
