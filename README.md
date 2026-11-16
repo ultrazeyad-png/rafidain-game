@@ -43,6 +43,25 @@ python3 tests/g1.py nineveh,anbar,maysan,baghdad   # يمشي بالمحافظا
 python3 tests/g7.py   # الأسرار والرسائل والألواح والسحر
 ```
 
+## فحوصات الجودة الجديدة
+
+للفحص السريع القابل للتشغيل في CI:
+
+```bash
+python -m py_compile build.py tools/site_split.py tests/*.py
+python tests/smoke_build.py
+```
+
+لاختبار استعادة WebGL في Chromium (يتطلب Node.js وPlaywright):
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m playwright install chromium
+python tests/test_webgl_recovery.py
+```
+
+تعمل فحوصات الجودة تلقائياً عند فتح Pull Request أو الدفع إلى فروع التطوير. لا تدمج التغييرات قبل نجاحها.
+
 ## الخطوة الجاية
 
 تحويلها لتطبيق APK للأندرويد.
