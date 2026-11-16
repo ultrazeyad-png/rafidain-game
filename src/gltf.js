@@ -230,6 +230,14 @@ async function setGLBHero(url,scale=60){
     return {ok:true,meshes:asset.meshes.length,primitives:asset.bounds};
   }catch(e){gltfHeroError=String(e&&e.message||e);return {ok:false,error:gltfHeroError};}
 }
+if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
+  if(!gltfHero)return;
+  gltfHeroGPU=null;gltfHeroTextures=[];
+  prepareGLBTextures(gltfHero.asset).then(textures=>{
+    gltfHeroTextures=textures;
+    if(glOK)gltfHeroGPU=prepareGLBHero(gltfHero.asset);
+  }).catch(error=>{gltfHeroError=String(error&&error.message||error);});
+});
 function drawGLBHero(){
   if(!gltfHero||!glOK)return false;
   if(!gltfHeroGPU){try{gltfHeroGPU=prepareGLBHero(gltfHero.asset);}catch(e){gltfHeroError=String(e);return false;}}
