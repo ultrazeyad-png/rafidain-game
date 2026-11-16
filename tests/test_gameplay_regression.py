@@ -384,6 +384,8 @@ def verify_regional_mini_bosses() -> None:
         "baghdad:{k:'ghostK'",
         "MINI_ARENA=mini?{region:g.id,kind:mini.k,name:mini.n,x:b1[0]+70,z:b1[1]+70,y:b1[3]}:null",
         "SPAWN.push(['gmini',MINI_ARENA.x,MINI_ARENA.z,MINI_ARENA.y])",
+        "MINI_ARENA={region:'duhok',kind:'wolfK'",
+        "MINI_ARENA={region:'muthanna',kind:'scorpK'",
     )
     missing = [item for item in required if item not in roster]
     if missing:
