@@ -490,6 +490,7 @@ def verify_regional_mini_bosses() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     characters = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
     depth = (ROOT / "src" / "depth.js").read_text(encoding="utf-8")
+    audio = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
     required = (
         "const MINI_GUARDS=",
         "nineveh:{k:'ghostK'",
@@ -521,9 +522,12 @@ def verify_regional_mini_bosses() -> None:
             raise AssertionError(f"Regional mini-boss phase-two behavior missing: {behavior}")
     if "T(e.x,e.y+e.j,e.z)" not in characters:
         raise AssertionError("Wolf mini-boss leap pose is not rendered")
-    for cue in ("e.k==='gmini'&&e.state==='wind'", "pulse=.72+.28*Math.sin(time*13)", "if(kind==='scorpK')", "else if(kind==='crocK')", "else if(kind==='ghostK')", "ctx.moveTo(p[0]-2.5,p[1]-12)", "snd(kind==='scorpK'?'miniScorp'", "case 'miniScorp'", "case 'miniCroc'", "case 'miniGhost'", "case 'miniWolf'"):
+    for cue in ("e.k==='gmini'&&e.state==='wind'", "pulse=.72+.28*Math.sin(time*13)", "if(kind==='scorpK')", "else if(kind==='crocK')", "else if(kind==='ghostK')", "ctx.moveTo(p[0]-2.5,p[1]-12)", "snd(kind==='scorpK'?'miniScorp'"):
         if cue not in game:
             raise AssertionError(f"Mini-boss attack telegraph cue missing: {cue}")
+    for cue in ("case 'miniScorp'", "case 'miniCroc'", "case 'miniGhost'", "case 'miniWolf'"):
+        if cue not in audio:
+            raise AssertionError(f"Mini-boss warning sound missing: {cue}")
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, persistence, and wind-up telegraph")
 
 
