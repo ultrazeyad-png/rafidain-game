@@ -58,6 +58,7 @@ python tests/smoke_build.py
 python -m pip install -r requirements-test.txt
 python -m playwright install chromium
 python tests/test_webgl_recovery.py
+python tests/test_gameplay_regression.py
 ```
 
 تعمل فحوصات الجودة تلقائياً عند فتح Pull Request أو الدفع إلى فروع التطوير. لا تدمج التغييرات قبل نجاحها.
