@@ -7,7 +7,7 @@ const TERC={
   desert:{g:[.74,.63,.43],d:[.80,.70,.50],rock:[.70,.58,.42],snow:9999,rim:150,rimA:90,rough:.5,grass:3,veg:'dtree',vegN:60,dry:1,path:[0,6,14,20,24,30,36,40]},
   marsh:{g:[.38,.50,.27],d:[.52,.50,.34],rock:[.42,.40,.32],snow:9999,rim:-30,rimA:0,rough:.25,grass:30,veg:'reed',vegN:260,water:1,path:[4,4,4,4,4,4,4,4]},
   city:{g:[.56,.52,.42],d:[.64,.58,.46],rock:[.62,.56,.46],snow:9999,rim:60,rimA:30,rough:0,grass:5,veg:'palm',vegN:70,dry:1,city:1,path:[0,0,0,0,0,0,0,0]}};
-let REGC=null,RIVZ=null,LABELS=[],REGB=null;
+let REGC=null,RIVZ=null,LABELS=[],REGB=null,MINI_ARENA=null;
 const OLD={robe:'#5a4a3a',vest:'#3c3428',sash:'#8a2a2a',skin:'#c49a72',beard:'#e8e4dc',hat:'turban',hatC:'#d8d0c0',staff:true};
 const WOM={robe:'#2a2a3a',vest:'#3a2a3a',sash:'#8a6a2a',skin:'#c99a74',hat:'scarf',hatC:'#1a1a22',staff:false};
 const YNG={robe:'#5a5040',vest:'#7a5a3a',sash:'#2a5a7a',skin:'#c08a64',beard:'#2a1c14',hat:'turban',hatC:'#e8e0d0',staff:true};
@@ -131,7 +131,7 @@ function regGen(g){
     :g.ter==='marsh'?['husk','croc','sling','archer','croc']:g.ter==='city'?['spear','archer','brute','ghost','ghost']:['husk','spear','archer','brute','wolf',g.id==='saladin'?'ghost':'husk'];
   SPAWN=[];const put=(k,d,m)=>{for(let q=0;q<m;q++){const a=R()*6.283,r=d[2]*(.25+R()*.5);SPAWN.push([pool[Math.floor(R()*pool.length)],d[0]+Math.cos(a)*r,d[1]+Math.sin(a)*r,d[3]]);}};
   put(0,D[1],3);put(0,D[2],3);put(0,D[3],2);put(0,D[4],3);put(0,D[5],2);put(0,b1,3);put(0,b2,3);SPAWN.push(['brute',D[4][0],D[4][1],D[4][3]]);
-  const mini=MINI_GUARDS[g.id];if(mini)SPAWN.push(['gmini',b1[0]+70,b1[1]+70,b1[3]]);
+  const mini=MINI_GUARDS[g.id];MINI_ARENA=mini?{region:g.id,kind:mini.k,name:mini.n,x:b1[0]+70,z:b1[1]+70,y:b1[3]}:null;if(mini)SPAWN.push(['gmini',MINI_ARENA.x,MINI_ARENA.z,MINI_ARENA.y]);
   ITEMS=[{k:'shard',x:b2[0],y:b2[3],z:b2[1]-30,n:2},{k:'shard',x:D[3][0]+80,y:D[3][3],z:D[3][1]-60},{k:'arrows',x:D[2][0]-60,y:D[2][3],z:D[2][1]+40,n:6}];
   if(idx>=8)ITEMS.push({k:'dshard',x:b2[0]+50,y:b2[3],z:b2[1]+30});
   for(const it of ITEMS)it.y=floorAt(it.x,it.z,it.y+30);
