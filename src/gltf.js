@@ -106,9 +106,15 @@ function parseGLB(buffer){
       const pos=readAccessor(p.attributes?.POSITION);if(pos.width!==3)gltfFail('POSITION must be VEC3');
       const nor=p.attributes.NORMAL==null?null:readAccessor(p.attributes.NORMAL);
       const tan=p.attributes.TANGENT==null?null:readAccessor(p.attributes.TANGENT);
+      const joints=p.attributes.JOINTS_0==null?null:readAccessor(p.attributes.JOINTS_0);
+      const weights=p.attributes.WEIGHTS_0==null?null:readAccessor(p.attributes.WEIGHTS_0);
       const uv=p.attributes.TEXCOORD_0==null?null:readAccessor(p.attributes.TEXCOORD_0);
       if(nor&&(nor.width!==3||nor.count!==pos.count))gltfFail('NORMAL must be a matching VEC3 accessor');
       if(tan&&(tan.width!==4||tan.count!==pos.count))gltfFail('TANGENT must be a matching VEC4 accessor');
+      if((joints&&!weights)||(!joints&&weights))gltfFail('JOINTS_0 and WEIGHTS_0 must be supplied together');
+      if(joints&&(joints.width!==4||joints.count!==pos.count||![5121,5123].includes(joints.componentType)))gltfFail('JOINTS_0 must be a matching unsigned byte or short VEC4 accessor');
+      if(weights&&(weights.width!==4||weights.count!==pos.count||![5126,5121,5123].includes(weights.componentType)))gltfFail('WEIGHTS_0 must be a matching float or normalized unsigned VEC4 accessor');
+      if(weights&&weights.componentType!==5126&&!json.accessors[p.attributes.WEIGHTS_0].normalized)gltfFail('integer WEIGHTS_0 accessor must be normalized');
       if(uv&&(uv.width!==2||uv.count!==pos.count))gltfFail('TEXCOORD_0 count mismatch');
       let indices;
       if(p.indices!=null){const q=readAccessor(p.indices);if(q.width!==1||![5121,5123,5125].includes(q.componentType))gltfFail('indices must use an unsigned integer SCALAR accessor');indices=q.data;}
@@ -122,7 +128,7 @@ function parseGLB(buffer){
       if(normalTexture&&(!Number.isInteger(normalTexture.index)||normalTexture.index<0))gltfFail('normalTexture has an invalid texture index');
       if(normalTexture&&normalTexture.texCoord!=null&&normalTexture.texCoord!==0)gltfFail('only TEXCOORD_0 is supported for normal maps');
       if(normalTexture&&normalTexture.scale!=null&&!Number.isFinite(normalTexture.scale))gltfFail('normalTexture scale must be finite');
-      return {name:mesh.name||'mesh_'+mi,positions:pos.data,normals:nor?.data||null,tangents:tan?.data||null,uvs:uv?.data||null,indices,
+      return {name:mesh.name||'mesh_'+mi,positions:pos.data,normals:nor?.data||null,tangents:tan?.data||null,joints:joints?.data||null,weights:weights?.data||null,uvs:uv?.data||null,indices,
         material:{name:mat.name||'material_'+(p.material??0),baseColorFactor:pm.baseColorFactor||[1,1,1,1],
           metallicFactor:pm.metallicFactor??1,roughnessFactor:pm.roughnessFactor??1,
           baseColorTexture:pm.baseColorTexture?.index??null,
@@ -131,6 +137,40 @@ function parseGLB(buffer){
     })
   }));
   const instances=gltfSceneInstances(json,meshes.length);
+  const nodes=json.nodes||[];
+  const skins=(json.skins||[]).map((skin,index)=>{
+    if(!Array.isArray(skin.joints)||!skin.joints.length)gltfFail('skin '+index+' must contain joints');
+    const seen=new Set();
+    for(const joint of skin.joints){if(!Number.isInteger(joint)||joint<0||joint>=nodes.length)gltfFail('skin '+index+' references missing joint node');if(seen.has(joint))gltfFail('skin '+index+' contains duplicate joints');seen.add(joint);}
+    if(skin.skeleton!=null&&(!Number.isInteger(skin.skeleton)||skin.skeleton<0||skin.skeleton>=nodes.length))gltfFail('skin '+index+' references missing skeleton node');
+    let inverseBindMatrices=null;
+    if(skin.inverseBindMatrices!=null){const a=readAccessor(skin.inverseBindMatrices);if(a.width!==16||a.componentType!==5126||a.count!==skin.joints.length)gltfFail('skin '+index+' inverseBindMatrices must be a matching FLOAT MAT4 accessor');inverseBindMatrices=a.data;}
+    else{inverseBindMatrices=new Float32Array(skin.joints.length*16);for(let j=0;j<skin.joints.length;j++){inverseBindMatrices[j*16]=1;inverseBindMatrices[j*16+5]=1;inverseBindMatrices[j*16+10]=1;inverseBindMatrices[j*16+15]=1;}}
+    return {name:skin.name||'skin_'+index,joints:skin.joints.slice(),skeleton:skin.skeleton??null,inverseBindMatrices};
+  });
+  for(const instance of instances){const node=nodes[instance.node];if(node?.skin!=null&&(!Number.isInteger(node.skin)||!skins[node.skin]))gltfFail('node references missing skin '+node.skin);if(node?.skin!=null){const skin=skins[node.skin],mesh=meshes[instance.mesh];for(const p of mesh.primitives){if(!p.joints||!p.weights)gltfFail('skinned mesh primitive is missing JOINTS_0 or WEIGHTS_0');for(let i=0;i<p.joints.length;i++)if(p.joints[i]>=skin.joints.length)gltfFail('vertex joint index exceeds skin joint count');}}}
+  const animations=(json.animations||[]).map((animation,index)=>{
+    const samplers=(animation.samplers||[]).map((sampler,si)=>{
+      if(!Number.isInteger(sampler.input)||!Number.isInteger(sampler.output))gltfFail('animation sampler has invalid accessor references');
+      const input=readAccessor(sampler.input),output=readAccessor(sampler.output),interpolation=sampler.interpolation||'LINEAR';
+      if(input.width!==1||input.componentType!==5126)gltfFail('animation input must be a FLOAT SCALAR accessor');
+      if(!['LINEAR','STEP','CUBICSPLINE'].includes(interpolation))gltfFail('animation sampler has unsupported interpolation');
+      for(let i=1;i<input.data.length;i++)if(input.data[i]<=input.data[i-1])gltfFail('animation keyframe times must be strictly increasing');
+      return {input:input.data,output:output.data,outputWidth:output.width,interpolation};
+    });
+    const channels=(animation.channels||[]).map(channel=>{
+      const sampler=channel.sampler,target=channel.target||{},path=target.path,node=target.node;
+      if(!Number.isInteger(sampler)||!samplers[sampler])gltfFail('animation channel references missing sampler');
+      if(!Number.isInteger(node)||node<0||node>=nodes.length)gltfFail('animation channel references missing node');
+      if(!['translation','rotation','scale','weights'].includes(path))gltfFail('animation channel has unsupported target path');
+      const sample=samplers[sampler],expected=path==='rotation'?4:path==='weights'?null:3;
+      if(expected!=null&&sample.outputWidth!==expected)gltfFail('animation output width does not match target path');
+      const multiplier=sample.interpolation==='CUBICSPLINE'?3:1;
+      if(sample.output.length!==sample.input.length*(expected||sample.outputWidth)*multiplier)gltfFail('animation sampler input/output counts do not match');
+      return {sampler,node,path};
+    });
+    return {name:animation.name||'animation_'+index,samplers,channels};
+  });
   const images=(json.images||[]).map((image,index)=>{
     if(image.uri)gltfFail('external image URIs are not supported yet');
     const view=json.bufferViews?.[image.bufferView];
@@ -156,7 +196,7 @@ function parseGLB(buffer){
     if(ti!=null&&!textures[ti])gltfFail('material references missing base-colour texture '+ti);
     if(ni!=null&&!textures[ni])gltfFail('material references missing normal texture '+ni);
   }
-  return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,instances,images,textures,
+  return {asset:json.asset,meshes,nodes,scenes:json.scenes||[],scene:json.scene||0,instances,skins,animations,images,textures,
     bounds:meshes.reduce((n,m)=>n+m.primitives.length,0),extensionsUsed:json.extensionsUsed||[]};
 }
 async function loadGLB(url){
