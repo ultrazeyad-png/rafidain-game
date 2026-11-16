@@ -12,6 +12,7 @@ html,body{margin:0;height:100%;background:#07060a;overflow:hidden;touch-action:n
 #root{position:fixed;left:0;top:0;transform-origin:0 0;overflow:hidden;background:#0a0810}
 canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 #hud{pointer-events:none}
+#diag{position:absolute;top:8px;left:8px;z-index:20;display:none;min-width:210px;padding:7px 10px;border:1px solid rgba(220,190,130,.5);border-radius:5px;background:rgba(5,8,12,.82);color:#dce8ed;font:11px/1.55 ui-monospace,monospace;direction:ltr;text-align:left;white-space:pre;pointer-events:none;text-shadow:0 1px 2px #000}#diag.on{display:block}
 #jz{position:absolute;left:0;bottom:0;width:42%;height:100%;touch-action:none}
 #cz{position:absolute;right:0;bottom:0;width:58%;height:100%;touch-action:none}
 #jb{position:absolute;left:44px;bottom:38px;width:108px;height:108px;border-radius:50%;border:2px solid rgba(230,210,180,.35);background:rgba(20,14,20,.3);pointer-events:none}
@@ -82,6 +83,7 @@ h2{font-size:22px;margin:0 0 4px;color:#f0b868}
 <div id="root">
 <canvas id="gl"></canvas>
 <canvas id="hud"></canvas>
+<div id="diag" aria-hidden="true">ASHES // PERFORMANCE</div>
 <div id="jz"></div>
 <div id="cz"></div>
 <div id="jb"><div id="jk"></div></div>
@@ -1175,7 +1177,7 @@ cz.addEventListener('pointermove',e=>{if(e.pointerId!==cid)return;const p=loc(e)
 const cend=e=>{if(e.pointerId!==cid)return;cid=null;input.camDown=false;};
 cz.addEventListener('pointerup',cend);cz.addEventListener('pointercancel',cend);
 const KEYS={c:'block',a:'kl',d:'kr',w:'ku',s:'kd',arrowleft:'cl',arrowright:'cr'};
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+window.addEventListener('keydown',e=>{if(e.key==='F3'){e.preventDefault();toggleDiagnostics();return;}const k=e.key.toLowerCase();
   if(KEYS[k]){input[KEYS[k]]=true;e.preventDefault();return;}
   if(e.repeat)return;
   if(k==='j')act('atk');else if(k==='k')act('heavy');else if(k==='l'||k==='shift')act('roll');
@@ -1234,8 +1236,22 @@ document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
 if(glOK){try{initGL();}catch(err){glOK=false;}}
 if(hasSave()&&load()){$('go').textContent='كمّل الرحلة';$('newg').hidden=false;}
 loadRegion(REG);applyWorld();updateBtns();setTod();setQ();musicOn=stats.mus!==0;$('mMus').textContent='الموسيقى: '+(musicOn?'شغالة':'طافية');layout();respawn();upCam(.016);
+let diagEnabled=false,diagSamples=[],diagPaintAt=0;
+function diagnosticsSnapshot(){
+  const sorted=diagSamples.slice().sort((a,b)=>a-b),avg=sorted.length?sorted.reduce((a,b)=>a+b,0)/sorted.length:0;
+  const p95=sorted.length?sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*.95)-1)]:0;
+  return {fps:avg?1000/avg:0,frameMs:avg,p95Ms:p95,samples:sorted.length,region:REG,width:glc.width,height:glc.height,dpr:DPR,webgl:!!glOK,quality:stats.q?'low':'high'};
+}
+function toggleDiagnostics(force){diagEnabled=typeof force==='boolean'?force:!diagEnabled;const el=$('diag');if(el)el.classList.toggle('on',diagEnabled);if(!diagEnabled&&el)el.textContent='ASHES // PERFORMANCE';return diagEnabled;}
+function updateDiagnostics(rawDt,ts){
+  if(!diagEnabled)return;
+  if(rawDt>0&&Number.isFinite(rawDt)){diagSamples.push(rawDt*1000);if(diagSamples.length>120)diagSamples.shift();}
+  if(ts-diagPaintAt<250)return;diagPaintAt=ts;
+  const d=diagnosticsSnapshot(),mem=performance.memory&&performance.memory.usedJSHeapSize?Math.round(performance.memory.usedJSHeapSize/1048576)+' MB':'n/a';
+  $('diag').textContent='ASHES // PERFORMANCE\\nFPS       '+d.fps.toFixed(1)+'\\nFRAME AVG '+d.frameMs.toFixed(2)+' ms\\nFRAME P95 '+d.p95Ms.toFixed(2)+' ms\\nREGION    '+d.region+'\\nCANVAS    '+d.width+' x '+d.height+'\\nDPR       '+d.dpr.toFixed(2)+'  /  '+d.quality+'\\nWEBGL     '+(d.webgl?'READY':'LOST')+'\\nJS HEAP   '+mem+'\\nF3  HIDE';
+}
 function frame(ts){
-  const now=ts/1000,dt=Math.min(.033,Math.max(0,now-last));last=now;
+  const now=ts/1000,rawDt=Math.max(0,now-last),dt=Math.min(.033,rawDt);last=now;updateDiagnostics(rawDt,ts);
   if(cine)upCine(dt);
   else if(!paused){if(hs>0)hs-=dt;else update(dt);}
   time+=dt;ambient(dt);
@@ -1244,7 +1260,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length};
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length};
 })();
 </script>
 </body>
