@@ -776,9 +776,32 @@ function decoDuhok(){
   // blue beads against the evil eye, hung over two doors only
   for(const d of[DOORS[0],DOORS[1]]){const x=d.hx+32,z=d.hz+d.dir*12,y=d.y+86;sc(1,8,1,'#3a2a1c',x,y+5,z);st('sph','#2a62c8',8,8,8,x,y,z,{em:.25});st('sph','#f2f2f2',4.4,4.4,1,x,y,z+d.dir*3.8);st('sph','#1a3a8a',2.4,2.4,1,x,y,z+d.dir*4.4);st('sph','#0a0a0a',1.2,1.2,1,x,y,z+d.dir*4.9);}
   for(const q of DECO)decoTree(q.k,q.x,q.y,q.z,q.h);
-  // Delal bridge: parapets and the great arch under the deck
-  for(const x of[474,566]){sb(8,14,232,'#7e786e',x,41,-736);}
+  // Delal bridge: layered parapets, carved capstones, and the great arch under the deck
+  for(const x of[474,566]){
+    sb(8,14,232,'#7e786e',x,41,-736);
+    for(let z=-790;z<=-682;z+=27){
+      sb(13,7,13,'#a49b8a',x,51,z);
+      sb(4,5,4,'#665f56',x,57,z);
+      st('sph','#e5ad62',4.5,6,4.5,x,62,z,{em:.48});
+    }
+  }
+  // Four heavy corner piers make the bridge read as a built stone crossing.
+  for(const x of[480,560])for(const z of[-790,-682]){
+    sb(18,25,18,'#6d685f',x,18,z);
+    sb(22,5,22,'#aaa08d',x,33,z);
+  }
   st('cyl','#77726a',132,92,132,520,-44,-736,{rz:PI/2});st('cyl','#2a3236',96,96,96,520,-58,-736,{rz:PI/2});
+  // Weathered stone steps descend from both bridge approaches toward the river path.
+  for(let k=0;k<4;k++){
+    const rise=k*5, z0=-814+k*13;
+    sb(118,5,22,'#8c867a',520,2+rise,z0);
+    sb(118,2,3,'#b0a692',520,5+rise,z0-9);
+  }
+  for(let k=0;k<4;k++){
+    const rise=k*5, z0=-650-k*13;
+    sb(118,5,22,'#8c867a',520,2+rise,z0);
+    sb(118,2,3,'#b0a692',520,5+rise,z0+9);
+  }
   // wolf-head rock: two ears
   st('con','#6e6860',16,26,14,1780,180,560);st('con','#6e6860',16,26,14,1806,180,574);st('sph','#5e5952',26,18,22,1818,150,586);
   // the overhang above the third bowl
