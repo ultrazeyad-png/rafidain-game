@@ -138,4 +138,32 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   expectInvalid(d, bin, /non-finite value/);
 }
 
+
+{
+  const d = baseDocument();
+  const bin = Buffer.alloc(72);
+  baseBin().copy(bin, 0);
+  d.bufferViews.push(
+    {buffer:0,byteOffset:44,byteLength:24},
+    {buffer:0,byteOffset:68,byteLength:4}
+  );
+  d.accessors.push({bufferView:2,componentType:5126,count:3,type:'VEC2'});
+  d.meshes[0].primitives[0].attributes.TEXCOORD_0=2;
+  d.materials=[{pbrMetallicRoughness:{baseColorTexture:{index:0}}}];
+  d.meshes[0].primitives[0].material=0;
+  d.images=[{bufferView:3,mimeType:'image/png'}];
+  d.textures=[{source:0}];
+  const parsed=parse(makeGLB(d,bin));
+  assert.equal(parsed.meshes[0].primitives[0].uvs.length,6);
+  assert.equal(parsed.meshes[0].primitives[0].material.baseColorTexture,0);
+  assert.equal(parsed.images.length,1);
+  assert.equal(parsed.images[0].bytes.length,4);
+  assert.equal(parsed.textures[0].source,0);
+}
+{
+  const d = baseDocument();
+  d.images=[{bufferView:99,mimeType:'image/png'}];
+  assert.throws(()=>parse(makeGLB(d,baseBin())),/unsupported or invalid embedded image/);
+}
+
 console.log('GLB parser fixtures passed: valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
