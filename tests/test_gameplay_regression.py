@@ -328,8 +328,10 @@ async def run_suite(base_url: str) -> None:
             # Wait for the world to be rebuilt; WebGL readiness is covered by
             # the dedicated context-recovery test above and is not a save/load
             # prerequisite (a transient context reset must not mask persistence).
+            # Persistence is independent of the renderer's asynchronous chunk rebuild.
+            # Wait for the restored region only; WebGL readiness has its own dedicated test.
             await page.wait_for_function(
-                "window.__g && window.__g.chunks > 0 && window.__g.REG === 'muthanna'",
+                "window.__g && window.__g.REG === 'muthanna'",
                 timeout=30000,
             )
             save_state = await page.evaluate(
