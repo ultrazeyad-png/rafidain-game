@@ -246,7 +246,7 @@ async def run_suite(base_url: str) -> None:
                             blocks: g.B.length,
                             chunks: g.chunks,
                             enemies: g.enemies.length,
-                            miniBosses: g.enemies.filter(e => e.T.mini && !e.dead).map(e => e.T.name),
+                            miniBosses: g.enemies.filter(e => e.k === "gmini" && !e.dead).map(e => e.T.name),
                             boss: !!g.boss,
                             duhokDetails: g.duhokDetails()
                         };
@@ -259,7 +259,7 @@ async def run_suite(base_url: str) -> None:
                 if result["blocks"] <= 0 or result["chunks"] <= 0:
                     raise AssertionError(f"Region did not build world geometry: {result}")
                 if len(result["miniBosses"]) != 1:
-                    raise AssertionError(f"Region must spawn exactly one optional mini-boss: {result}")
+                    raise AssertionError(f"Region must spawn exactly one assigned gmini encounter: {result}")
                 if not result["boss"]:
                     raise AssertionError(f"Expected region boss was not spawned: {result}")
                 if result["id"] == "duhok" and result["duhokDetails"] < 20:
