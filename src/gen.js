@@ -175,8 +175,35 @@ function decoLm(){const L=REGC&&REGC.lm;if(!L)return;const {x,y,z}=L,s=(a,b,c,co
     case 'mudhif':for(let q=0;q<9;q++){const a=PI*q/8;st('box','#c8b070',8,4,120,x+Math.cos(a)*55-0,y+Math.sin(a)*55,z,{rz:0});}st('cyl','#c8b070',110,120,110,x,y+2,z,{rx:PI/2,rz:PI/2});sb(116,4,120,'#a89050',x,y,z);break;
     case 'ziggurat':sb(220,40,220,'#b89a6a',x,y+20,z);sb(160,40,160,'#a88a5a',x,y+60,z);sb(100,40,100,'#b89a6a',x,y+100,z);sb(60,30,60,'#a88a5a',x,y+135,z);sb(30,80,120,'#9a7c50',x+120,y+40,z,0);break;
     case 'boat':st('sph','#6a4a2a',90,20,26,x,y+10,z);sb(80,3,22,'#8a6a40',x,y+18,z);sc(4,70,4,'#5a3a20',x,y+50,z);st('box','#e0d8c8',2,50,40,x+6,y+60,z);break;
-    case 'gate':sb(60,180,60,'#6a5848',x-60,y+90,z);sb(60,180,60,'#6a5848',x+60,y+90,z);sb(180,40,60,'#5a4838',x,y+200,z);
-      for(let q=0;q<5;q++)sb(10,10,62,'#e0c050',x-40+q*20,y+200,z,1);break;}
+    case 'gate':
+      // Baghdad's Talisman Gate: massive dark timber leaves beneath a carved stone arch
+      sb(60,180,60,'#6a5848',x-60,y+90,z);sb(60,180,60,'#6a5848',x+60,y+90,z);
+      sb(180,40,60,'#5a4838',x,y+200,z);
+      sb(94,132,12,'#241b18',x,y+70,z+32);
+      sb(42,126,5,'#493027',x-22,y+70,z+40);sb(42,126,5,'#493027',x+22,y+70,z+40);
+      sb(3,126,7,'#c39b55',x,y+70,z+44);
+      for(let q=0;q<9;q++){
+        const px=x-39+q*9.7;
+        sb(2.2,124,2.2,q%2?'#725038':'#8a6440',px,y+70,z+45);
+        for(const yy of[22,62,102])st('sph','#c49b55',2.2,2.2,1.2,px,y+yy,z+47);
+      }
+      // five key sockets echo the five keys carried by Adapa
+      for(let q=0;q<5;q++){
+        const px=x-40+q*20;
+        st('sph','#e0c050',5.5,5.5,2.2,px,y+202,z+34,{em:.55});
+        sb(2.2,13,2.2,'#e0c050',px,y+190,z+36,1);
+      }
+      // stepped crown stones, relief bands and hanging red standards
+      for(let q=0;q<7;q++)sb(22,8,68,'#b59b70',x-72+q*24,y+222,z);
+      for(const sd of[-1,1]){
+        sb(5,78,5,'#8d2529',x+sd*104,y+142,z+35);
+        st('con','#8d2529',17,26,4,x+sd*104,y+92,z+35,{rz:PI});
+        st('sph','#e0c050',4,4,4,x+sd*104,y+188,z+36,{em:.45});
+        for(let q=0;q<3;q++)sb(5,3,70,'#c4a777',x+sd*60,y+48+q*54,z+32);
+      }
+      st('sph','#287f91',13,16,5,x,y+224,z+34,{em:.6});
+      for(let q=0;q<5;q++)sb(10,10,62,'#e0c050',x-40+q*20,y+200,z,1);
+      break;}
 }
 /* ---------- Baghdad's city blocks ---------- */
 function cityBlock(b){const w=b.x1-b.x0,d=b.z1-b.z0,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
