@@ -566,14 +566,17 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
       {joints:new Uint16Array(4),weights:new Float32Array(4),normals:new Float32Array(3),uvs:new Float32Array(2),material:{baseColorTexture:0,normalTexture:1}},
       {normals:null,uvs:null,material:{}}
     ]}],
-    nodes:[{}],instances:[{mesh:0,skin:0}],skins:[{joints:[0]}],animations:[{channels:[{node:0}]}],images:[{}],textures:[{},{}]
+    nodes:[{}],instances:[{mesh:0,skin:0}],skins:[{joints:[0]}],animations:['idle','walk','run','attack','death'].map(name=>({name,channels:[{node:0}]})),images:[{}],textures:[{},{}]
   });
   assert.equal(report.valid,true);
   assert.equal(report.readyForAnimatedCharacter,true);
   assert.equal(report.summary.primitives,2);
   assert.equal(report.summary.skinnedPrimitives,1);
   assert.equal(report.summary.skinnedInstances,1);
-  assert.equal(report.summary.animationClips,1);
+  assert.equal(report.summary.animationClips,5);
+  assert.equal(report.animationCoverage.idle,true);
+  assert.equal(report.animationCoverage.run,true);
+  assert.equal(report.animationCoverage.death,true);
   assert.equal(report.summary.normalMappedPrimitives,1);
   assert.equal(report.warnings.some(w=>w.includes('missing normals')),true);
   assert.equal(report.warnings.some(w=>w.includes('UVs')),true);
@@ -586,5 +589,6 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
   });
   assert.equal(detached.readyForAnimatedCharacter,false);
   assert.equal(detached.warnings.some(w=>w.includes('not attached to a skin')),true);
+  assert.equal(detached.warnings.some(w=>w.includes('Missing core gameplay animation clips')),true);
   assert.throws(()=>context.__inspectGLBAsset(null),/requires a parsed GLB asset/);
 }
