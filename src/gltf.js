@@ -111,6 +111,30 @@ function gltfNodeWorldMatrices(asset,pose=new Map()){
   for(let i=0;i<nodes.length;i++)resolve(i);
   return world;
 }
+function gltfSkinPrimitiveCPU(primitive,jointMatrices){
+  if(!primitive.joints||!primitive.weights)gltfFail('CPU skinning requires JOINTS_0 and WEIGHTS_0');
+  if(primitive.joints.length!==primitive.positions.length/3*4||primitive.weights.length!==primitive.joints.length)gltfFail('skinning attributes do not match vertex count');
+  if(jointMatrices.length%16)gltfFail('joint matrix palette must contain MAT4 values');
+  const positions=new Float32Array(primitive.positions.length),normals=primitive.normals?new Float32Array(primitive.normals.length):null,tangents=primitive.tangents?new Float32Array(primitive.tangents.length):null;
+  for(let v=0;v<primitive.positions.length/3;v++){
+    const pi=v*3,ji=v*4,x=primitive.positions[pi],y=primitive.positions[pi+1],z=primitive.positions[pi+2];
+    let total=0,px=0,py=0,pz=0,nx=0,ny=0,nz=0,tx=0,ty=0,tz=0;
+    for(let k=0;k<4;k++){
+      const weight=primitive.weights[ji+k];if(weight<=0)continue;
+      const joint=primitive.joints[ji+k],offset=joint*16;if(offset+15>=jointMatrices.length)gltfFail('vertex references missing joint matrix');
+      const m=jointMatrices.subarray(offset,offset+16);
+      px+=(m[0]*x+m[4]*y+m[8]*z+m[12])*weight;py+=(m[1]*x+m[5]*y+m[9]*z+m[13])*weight;pz+=(m[2]*x+m[6]*y+m[10]*z+m[14])*weight;
+      if(normals){const n=gltfTransformNormal(m,primitive.normals[pi],primitive.normals[pi+1],primitive.normals[pi+2]);nx+=n[0]*weight;ny+=n[1]*weight;nz+=n[2]*weight;}
+      if(tangents){const ti=v*4,xx=primitive.tangents[ti],yy=primitive.tangents[ti+1],zz=primitive.tangents[ti+2];tx+=(m[0]*xx+m[4]*yy+m[8]*zz)*weight;ty+=(m[1]*xx+m[5]*yy+m[9]*zz)*weight;tz+=(m[2]*xx+m[6]*yy+m[10]*zz)*weight;}
+      total+=weight;
+    }
+    if(total<=1e-8){positions.set([x,y,z],pi);if(normals)normals.set(primitive.normals.subarray(pi,pi+3),pi);if(tangents)tangents.set(primitive.tangents.subarray(v*4,v*4+4),v*4);continue;}
+    positions[pi]=px/total;positions[pi+1]=py/total;positions[pi+2]=pz/total;
+    if(normals){const l=Math.hypot(nx,ny,nz)||1;normals[pi]=nx/l;normals[pi+1]=ny/l;normals[pi+2]=nz/l;}
+    if(tangents){const l=Math.hypot(tx,ty,tz)||1,ti=v*4;tangents[ti]=tx/l;tangents[ti+1]=ty/l;tangents[ti+2]=tz/l;tangents[ti+3]=primitive.tangents[ti+3];}
+  }
+  return {...primitive,positions,normals,tangents};
+}
 function gltfBuildJointMatrices(asset,skinIndex,meshNode,pose=new Map()){
   const skin=asset.skins?.[skinIndex];if(!skin)gltfFail('missing skin '+skinIndex);
   if(!Number.isInteger(meshNode)||meshNode<0||meshNode>=asset.nodes.length)gltfFail('invalid skinned mesh node');
