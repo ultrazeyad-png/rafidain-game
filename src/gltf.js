@@ -639,6 +639,37 @@ if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
 });
 
 const gltfEntityInstances=new Map();
+const gltfModelCatalog=new Map();
+const gltfModelCategory=(entity)=>{
+  if(!entity||typeof entity!=='object')return '';
+  if(entity.k==='gmini')return 'gmini';
+  if(entity.k==='guard')return 'guard';
+  if(entity.k==='sling'||entity.k==='archer')return 'husk';
+  return String(entity.k||'');
+};
+function registerGLBModelCatalog(catalog={}){
+  if(!catalog||typeof catalog!=='object'||Array.isArray(catalog))gltfFail('model catalog must be an object');
+  const next=new Map();
+  for(const [category,entry] of Object.entries(catalog)){
+    if(!category.trim()||!entry||typeof entry!=='object'||typeof entry.url!=='string'||!entry.url.trim())gltfFail('each catalog entry needs a category and model URL');
+    const scale=entry.scale??60;
+    if(!Number.isFinite(scale)||scale<=0)gltfFail('catalog model scale must be positive and finite');
+    next.set(category,{url:entry.url,scale,animation:entry.animation||{}});
+  }
+  gltfModelCatalog.clear();
+  for(const [category,entry] of next)gltfModelCatalog.set(category,entry);
+  return {ok:true,categories:Array.from(gltfModelCatalog.keys())};
+}
+function getGLBModelCatalog(){
+  return Array.from(gltfModelCatalog,([category,entry])=>({category,url:entry.url,scale:entry.scale}));
+}
+async function bindGLBModelForEntity(gameEntity,overrides={}){
+  const category=gltfModelCategory(gameEntity),entry=gltfModelCatalog.get(category);
+  if(!entry)return {ok:false,reason:'no-model-for-category',category};
+  const options={scale:entry.scale,animation:entry.animation,...overrides};
+  return bindGLBModel(gameEntity,entry.url,options);
+}
+
 const gltfEntityIds=new WeakMap();
 let gltfEntitySerial=0;
 function getGLBEntityId(gameEntity){
