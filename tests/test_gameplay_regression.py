@@ -27,6 +27,16 @@ async def run_suite(base_url: str) -> None:
         page = await browser.new_page(viewport={"width": 960, "height": 540})
         page_errors: list[str] = []
         page.on("pageerror", lambda error: page_errors.append(str(error)))
+
+
+        try:
+            await page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await page.click("#go")
+            await page.wait_for_function(
+                "window.__g && window.__g.ok() && window.__g.chunks > 0",
+                timeout=15000,
+            )
+
         speech = await page.evaluate("""() => {
             const spoken = [];
             class FakeUtterance { constructor(text) { this.text = text; } }
@@ -53,14 +63,6 @@ async def run_suite(base_url: str) -> None:
         if speech["disabledCount"] != 2 or not speech["enabled"]:
             raise AssertionError(f"Dialogue mute toggle failed: {speech}")
         print("PASS: Arabic spoken dialogue, distinct character profiles, and mute toggle")
-
-        try:
-            await page.goto(f"{base_url}/dist/index.html", wait_until="load")
-            await page.click("#go")
-            await page.wait_for_function(
-                "window.__g && window.__g.ok() && window.__g.chunks > 0",
-                timeout=15000,
-            )
 
             combat = await page.evaluate(
                 """() => {
