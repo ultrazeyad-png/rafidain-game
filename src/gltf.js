@@ -625,11 +625,16 @@ if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
     }).catch(error=>{gltfHeroError=String(error&&error.message||error);});
   }
   for(const entity of gltfEntityInstances.values()){
+    if(entity.disposed||!entity.asset)continue;
     entity.gpu=null;entity.textures=[];
     prepareGLBTextures(entity.asset).then(textures=>{
+      if(entity.disposed||gltfEntityInstances.get(entity.id)!==entity){
+        for(const texture of textures)gl.deleteTexture(texture);
+        return;
+      }
       entity.textures=textures;
       if(glOK)entity.gpu=prepareGLBHero(entity.asset);
-    }).catch(error=>{entity.error=String(error&&error.message||error);});
+    }).catch(error=>{if(!entity.disposed)entity.error=String(error&&error.message||error);});
   }
 });
 
