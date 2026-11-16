@@ -52,8 +52,18 @@ function upNamtar(b,dt){
         if(Math.hypot(P.x-b.x,P.z-b.z)<100&&P.y-arY()<20)hurtP(Math.round(38*(b.dm||1)),b.x,b.z);if(ph2)elemHit(b,3);if(ph2)waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});bRec(b,ph2?.7:1.05);}
       break;}
     case 'stomp':b.a=turn(b.a,ang,2*dt);
-      if(b.elem&&b.elem!=='shadow'){if(b.t>.5&&b.n<1){b.n=1;elemHit(b,6);}if(b.t>1.6){b.n=0;bRec(b,.5);}break;}
-      if(b.t>.75&&b.n<1){b.n=1;shake=9;snd('land');waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});puff(b.x,b.y,b.z,10,12,120);}
+      if(b.elem&&b.elem!=='shadow'&&!(isAdapa&&ph2)){if(b.t>.5&&b.n<1){b.n=1;elemHit(b,6);}if(b.t>1.6){b.n=0;bRec(b,.5);}break;}
+      if(b.t>.75&&b.n<1){
+        b.n=1;shake=isAdapa&&ph2?13:9;snd('land');
+        if(isAdapa&&ph2){
+          if(!b.keyPulseSaid){b.keyPulseSaid=true;voice('boss','خمسة عهود… وخمسة قبور ستُفتح!');}
+          // Five expanding rings: the awakened keys strike the court in sequence.
+          for(let q=0;q<5;q++)waves.push({x:b.x,z:b.z,y:arY(),r:18+q*17,l:1.15+q*.09});
+          burst(b.x,arY()+5,b.z,'#d8ad54',24,190,arY());
+          burst(b.x,arY()+8,b.z,'#c0242e',12,145,arY());
+          if(Math.hypot(P.x-b.x,P.z-b.z)<118&&P.state!=='roll')hurtP(Math.round(26*(b.dm||1)),b.x,b.z);
+        }else{waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});puff(b.x,b.y,b.z,10,12,120);}
+      }
       if(b.t>1.35&&b.n<2){b.n=2;shake=9;snd('land');waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});}
       if(b.t>1.9){b.n=0;bRec(b,.5);}break;
     case 'charge':if(b.t<.6){b.a=turn(b.a,ang,6*dt);break;}
