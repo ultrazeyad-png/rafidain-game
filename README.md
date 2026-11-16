@@ -98,14 +98,14 @@ console.log(report);
 window.__g.registerGLBModelCatalog({
   guard: { url: 'assets/enemies/guard.glb', scale: 48 },
   wolf:  { url: 'assets/enemies/wolf.glb', scale: 36 },
-  boss:  { url: 'assets/bosses/namtar.glb', scale: 72 }
+  boss:  { url: 'assets/bosses/namtar.glb', scale: 72, requireAnimatedCharacter: true }
 });
 
 // بعد إنشاء كيان اللعبة:
 await window.__g.bindGLBModelForEntity(enemy);
 ```
 
-الفئات المدعومة تتبع قيمة `entity.k`، مع توحيد `archer` و`sling` إلى `husk`. ويمكن تخصيص `scale` و`animation` لكل مدخل. الربط اختياري؛ إذا لم يتوفر موديل أو فشل تحميله، يستمر الرسم الإجرائي الحالي.
+الفئات المدعومة تتبع قيمة `entity.k`، مع توحيد `archer` و`sling` إلى `husk`. ويمكن تخصيص `scale` و`animation` لكل مدخل. افتراضياً، يرفض المحرك موديل العدو أو الزعيم إذا لم يحتوِ Mesh مربوطاً بـ Skin ومقاطع idle وwalk وrun وattack وdeath تستهدف عظام الهيكل. يعيد التحميل تقرير `inspection` يوضح الجاهزية والحركات الناقصة. يمكن تعطيل شرط الشخصية المتحركة لمدخل محدد عبر `requireAnimatedCharacter: false` عند الحاجة إلى مجسم ثابت. الربط اختياري؛ إذا لم يتوفر موديل أو فشل تحميله، يستمر الرسم الإجرائي الحالي.
 
 **مهم:** المسارات أعلاه أمثلة توضيحية وليست أصولاً مضمّنة بالمستودع. يجب إضافة ملفات GLB حقيقية قبل تسجيلها. لا يعني وجود الكتالوج أن الموديلات أصبحت جاهزة أو مختبرة بصرياً.
 
