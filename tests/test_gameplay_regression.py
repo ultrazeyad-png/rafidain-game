@@ -94,6 +94,12 @@ async def run_suite(base_url: str) -> None:
             if ambience["river"]["region"] != "duhok" or ambience["city"]["region"] != "baghdad":
                 raise AssertionError(f"Regional ambience did not follow world changes: {ambience}")
             print("PASS: regional ambience profile switches with world transitions")
+            arena = await page.evaluate("""() => __g.miniArena""")
+            if not arena or arena["region"] != "duhok" or arena["kind"] != "wolfK":
+                raise AssertionError(f"Regional mini-boss arena anchor is missing or mismatched: {arena}")
+            if "if(MINI_ARENA){" not in (ROOT / "src" / "template.html").read_text(encoding="utf-8"):
+                raise AssertionError("Themed mini-boss arena geometry is not built")
+            print("PASS: regional mini-boss arena anchor and themed standing-stone ring")
 
             speech = await page.evaluate("""() => {
                 const spoken = [];
