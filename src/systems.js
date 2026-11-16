@@ -135,7 +135,7 @@ function miniBossFilm(e,m){
   cine={i:0,t:0,boss:e,mini:true,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true,m.k);return true;
 }
 function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}voice('narrator',s.t);}
-function upCine(dt){cine.t+=dt;if(cine.finisher){P.t+=dt;if(cine.boss)cine.boss.t+=dt;}const L=cine.shots||CINE,s=L[cine.i];
+function upCine(dt){cine.t+=dt;if(cine.finisher){P.t=Math.min(.65,P.t+dt);if(cine.boss)cine.boss.t+=dt;}const L=cine.shots||CINE,s=L[cine.i];
   if(cine.boss&&cine.boss.k==='boss'&&cine.i===0){const b=cine.boss;b.t+=dt;b.state='trans';if(b.t>1.6)b.state='intro';}
   if(cine.t>=s.d){cine.i++;cine.t=0;if(cine.i>=L.length){endCine();return;}cineShot();}}
 function endCine(){voiceStop();if(cine&&cine.finisher){
