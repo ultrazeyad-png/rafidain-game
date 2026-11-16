@@ -37,6 +37,11 @@ async def run_suite(base_url: str) -> None:
                 timeout=15000,
             )
 
+            opening_film = await page.evaluate("""() => __g.cineShots""")
+            if len(opening_film) < 8 or not any("جسر دلال" in line for line in opening_film) or not any("القرى المعلّگة" in line for line in opening_film):
+                raise AssertionError(f"Zakho opening film is missing the bridge or village establishing shots: {opening_film}")
+            print("PASS: opening cinematic includes Dalal bridge and mountain village establishing shots")
+
             speech = await page.evaluate("""() => {
                 const spoken = [];
                 class FakeUtterance { constructor(text) { this.text = text; } }
