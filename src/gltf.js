@@ -106,11 +106,27 @@ function parseGLB(buffer){
       return {name:mesh.name||'mesh_'+mi,positions:pos.data,normals:nor?.data||null,uvs:uv?.data||null,indices,
         material:{name:mat.name||'material_'+(p.material??0),baseColorFactor:pm.baseColorFactor||[1,1,1,1],
           metallicFactor:pm.metallicFactor??1,roughnessFactor:pm.roughnessFactor??1,
-          alphaMode:mat.alphaMode||'OPAQUE',doubleSided:!!mat.doubleSided}};
+          baseColorTexture:pm.baseColorTexture?.index??null,alphaMode:mat.alphaMode||'OPAQUE',doubleSided:!!mat.doubleSided}};
     })
   }));
   const instances=gltfSceneInstances(json,meshes.length);
-  return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,instances,
+  const images=(json.images||[]).map((image,index)=>{
+    if(image.uri)gltfFail('external image URIs are not supported yet');
+    const view=json.bufferViews?.[image.bufferView];
+    if(!view||view.buffer!==0||!['image/png','image/jpeg'].includes(image.mimeType))gltfFail('unsupported or invalid embedded image '+index);
+    const start=view.byteOffset||0,end=start+view.byteLength;
+    if(!Number.isInteger(start)||!Number.isInteger(view.byteLength)||start<0||view.byteLength<1||end>bin.byteLength)gltfFail('embedded image exceeds BIN bounds');
+    return {mimeType:image.mimeType,bytes:new Uint8Array(bin.slice(start,end))};
+  });
+  const textures=(json.textures||[]).map((texture,index)=>{
+    if(!Number.isInteger(texture.source)||!images[texture.source])gltfFail('texture '+index+' references missing image');
+    return {source:texture.source};
+  });
+  for(const mesh of meshes)for(const primitive of mesh.primitives){
+    const ti=primitive.material.baseColorTexture;
+    if(ti!=null&&!textures[ti])gltfFail('material references missing base-colour texture '+ti);
+  }
+  return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,instances,images,textures,
     bounds:meshes.reduce((n,m)=>n+m.primitives.length,0),extensionsUsed:json.extensionsUsed||[]};
 }
 async function loadGLB(url){
@@ -147,11 +163,12 @@ function gltfTransformNormal(m,x,y,z){
   return [nx/len,ny/len,nz/len];
 }
 function gltfExpandPrimitive(p){
-  const srcN=p.normals||gltfNormals(p.positions,p.indices),out=new Float32Array(p.indices.length*6);
+  const srcN=p.normals||gltfNormals(p.positions,p.indices),out=new Float32Array(p.indices.length*8);
   for(let i=0;i<p.indices.length;i++){
-    const j=p.indices[i],k=i*6,q=j*3;
+    const j=p.indices[i],k=i*8,q=j*3,u=p.uvs?j*2:-1;
     out[k]=p.positions[q];out[k+1]=p.positions[q+1];out[k+2]=p.positions[q+2];
     out[k+3]=srcN[q];out[k+4]=srcN[q+1];out[k+5]=srcN[q+2];
+    out[k+6]=p.uvs?p.uvs[u]:0;out[k+7]=p.uvs?p.uvs[u+1]:0;
   }
   return out;
 }
@@ -162,7 +179,7 @@ function prepareGLBHero(asset){
     const mesh=asset.meshes[instance.mesh],m=instance.matrix;
     for(const p of mesh.primitives){
       const data=gltfExpandPrimitive(p);
-      for(let i=0;i<data.length;i+=6){
+      for(let i=0;i<data.length;i+=8){
         const x=data[i],y=data[i+1],z=data[i+2],nx=data[i+3],ny=data[i+4],nz=data[i+5];
         data[i]=m[0]*x+m[4]*y+m[8]*z+m[12];
         data[i+1]=m[1]*x+m[5]*y+m[9]*z+m[13];
@@ -171,7 +188,7 @@ function prepareGLBHero(asset){
         data[i+3]=normal[0];data[i+4]=normal[1];data[i+5]=normal[2];
       }
       const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
-      entries.push({buffer,count:p.indices.length,material:p.material});
+      entries.push({buffer,count:p.indices.length,material:p.material,stride:32,texture:p.material.baseColorTexture});
     }
   }
   return entries;
@@ -197,7 +214,7 @@ function drawGLBHero(){
     gl.uniform4f(uC,f[0],f[1],f[2],f[3]);
     gl.bindBuffer(gl.ARRAY_BUFFER,item.buffer);
     gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aN);
-    gl.vertexAttribPointer(aP,3,gl.FLOAT,false,24,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,24,12);
+    gl.vertexAttribPointer(aP,3,gl.FLOAT,false,32,0);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,32,12);
     gl.disableVertexAttribArray(aC);gl.vertexAttrib4f(aC,1,1,1,0);
     gl.drawArrays(gl.TRIANGLES,0,item.count);
   }
