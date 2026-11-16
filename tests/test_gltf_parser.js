@@ -566,7 +566,7 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
       {joints:new Uint16Array(4),weights:new Float32Array(4),normals:new Float32Array(3),uvs:new Float32Array(2),material:{baseColorTexture:0,normalTexture:1}},
       {normals:null,uvs:null,material:{}}
     ]}],
-    nodes:[{}],skins:[{}],animations:[{}],images:[{}],textures:[{},{}]
+    nodes:[{}],instances:[{mesh:0,skin:0}],skins:[{joints:[0]}],animations:[{channels:[{node:0}]}],images:[{}],textures:[{},{}]
   });
   assert.equal(report.valid,true);
   assert.equal(report.readyForAnimatedCharacter,true);
@@ -576,7 +576,7 @@ console.log('GLB parser fixtures passed: skinned mesh world transform applicatio
   assert.equal(report.summary.normalMappedPrimitives,1);
   assert.equal(report.warnings.some(w=>w.includes('missing normals')),true);
   assert.equal(report.warnings.some(w=>w.includes('UVs')),true);
-  const staticOnly = context.__inspectGLBAsset({meshes:[{primitives:[{material:{}}]}],nodes:[],skins:[],animations:[],images:[],textures:[]});
+  const staticOnly = context.__inspectGLBAsset({meshes:[{primitives:[{material:{}}]}],nodes:[],instances:[{mesh:0,skin:null}],skins:[],animations:[],images:[],textures:[]});
   assert.equal(staticOnly.readyForAnimatedCharacter,false);
   assert.equal(staticOnly.warnings.length>=3,true);
   assert.throws(()=>context.__inspectGLBAsset(null),/requires a parsed GLB asset/);
