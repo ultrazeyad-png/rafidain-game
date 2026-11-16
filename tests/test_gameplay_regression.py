@@ -330,6 +330,36 @@ async def run_suite(base_url: str) -> None:
                     raise AssertionError(f"Zakho/Delal landmark detail count was not preserved through baking: {result}")
             print("PASS: all 19 Iraqi regions load with geometry, regional bosses, and assigned mini-boss identities")
 
+            progression = await page.evaluate("""() => {
+                const g=window.__g, oldProg=g.stats.prog, oldDone=g.stats.done;
+                const order=g.regionOrder, checks=[];
+                g.stats.prog=0;g.stats.done={};
+                checks.push({stage:"fresh",first:g.canGo(order[0]),second:g.canGo(order[1]),baghdad:g.canGo("baghdad")});
+                for(let i=0;i<order.length-1;i++){
+                    const id=order[i];
+                    const current=g.canGo(id);
+                    g.stats.done[id]=true;
+                    g.stats.prog=i+1;
+                    checks.push({stage:id,current,next:order[i+1],nextOpen:g.canGo(order[i+1]),baghdad:g.canGo("baghdad")});
+                }
+                const result={order,checks,baghdadAfterBasra:g.canGo("baghdad")};
+                g.stats.prog=oldProg;g.stats.done=oldDone;
+                return result;
+            }""")
+            if progression["order"][-2:] != ["basra","baghdad"]:
+                raise AssertionError(f"Campaign order must end through Basra then Baghdad: {progression}")
+            fresh = progression["checks"][0]
+            if not fresh["first"] or fresh["second"] or fresh["baghdad"]:
+                raise AssertionError(f"Fresh campaign must unlock only Zakho initially: {fresh}")
+            for check in progression["checks"][1:]:
+                if not check["nextOpen"]:
+                    raise AssertionError(f"Completing {check['stage']} must unlock {check['next']}: {check}")
+            if not progression["baghdadAfterBasra"]:
+                raise AssertionError(f"Baghdad must unlock after Basra is completed: {progression}")
+            if any(check.get("baghdad") for check in progression["checks"] if check["stage"] != "basra"):
+                raise AssertionError(f"Baghdad unlocked before Basra: {progression}")
+            print("PASS: campaign map progression unlocks one region at a time and keeps Baghdad locked until Basra")
+
             await page.evaluate(
                 """() => {
                     const g = window.__g;
