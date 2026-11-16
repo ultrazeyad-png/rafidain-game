@@ -251,7 +251,7 @@ function prepareGLBHero(asset){
     const mesh=asset.meshes[instance.mesh],m=instance.matrix;
     for(const p of mesh.primitives){
       const data=gltfExpandPrimitive(p);
-      for(let i=0;i<data.length;i+=8){
+      for(let i=0;i<data.length;i+=12){
         const x=data[i],y=data[i+1],z=data[i+2],nx=data[i+3],ny=data[i+4],nz=data[i+5];
         data[i]=m[0]*x+m[4]*y+m[8]*z+m[12];
         data[i+1]=m[1]*x+m[5]*y+m[9]*z+m[13];
