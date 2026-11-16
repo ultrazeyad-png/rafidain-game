@@ -84,7 +84,10 @@ function gltfCreatePlaybackState(asset,options={}){
   if(!Number.isInteger(clip)||clip<0||(count&&clip>=count))gltfFail('animation clip index is out of range');
   if(!Number.isFinite(speed)||speed<0||speed>4)gltfFail('animation speed must be between 0 and 4');
   if(typeof loop!=='boolean')gltfFail('animation loop must be boolean');
-  return {clip,speed,paused:!!options.paused,elapsed:options.position??0,lastTime:null,loop,transition:null,currentPose:new Map()};
+  const paused=options.paused??false,position=options.position??0;
+  if(typeof paused!=='boolean')gltfFail('animation paused must be boolean');
+  if(!Number.isFinite(position)||position<0)gltfFail('animation position must be a non-negative finite number');
+  return {clip,speed,paused,elapsed:position,lastTime:null,loop,transition:null,currentPose:new Map()};
 }
 function gltfSetPlaybackAnimation(asset,playback,options={}){
   const next={...playback};
