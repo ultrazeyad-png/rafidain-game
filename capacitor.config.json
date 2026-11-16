@@ -1,0 +1,8 @@
+{
+  "appId": "com.nextlevel.ashesofmesopotamia",
+  "appName": "رماد الرافدين",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}
