@@ -167,8 +167,24 @@ function mobArm(side,cb,th,e,w,yaw,tx,item){
   sph(3.9,9.8,3.9,cb,0,-4,0);T(0,-8,0);RZ(e);sph(3.4,9.2,3.4,cb,0,-4,0);sph(3.2,3.4,3.2,cb,0,-8.4,0);
   if(item){T(0,-8.6,0);RZ(w);item();}pop();
 }
+function drawBossCore(e){
+  if(!e.boss||Math.hypot(e.x-P.x,e.z-P.z)>DR)return;
+  const y=e.y+e.T.h*.68,fx=Math.cos(e.a),fz=Math.sin(e.a),cx=e.x+fx*13,cz=e.z+fz*13;
+  if(e.weakT>0){
+    const pulse=1+.16*Math.sin(time*12);
+    sph(8*pulse,8*pulse,8*pulse,'#ff3b48',cx,y,cz,1,.98);
+    sph(15*pulse,15*pulse,15*pulse,'#ff7b42',cx,y,cz,1,.22);
+    cyl(20,1.5,20,'#f2d18a',cx,y-7,cz,1,.72);
+  }else{
+    const n=e.armor==null?2:e.armor;
+    for(let i=0;i<n;i++){const side=i===0?-1:1,px=cx-fz*side*12,pz=cz+fx*side*12;
+      sph(7,9,3.5,'#8e9aa2',px,y,pz,1,.86);
+      sph(4,5,2,'#c5cdd1',px,y,pz,1,.8);
+    }
+  }
+}
 function drawMob(e){
-  if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k;if(mk==='scorpK')drawScorp(e);else if(mk==='crocK')drawCroc(e);else if(mk==='ghostK')drawGhost(e);else drawWolf(e);return;}if(e.k==='wolf'){drawWolf(e);return;}if(e.k==='anzu'){drawAnzu(e);return;}if(e.k==='boss'){drawNamtar(e);return;}if(e.k==='erra'){drawErra(e);return;}if(e.k==='gb'){drawWarrior(e);return;}if(e.k==='scorp'||e.k==='scorpK'){drawScorp(e);return;}if(e.k==='croc'||e.k==='crocK'){drawCroc(e);return;}if(e.k==='ghost'||e.k==='ghostK'){drawGhost(e);return;}if(e.k==='wolfK'){drawWolf(e);return;}
+  if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k;if(mk==='scorpK')drawScorp(e);else if(mk==='crocK')drawCroc(e);else if(mk==='ghostK')drawGhost(e);else drawWolf(e);return;}if(e.k==='wolf'){drawWolf(e);return;}if(e.k==='anzu'){drawAnzu(e);return;}if(e.k==='boss'){drawNamtar(e);drawBossCore(e);return;}if(e.k==='erra'){drawErra(e);drawBossCore(e);return;}if(e.k==='gb'){drawWarrior(e);drawBossCore(e);return;}if(e.k==='scorp'||e.k==='scorpK'){drawScorp(e);return;}if(e.k==='croc'||e.k==='crocK'){drawCroc(e);return;}if(e.k==='ghost'||e.k==='ghostK'){drawGhost(e);return;}if(e.k==='wolfK'){drawWolf(e);return;}
   const T_=e.T,k=e.k==='guard'?'brute':(e.k==='sling'||e.k==='archer')?'husk':e.k,s=T_.h/46,wf=k==='brute'?1.25:k==='boss'?1.12:1,c=MC[e.k],st=e.state;
   let fall=0;gAlpha=1;
   if(e.dead){if(e.t>1.2)return;fall=Math.min(1,e.t/.35)*1.5;gAlpha=Math.max(0,1-e.t/1.2);}
