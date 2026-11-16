@@ -80,15 +80,18 @@ async def run_suite(base_url: str) -> None:
         page.on("pageerror", lambda error: page_errors.append(str(error)))
 
         async def reload_and_start() -> None:
+            previous_document = await page.evaluate("() => performance.timeOrigin")
             await page.evaluate("() => window.location.reload()")
-            # The page intentionally returns to the title screen on reload.
-            # Wait for that new document before pressing Continue/New Journey.
+            # Detect the new document directly. Corrupt-save recovery may
+            # already have started the fresh session, so only click Start
+            # when the title button is actually visible.
             await page.wait_for_function(
-                "document.readyState === 'complete' && "
-                "document.querySelector('#title')?.classList.contains('on')",
+                "(previous) => performance.timeOrigin !== previous && document.readyState === 'complete'",
+                previous_document,
                 timeout=30000,
             )
-            await page.click("#go")
+            if await page.locator("#go").is_visible():
+                await page.click("#go")
             await page.wait_for_function("!!window.__g", timeout=30000)
 
 
