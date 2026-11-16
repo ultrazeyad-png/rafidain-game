@@ -736,7 +736,7 @@ function getGLBModelCatalog(){
 async function bindGLBModelForEntity(gameEntity,overrides={}){
   const category=gltfModelCategory(gameEntity),entry=gltfModelCatalog.get(category);
   if(!entry)return {ok:false,reason:'no-model-for-category',category};
-  const options={scale:entry.scale,animation:entry.animation,...overrides};
+  const options={scale:entry.scale,animation:entry.animation,requireAnimatedCharacter:entry.requireAnimatedCharacter,...overrides};
   return bindGLBModel(gameEntity,entry.url,options);
 }
 
