@@ -149,6 +149,8 @@ const adiff=(a,b)=>Math.abs(wrap(a-b));
 const turn=(c,t,m)=>c+clamp(wrap(t-c),-m,m);
 const FONT='"Noto Naskh Arabic","Geeza Pro","Amiri","Times New Roman",serif';
 const SAVE='ashes-rafidain-v1';
+const SAVE_SCHEMA=2;
+const SAVE_BACKUP=SAVE+'.backup-v1';
 function hash(n){const s=Math.sin(n*127.1)*43758.5453;return s-Math.floor(s);}
 
 /* ================= world data ================= */
@@ -289,10 +291,34 @@ const cost=()=>120+(stats.lvl-1)*70;
 /*@AUDIO@*/
 /* ================= save ================= */
 function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
-  localStorage.setItem(SAVE,JSON.stringify({stats,reg:REG,rs:RS}));}catch(_){}}
-function load(){try{const d=JSON.parse(localStorage.getItem(SAVE)||'null');if(!d||!d.stats||!d.rs)return false;
-  Object.assign(stats,d.stats);for(const k in d.rs)RS[k]=d.rs[k];REG=d.reg==='muthanna'?'muthanna':'duhok';
-  stats.wl=stats.wl||{};stats.own=stats.own||{};stats.done=stats.done||{};if(!stats.gk)stats.gk=pickGuardians();if(stats.unl&&!stats.prog)stats.prog=1;if(!WPN[stats.wpn]||!ownW(stats.wpn))stats.wpn='shield';return true;}catch(_){return false;}}
+  localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}}
+function saveRecord(v){return !!v&&typeof v==='object'&&!Array.isArray(v)&&(Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);}
+function validSaveShape(d){
+  if(!saveRecord(d)||!saveRecord(d.stats)||!saveRecord(d.rs)||typeof d.reg!=='string'||!ORDER.includes(d.reg))return false;
+  for(const k of ['lvl','vig','end','str','embers'])if(!Number.isFinite(d.stats[k]))return false;
+  if(typeof d.stats.wpn!=='string')return false;
+  for(const k of Object.keys(d.rs))if(!ORDER.includes(k)||!saveRecord(d.rs[k]))return false;
+  return true;
+}
+function migrateSave(d,raw){
+  const version=d&&Number.isInteger(d.schemaVersion)?d.schemaVersion:1;
+  if(version===SAVE_SCHEMA)return validSaveShape(d)?d:null;
+  if(version!==1||!validSaveShape(d))return null;
+  // Preserve the exact legacy bytes before replacing the only live save slot.
+  if(!localStorage.getItem(SAVE_BACKUP))localStorage.setItem(SAVE_BACKUP,raw);
+  const migrated={schemaVersion:SAVE_SCHEMA,stats:d.stats,reg:d.reg,rs:d.rs};
+  localStorage.setItem(SAVE,JSON.stringify(migrated));
+  return migrated;
+}
+function load(){try{
+  const raw=localStorage.getItem(SAVE);if(!raw)return false;
+  const parsed=JSON.parse(raw),d=migrateSave(parsed,raw);if(!d)return false;
+  for(const k of Object.keys(d.stats))if(k!=='__proto__'&&k!=='constructor'&&k!=='prototype')stats[k]=d.stats[k];
+  for(const k of Object.keys(d.rs))if(k!=='__proto__'&&k!=='constructor'&&k!=='prototype')RS[k]=d.rs[k];
+  REG=d.reg;
+  stats.wl=saveRecord(stats.wl)?stats.wl:{};stats.own=saveRecord(stats.own)?stats.own:{};stats.done=saveRecord(stats.done)?stats.done:{};
+  if(!stats.gk)stats.gk=pickGuardians();if(stats.unl&&!stats.prog)stats.prog=1;if(!WPN[stats.wpn]||!ownW(stats.wpn))stats.wpn='shield';return true;
+}catch(_){return false;}}
 function applyWorld(){const w=RS[REG]||{};   // call after loadRegion
   Object.assign(world,{shrine:clamp(w.shrine|0,0,SHR.length-1),lit:w.lit&&w.lit.length===SHR.length?w.lit:SHR.map((q,i)=>i===0),bossDead:!!w.bossDead,stain:w.stain&&w.stain.amt?w.stain:null,locked:false,
     door:!!w.door,frags:w.frags?[!!w.frags[0],!!w.frags[1]]:[false,false],key:!!w.key,gate:!!w.gate,brz:w.brz||[],mgate:!!w.mgate,sec:!!w.sec,secSeen:false,npc:w.npc||{},items:w.items||{}});
