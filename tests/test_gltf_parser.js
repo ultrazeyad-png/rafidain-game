@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__blendAnimationPoses = gltfBlendAnimationPoses; globalThis.__animationLocalTime = gltfAnimationLocalTime; globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation; globalThis.__jointMatrices = gltfBuildJointMatrices; globalThis.__nodeWorldMatrices = gltfNodeWorldMatrices; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__transformExpanded = gltfTransformExpanded; globalThis.__cpuSkin = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU; globalThis.__skinCPU = gltfSkinPrimitiveCPU;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -427,6 +427,23 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.deepEqual(Array.from(result.slice(0,3)),[7,12,19]);
   assert.deepEqual(Array.from(result.slice(3,6)),[0,1,0]);
   assert.deepEqual(Array.from(result.slice(8,11)),[1,0,0]);
+}
+
+
+{
+  const asset={nodes:[{translation:[0,0,0],rotation:[0,0,0,1],scale:[1,1,1]},{translation:[2,0,0]}]};
+  const from=new Map([[0,{translation:[0,0,0],rotation:[0,0,0,1],scale:[1,1,1]}]]);
+  const to=new Map([[0,{translation:[10,4,2],rotation:[0,1,0,0],scale:[3,3,3]}],[1,{translation:[8,0,0]}]]);
+  const zero=context.__blendAnimationPoses(asset,from,to,0);
+  const half=context.__blendAnimationPoses(asset,from,to,.5);
+  const one=context.__blendAnimationPoses(asset,from,to,1);
+  assert.deepEqual(Array.from(zero.get(0).translation),[0,0,0]);
+  assert.deepEqual(Array.from(half.get(0).translation),[5,2,1]);
+  assert.deepEqual(Array.from(half.get(0).scale),[2,2,2]);
+  assert.ok(Math.abs(half.get(0).rotation[1]-Math.SQRT1_2)<1e-5);
+  assert.deepEqual(Array.from(one.get(0).translation),[10,4,2]);
+  assert.deepEqual(Array.from(half.get(1).translation),[5,0,0]);
+  assert.throws(()=>context.__blendAnimationPoses(asset,from,to,NaN),/blend alpha must be finite/);
 }
 
 console.log('GLB parser fixtures passed: skinned mesh world transform application,  CPU vertex skinning and joint palette validation,  CPU skinning weighted translation and identity,  CPU skinning vertex deformation,  animated node world transforms and inverse-bind joint matrices,  linear/step/cubic animation sampling, quaternion interpolation and pose evaluation,  skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
