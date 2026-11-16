@@ -90,6 +90,26 @@ function gltfResolveAnimationClip(asset,action){
   const pattern=patterns[action];if(!pattern)return -1;
   return (asset.animations||[]).findIndex(clip=>pattern.test(clip.name||''));
 }
+function gltfResolveEnemyAction(entity){
+  if(!entity||typeof entity!=='object')return 'idle';
+  if(entity.dead||entity.state==='dead')return 'death';
+  const state=entity.state||'idle';
+  if(entity.boss){
+    if(state==='sleep'||state==='intro')return 'idle';
+    if(state==='chase')return 'walk';
+    if(state==='sweepW'||state==='sweep1'||state==='sweepW2'||state==='sweep2')return 'attack';
+    if(state==='slamW'||state==='leap'||state==='dashW'||state==='dash')return 'heavy';
+    if(state==='stag'||state==='parried')return 'hurt';
+    if(state==='rec')return 'idle';
+    return 'idle';
+  }
+  if(state==='chase')return 'run';
+  if(state==='wind')return 'heavy';
+  if(state==='strike')return 'attack';
+  if(state==='stun')return 'hurt';
+  if(state==='rec'||state==='miniTrans')return 'idle';
+  return 'idle';
+}
 function setGLBHeroAction(action){
   if(!gltfHero) return {ok:false,reason:'no-model'};
   if(typeof action!=='string'||!action)gltfFail('hero action must be a non-empty string');
