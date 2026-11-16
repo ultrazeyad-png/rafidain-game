@@ -392,7 +392,7 @@ function spawnAll(){
   if(!world.bossDead){if(REG==='muthanna'){boss=mk('boss',1840,900,AY);boss.a=-PI/2;boss.elem='shadow';}
     else if(REG==='duhok'){boss=mk('erra',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem='storm';boss.spd=1.12;}
     else{const g=GOVM[REG],B_=g.boss;TYPES.gb={hp:Math.round(B_.hp*(1+regIdx(REG)*.03)),r:B_.fem?22:26,h:110,embers:1200+regIdx(REG)*120,poise:14+Math.floor(regIdx(REG)/4),name:B_.n,boss0:1};
-      boss=mk('gb',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem=B_.el;boss.wpn=B_.w;boss.look=Object.assign({fem:B_.fem,two:B_.w==='axe'||B_.w==='spear'},B_.look);boss.spd=1+regIdx(REG)*.012;boss.dm=1+regIdx(REG)*.04;}boss.boss=true;boss.regionId=REG;boss.profileId='boss:'+REG;boss.state='sleep';if(window.__g?.registerGLBBossProfile)window.__g.registerGLBBossProfile(boss.profileId,{name:boss.T.name,region:REG,modelCategory:'gb'});enemies.push(boss);}
+      boss=mk('gb',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem=B_.el;boss.wpn=B_.w;boss.look=Object.assign({fem:B_.fem,two:B_.w==='axe'||B_.w==='spear'},B_.look);boss.spd=1+regIdx(REG)*.012;boss.dm=1+regIdx(REG)*.04;}boss.boss=true;boss.regionId=REG;boss.profileId='boss:'+REG;boss.state='sleep';registerGLBBossProfile(boss.profileId,{name:boss.T.name,region:REG,modelCategory:'gb'});enemies.push(boss);}
   waves=[];shots=[];world.locked=false;if(GATE)GATE.off=world.gate;if(MGATE)MGATE.off=world.mgate;for(const d of DOORS){d.o=0;d.t=0;d.blk.off=false;}
   bindConfiguredGLBEntities();
 }
