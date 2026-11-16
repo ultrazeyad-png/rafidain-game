@@ -357,7 +357,9 @@ def verify_regional_mini_bosses() -> None:
     for spawn in ("['gmini',1560,640,120]", "['gmini',2450,500,-200]"):
         if spawn not in regions:
             raise AssertionError(f"Special-region mini-boss spawn missing: {spawn}")
-    for item in ("minis:world.minis", "minis:!!w.minis", "world.minis=true;save()", "s[0]==='gmini'&&world.minis"):
+    for item in ("minis:world.minis", "minis:!!w.minis", "world.minis=true",
+        "loot('dsh',2);loot('sh',3)",
+        "say('سقط '+e.T.name,'#e8c66a',3);save()", "s[0]==='gmini'&&world.minis"):
         if item not in game:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
     print("PASS: 19 regional mini-boss identities are assigned, spawned, rewarded, and persisted")
