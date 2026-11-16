@@ -593,8 +593,9 @@ async function prepareGLBTextures(asset){
         img.onerror=()=>{URL.revokeObjectURL(objectUrl);reject(new Error('GLB: embedded image decode failed'));};
         img.src=objectUrl;
       });
+      let texture=null;
       try{
-        const texture=gl.createTexture();if(!texture)gltfFail('could not allocate GLB texture');
+        texture=gl.createTexture();if(!texture)gltfFail('could not allocate GLB texture');
         gl.bindTexture(gl.TEXTURE_2D,texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
@@ -609,7 +610,7 @@ async function prepareGLBTextures(asset){
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,isPOT?wrap(sampler.wrapT):gl.CLAMP_TO_EDGE);
         if(wantsMip&&isPOT)gl.generateMipmap(gl.TEXTURE_2D);
         out.push(texture);
-      }catch(error){if(typeof texture!=='undefined'&&texture)gl.deleteTexture(texture);throw error;}
+      }catch(error){if(texture)gl.deleteTexture(texture);throw error;}
       finally{bitmap.close?.();}
     }
     return out;
@@ -645,11 +646,14 @@ async function setGLBHero(url,scale=60){
 }
 if(typeof glc!=='undefined')glc.addEventListener('webglcontextrestored',()=>{
   if(gltfHero){
+    const restoredHero=gltfHero,restoreSerial=gltfHeroLoadSerial;
     gltfHeroGPU=null;gltfHeroTextures=[];
-    prepareGLBTextures(gltfHero.asset).then(textures=>{
-      gltfHeroTextures=textures;
-      if(glOK)gltfHeroGPU=prepareGLBHero(gltfHero.asset);
-    }).catch(error=>{gltfHeroError=String(error&&error.message||error);});
+    prepareGLBTextures(restoredHero.asset).then(textures=>{
+      if(gltfHero!==restoredHero||gltfHeroLoadSerial!==restoreSerial){disposeGLBResources([],textures);return;}
+      const gpu=glOK?prepareGLBHero(restoredHero.asset):[];
+      if(gltfHero!==restoredHero||gltfHeroLoadSerial!==restoreSerial){disposeGLBResources(gpu,textures);return;}
+      gltfHeroTextures=textures;gltfHeroGPU=gpu;
+    }).catch(error=>{if(gltfHero===restoredHero&&gltfHeroLoadSerial===restoreSerial)gltfHeroError=String(error&&error.message||error);});
   }
   for(const entity of gltfEntityInstances.values()){
     if(entity.disposed||!entity.asset)continue;
