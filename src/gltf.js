@@ -1,0 +1,79 @@
+/* ================= GLB / glTF 2.0 runtime foundation =================
+   Parses binary GLB v2 files without a third-party runtime. The parser is
+   intentionally separate from the legacy primitive renderer: scene binding,
+   PBR shader integration and skin animation are added in subsequent passes.
+*/
+const GLB_MAGIC=0x46546c67,GLB_VERSION=2;
+const GLTF_COMPONENTS={5120:[1,Int8Array],5121:[1,Uint8Array],5122:[2,Int16Array],5123:[2,Uint16Array],5125:[4,Uint32Array],5126:[4,Float32Array]};
+const GLTF_WIDTH={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT2:4,MAT3:9,MAT4:16};
+function gltfFail(message){throw new Error('GLB: '+message);}
+function parseGLB(buffer){
+  if(!(buffer instanceof ArrayBuffer))gltfFail('expected an ArrayBuffer');
+  if(buffer.byteLength<20)gltfFail('file is too small');
+  const dv=new DataView(buffer);
+  if(dv.getUint32(0,true)!==GLB_MAGIC)gltfFail('invalid magic');
+  if(dv.getUint32(4,true)!==GLB_VERSION)gltfFail('only GLB version 2 is supported');
+  const declared=dv.getUint32(8,true);if(declared>buffer.byteLength||declared<20)gltfFail('invalid declared length');
+  let off=12,json=null,bin=null;
+  while(off+8<=declared){
+    const len=dv.getUint32(off,true),type=dv.getUint32(off+4,true);off+=8;
+    if(len>declared-off)gltfFail('chunk exceeds file bounds');
+    if(type===0x4e4f534a){if(json)gltfFail('duplicate JSON chunk');json=JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,off,len)).replace(/\\u0000+$/g,'').trim());}
+    else if(type===0x004e4942){if(bin)gltfFail('duplicate BIN chunk');bin=buffer.slice(off,off+len);}
+    off+=len;
+  }
+  if(!json)gltfFail('missing JSON chunk');
+  if(json.asset?.version!=='2.0')gltfFail('asset is not glTF 2.0');
+  if(json.buffers?.length){
+    const b=json.buffers[0];
+    if(json.buffers.length!==1||b.uri)gltfFail('only a single embedded GLB buffer is supported');
+    if(!bin||bin.byteLength<b.byteLength)gltfFail('missing or truncated BIN chunk');
+  }
+  const readAccessor=index=>{
+    const a=json.accessors?.[index];if(!a)gltfFail('missing accessor '+index);
+    if(a.sparse)gltfFail('sparse accessors are not supported yet');
+    const view=json.bufferViews?.[a.bufferView];if(!view||view.buffer!==0)gltfFail('invalid bufferView');
+    const spec=GLTF_COMPONENTS[a.componentType],width=GLTF_WIDTH[a.type];if(!spec||!width)gltfFail('unsupported accessor type');
+    const [bytes,Ctor]=spec,stride=view.byteStride||bytes*width,base=(view.byteOffset||0)+(a.byteOffset||0),count=a.count;
+    if(!Number.isInteger(count)||count<1||stride<bytes*width)gltfFail('invalid accessor layout');
+    const end=base+(count-1)*stride+bytes*width;if(end>bin.byteLength||base<0)gltfFail('accessor exceeds BIN bounds');
+    const out=new Float32Array(count*width),src=new DataView(bin);
+    const get=(p)=>a.componentType===5126?src.getFloat32(p,true):a.componentType===5125?src.getUint32(p,true):a.componentType===5123?src.getUint16(p,true):a.componentType===5122?src.getInt16(p,true):a.componentType===5121?src.getUint8(p):src.getInt8(p);
+    const signed=a.componentType===5120||a.componentType===5122,unsigned=a.componentType===5121||a.componentType===5123||a.componentType===5125;
+    for(let i=0;i<count;i++)for(let k=0;k<width;k++){
+      let v=get(base+i*stride+k*bytes);
+      if(a.normalized&&a.componentType!==5126){if(signed)v=Math.max(-1,v/(bytes===1?127:32767));else if(unsigned)v/=bytes===1?255:bytes===2?65535:4294967295;}
+      out[i*width+k]=v;
+    }
+    return {data:out,count,width,componentType:a.componentType};
+  };
+  const meshes=(json.meshes||[]).map((mesh,mi)=>({
+    name:mesh.name||'mesh_'+mi,
+    primitives:(mesh.primitives||[]).map((p,pi)=>{
+      if(p.mode!=null&&p.mode!==4)gltfFail('only TRIANGLES primitives are supported');
+      const pos=readAccessor(p.attributes?.POSITION);if(pos.width!==3)gltfFail('POSITION must be VEC3');
+      const nor=p.attributes.NORMAL==null?null:readAccessor(p.attributes.NORMAL);
+      const uv=p.attributes.TEXCOORD_0==null?null:readAccessor(p.attributes.TEXCOORD_0);
+      if(nor&&nor.count!==pos.count)gltfFail('NORMAL count mismatch');
+      if(uv&&(uv.width!==2||uv.count!==pos.count))gltfFail('TEXCOORD_0 count mismatch');
+      let indices;
+      if(p.indices!=null){const q=readAccessor(p.indices);if(q.width!==1)gltfFail('indices must be SCALAR');indices=q.data;}
+      else{indices=new Uint32Array(pos.count);for(let i=0;i<pos.count;i++)indices[i]=i;}
+      if(indices.length%3)gltfFail('triangle index count is not divisible by 3');
+      for(const n of indices)if(n>=pos.count)gltfFail('index is outside POSITION range');
+      const mat=json.materials?.[p.material]||{};
+      const pm=mat.pbrMetallicRoughness||{};
+      return {name:mesh.name||'mesh_'+mi,positions:pos.data,normals:nor?.data||null,uvs:uv?.data||null,indices,
+        material:{name:mat.name||'material_'+(p.material??0),baseColorFactor:pm.baseColorFactor||[1,1,1,1],
+          metallicFactor:pm.metallicFactor??1,roughnessFactor:pm.roughnessFactor??1,
+          alphaMode:mat.alphaMode||'OPAQUE',doubleSided:!!mat.doubleSided}};
+    })
+  }));
+  return {asset:json.asset,meshes,nodes:json.nodes||[],scenes:json.scenes||[],scene:json.scene||0,
+    bounds:meshes.reduce((n,m)=>n+m.primitives.length,0),extensionsUsed:json.extensionsUsed||[]};
+}
+async function loadGLB(url){
+  const response=await fetch(url,{credentials:'same-origin'});
+  if(!response.ok)gltfFail('HTTP '+response.status+' while loading '+url);
+  return parseGLB(await response.arrayBuffer());
+}
