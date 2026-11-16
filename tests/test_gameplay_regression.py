@@ -377,6 +377,11 @@ def verify_regional_mini_bosses() -> None:
             raise AssertionError(f"Mini-boss persistence/reward hook missing: {item}")
     if "if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k" not in characters:
         raise AssertionError("Regional mini-bosses are missing their dedicated creature renderer")
+    for behavior in ("voice('boss',m.line)", "e.blinked=true", "Math.sin(clamp(e.t/T.act,0,1)*PI)*42", "?1.32:1", "'#a5d64b'"):
+        if behavior not in game:
+            raise AssertionError(f"Regional mini-boss signature behavior missing: {behavior}")
+    if "T(e.x,e.y+e.j,e.z)" not in characters:
+        raise AssertionError("Wolf mini-boss leap pose is not rendered")
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
 
 
