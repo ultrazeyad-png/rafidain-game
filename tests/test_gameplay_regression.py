@@ -27,6 +27,32 @@ async def run_suite(base_url: str) -> None:
         page = await browser.new_page(viewport={"width": 960, "height": 540})
         page_errors: list[str] = []
         page.on("pageerror", lambda error: page_errors.append(str(error)))
+        speech = await page.evaluate("""() => {
+            const spoken = [];
+            class FakeUtterance { constructor(text) { this.text = text; } }
+            Object.defineProperty(window, "SpeechSynthesisUtterance", {configurable: true, value: FakeUtterance});
+            Object.defineProperty(window, "speechSynthesis", {configurable: true, value: {
+                cancel() {},
+                getVoices() { return [{name: "Arabic Test Voice", lang: "ar-IQ"}]; },
+                speak(utterance) { spoken.push({text: utterance.text, lang: utterance.lang, pitch: utterance.pitch, rate: utterance.rate}); }
+            }});
+            __g.voice("khidr", "امشِ ويا الماي، الماي يعرف الدرب.");
+            const first = spoken[0] || null;
+            __g.voice("shirin", "اسمي شيرين.");
+            const second = spoken[1] || null;
+            __g.setVoiceEnabled(false);
+            __g.voice("derv", "النار تمشي مثل الشمس.");
+            const disabledCount = spoken.length;
+            __g.setVoiceEnabled(true);
+            return {first, second, disabledCount, enabled: __g.voiceEnabled};
+        }""")
+        if not speech["first"] or speech["first"]["lang"] != "ar-IQ" or speech["first"]["text"] != "امشِ ويا الماي، الماي يعرف الدرب.":
+            raise AssertionError(f"Arabic character speech did not produce the expected utterance: {speech}")
+        if not speech["second"] or speech["second"]["pitch"] <= speech["first"]["pitch"]:
+            raise AssertionError(f"Character voice profiles were not differentiated: {speech}")
+        if speech["disabledCount"] != 2 or not speech["enabled"]:
+            raise AssertionError(f"Dialogue mute toggle failed: {speech}")
+        print("PASS: Arabic spoken dialogue, distinct character profiles, and mute toggle")
 
         try:
             await page.goto(f"{base_url}/dist/index.html", wait_until="load")
