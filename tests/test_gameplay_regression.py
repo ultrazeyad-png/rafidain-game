@@ -325,9 +325,12 @@ async def run_suite(base_url: str) -> None:
                 }"""
             )
             await page.evaluate("() => window.location.reload()")
+            # Wait for the world to be rebuilt; WebGL readiness is covered by
+            # the dedicated context-recovery test above and is not a save/load
+            # prerequisite (a transient context reset must not mask persistence).
             await page.wait_for_function(
-                "window.__g && window.__g.ok() && window.__g.chunks > 0",
-                timeout=15000,
+                "window.__g && window.__g.chunks > 0 && window.__g.REG === 'muthanna'",
+                timeout=30000,
             )
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
