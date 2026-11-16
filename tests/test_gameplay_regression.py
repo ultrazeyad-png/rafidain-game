@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import re
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -119,6 +120,40 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError("Opening cinematic is missing its non-interactive film vignette layer")
             print("PASS: opening film stays in Baghdad for four shots, reveals the Talisman Gate and Adapa, then transitions to Zakho")
             print("PASS: cinematic film vignette is present and does not intercept controls")
+
+            ending_flow = await page.evaluate("""() => {
+                const g = __g, oldLetters = g.stats.letters, oldEnded = g.stats.ended;
+                if (g.cine) g.endCine();
+                g.stats.letters = Object.fromEntries(Array.from({length:11}, (_,i) => ["letter-"+i,1]));
+                g.endChoice();
+                const hiddenAt11 = document.querySelector("#end3").hidden;
+                g.stats.letters = Object.fromEntries(Array.from({length:12}, (_,i) => ["letter-"+i,1]));
+                g.endChoice();
+                const visibleAt12 = !document.querySelector("#end3").hidden;
+                const endings = [];
+                for (const key of [1,2,3]) {
+                    g.ending(key);
+                    endings.push({key, saved:g.stats.ended, text:document.querySelector("#endT").textContent});
+                }
+                const unique = new Set(endings.map(x => x.text)).size;
+                document.querySelector("#end").classList.remove("on");
+                document.querySelector("#endC").hidden = false;
+                document.querySelector("#endR").hidden = true;
+                g.stats.letters = oldLetters;
+                g.stats.ended = oldEnded;
+                g.start();
+                return {hiddenAt11, visibleAt12, endings, unique};
+            }""")
+            if ending_flow["hiddenAt11"] is not True or ending_flow["visibleAt12"] is not True:
+                raise AssertionError(f"Secret ending must unlock at 12 collected letters: {ending_flow}")
+            if ending_flow["unique"] != 3 or any(x["key"] != x["saved"] or not x["text"] for x in ending_flow["endings"]):
+                raise AssertionError(f"The three story endings must be distinct and persist their selected ending: {ending_flow}")
+            if not all(any(token in x["text"] for token in tokens) for x, tokens in zip(
+                ending_flow["endings"],
+                [("حط الجمرة",), ("خلّى البوابة مفتوحة",), ("رسائل دجلة",)],
+            )):
+                raise AssertionError(f"Ending narratives do not match their selected choice: {ending_flow}")
+            print("PASS: secret ending unlocks at 12 letters and all three ending choices persist distinct narratives")
 
             ambience = await page.evaluate("""() => {
                 __g.setEnvironment("duhok");
@@ -634,6 +669,36 @@ def verify_weapon_and_boss_specific_finishers() -> None:
     print("PASS: five weapon-specific finisher poses, boss-specific lines and impact effects")
 
 
+def verify_dijla_endings() -> None:
+    depth = (ROOT / "src" / "depth.js").read_text(encoding="utf-8")
+    story = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    letters = [letter for letter in re.findall(r"letter:'([^']*)'", depth) if letter]
+    if len(letters) != 18:
+        raise AssertionError(f"Dijla's letter collection should contain 18 readable letters, found {len(letters)}")
+    required = (
+        "function endChoice(){paused=true;$('end3').hidden=Object.keys(stats.letters||{}).length<12",
+        "function ending(k)",
+        "فرات حط الجمرة اللي بصدره بقفل البوابة",
+        "خلّى البوابة مفتوحة، ونزل لتحت يدوّر على دجلة",
+        "وگرا رسائل دجلة بصوت عالي",
+        "stats.ended=k;save();",
+    )
+    for item in required:
+        if item not in story:
+            raise AssertionError(f"Story ending condition or branch missing: {item}")
+    for item in (
+        "$('end1').addEventListener('click',()=>ending(1))",
+        "$('end2').addEventListener('click',()=>ending(2))",
+        "$('end3').addEventListener('click',()=>ending(3))",
+        "$('endR').addEventListener('click',()=>{$('end').classList.remove('on');wipe();",
+        "endChoice,ending",
+    ):
+        if item not in game:
+            raise AssertionError(f"Ending UI action is not connected: {item}")
+    print("PASS: 18 Dijla letters, 12-letter secret-ending gate, three distinct endings, and restart action")
+
+
 def verify_regional_mini_bosses() -> None:
     roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     regions = (ROOT / "src" / "regions.js").read_text(encoding="utf-8")
@@ -686,6 +751,7 @@ def main() -> int:
     verify_major_boss_weakpoints()
     verify_boss_finisher()
     verify_weapon_and_boss_specific_finishers()
+    verify_dijla_endings()
     verify_regional_mini_bosses()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
