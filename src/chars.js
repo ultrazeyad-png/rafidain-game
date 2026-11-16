@@ -168,7 +168,7 @@ function mobArm(side,cb,th,e,w,yaw,tx,item){
   if(item){T(0,-8.6,0);RZ(w);item();}pop();
 }
 function drawMob(e){
-  if(e.k==='wolf'){drawWolf(e);return;}if(e.k==='anzu'){drawAnzu(e);return;}if(e.k==='boss'){drawNamtar(e);return;}if(e.k==='erra'){drawErra(e);return;}if(e.k==='gb'){drawWarrior(e);return;}if(e.k==='scorp'||e.k==='scorpK'){drawScorp(e);return;}if(e.k==='croc'||e.k==='crocK'){drawCroc(e);return;}if(e.k==='ghost'||e.k==='ghostK'){drawGhost(e);return;}if(e.k==='wolfK'){drawWolf(e);return;}
+  if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k;if(mk==='scorpK')drawScorp(e);else if(mk==='crocK')drawCroc(e);else if(mk==='ghostK')drawGhost(e);else drawWolf(e);return;}if(e.k==='wolf'){drawWolf(e);return;}if(e.k==='anzu'){drawAnzu(e);return;}if(e.k==='boss'){drawNamtar(e);return;}if(e.k==='erra'){drawErra(e);return;}if(e.k==='gb'){drawWarrior(e);return;}if(e.k==='scorp'||e.k==='scorpK'){drawScorp(e);return;}if(e.k==='croc'||e.k==='crocK'){drawCroc(e);return;}if(e.k==='ghost'||e.k==='ghostK'){drawGhost(e);return;}if(e.k==='wolfK'){drawWolf(e);return;}
   const T_=e.T,k=e.k==='guard'?'brute':(e.k==='sling'||e.k==='archer')?'husk':e.k,s=T_.h/46,wf=k==='brute'?1.25:k==='boss'?1.12:1,c=MC[e.k],st=e.state;
   let fall=0;gAlpha=1;
   if(e.dead){if(e.t>1.2)return;fall=Math.min(1,e.t/.35)*1.5;gAlpha=Math.max(0,1-e.t/1.2);}
