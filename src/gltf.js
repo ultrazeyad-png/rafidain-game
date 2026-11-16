@@ -360,7 +360,8 @@ async function loadGLB(url){
 
 
 /* ---------- GLB -> existing WebGL renderer bridge ---------- */
-let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';\nlet gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true};
+let gltfHero=null,gltfHeroGPU=null,gltfHeroTextures=[],gltfHeroError='';
+let gltfHeroPlayback={clip:0,speed:1,paused:false,elapsed:0,lastTime:null,loop:true};
 function gltfNormals(positions,indices){
   const n=new Float32Array(positions.length);
   for(let i=0;i<indices.length;i+=3){
