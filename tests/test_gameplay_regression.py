@@ -325,15 +325,9 @@ async def run_suite(base_url: str) -> None:
                 }"""
             )
             await page.evaluate("() => window.location.reload()")
-            # Wait for the world to be rebuilt; WebGL readiness is covered by
-            # the dedicated context-recovery test above and is not a save/load
-            # prerequisite (a transient context reset must not mask persistence).
-            # Persistence is independent of the renderer's asynchronous chunk rebuild.
-            # Wait for the restored region only; WebGL readiness has its own dedicated test.
-            await page.wait_for_function(
-                "window.__g && window.__g.REG === 'muthanna'",
-                timeout=30000,
-            )
+            # Wait for game startup, then assert persistence explicitly below.
+            # Do not turn a wrong restored region into a 30-second opaque timeout.
+            await page.wait_for_function("!!window.__g", timeout=30000)
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
             )
