@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal;';
+const source = fs.readFileSync('src/gltf.js', 'utf8') + '\n globalThis.__parseGLB = parseGLB; globalThis.__transformNormal = gltfTransformNormal; globalThis.__sampleAnimation = gltfSampleAnimationSampler; globalThis.__evaluateAnimation = gltfEvaluateAnimation;';
 const context = {TextDecoder, DataView, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Float32Array, ArrayBuffer, Math, Error, JSON, console};
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -313,4 +313,28 @@ assert.throws(() => parse(badVersion), /only GLB version 2/);
   assert.throws(()=>parse(makeGLB(d,bin)),/animation output width does not match target path/);
 }
 
-console.log('GLB parser fixtures passed: skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
+
+{
+  const linear={input:new Float32Array([0,2]),output:new Float32Array([0,0,0, 10,4,2]),outputWidth:3,interpolation:'LINEAR'};
+  assert.deepEqual(context.__sampleAnimation(linear,1,'translation'),[5,2,1]);
+  assert.deepEqual(context.__sampleAnimation(linear,-1,'translation'),[0,0,0]);
+  assert.deepEqual(context.__sampleAnimation(linear,3,'translation'),[10,4,2]);
+  const step={...linear,interpolation:'STEP'};
+  assert.deepEqual(context.__sampleAnimation(step,1.9,'translation'),[0,0,0]);
+}
+{
+  const rotation={input:new Float32Array([0,1]),output:new Float32Array([0,0,0,1, 0,1,0,0]),outputWidth:4,interpolation:'LINEAR'};
+  const q=context.__sampleAnimation(rotation,.5,'rotation');
+  assert.ok(Math.abs(Math.hypot(...q)-1)<1e-6);
+  assert.ok(Math.abs(q[1]-Math.SQRT1_2)<1e-5);
+}
+{
+  const cubic={input:new Float32Array([0,1]),output:new Float32Array([0,0,0, 2,0,0, 0,0,0, 0,0,0, 4,0,0, 0,0,0]),outputWidth:3,interpolation:'CUBICSPLINE'};
+  assert.deepEqual(context.__sampleAnimation(cubic,.5,'translation'),[3,0,0]);
+}
+{
+  const animation={samplers:[{input:new Float32Array([0,1]),output:new Float32Array([0,0,0, 2,0,0]),outputWidth:3,interpolation:'LINEAR'}],channels:[{sampler:0,node:4,path:'translation'}]};
+  assert.deepEqual(context.__evaluateAnimation(animation,.25).get(4).translation,[.5,0,0]);
+}
+
+console.log('GLB parser fixtures passed: linear/step/cubic animation sampling, quaternion interpolation and pose evaluation,  skinning attributes, skin joints, inverse bind matrices, animation samplers and channels,  valid mesh, header checks, accessor bounds, index types, normals, scene transforms and cycle rejection');
