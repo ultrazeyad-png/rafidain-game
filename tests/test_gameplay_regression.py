@@ -108,6 +108,11 @@ async def run_suite(base_url: str) -> None:
             if "bossMusic(true)" not in cinematic_source or "if(e.T.mini){bossMusic(false);" not in game:
                 raise AssertionError("Mini-boss combat music does not start and stop with the encounter")
             print("PASS: mini-boss first-contact cinematic, per-region persistence, and battle music lifecycle")
+            audio_source = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
+            for profile in ("wolfK:{notes:", "ghostK:{notes:", "scorpK:{notes:", "crocK:{notes:"):
+                if profile not in audio_source:
+                    raise AssertionError(f"Distinct mini-boss music profile missing: {profile}")
+            print("PASS: wolf, ghost, scorpion, and crocodile encounters use distinct procedural battle scores")
 
             speech = await page.evaluate("""() => {
                 const spoken = [];
