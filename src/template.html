@@ -1248,7 +1248,7 @@ function updateDiagnostics(rawDt,ts){
   if(rawDt>0&&Number.isFinite(rawDt)){diagSamples.push(rawDt*1000);if(diagSamples.length>120)diagSamples.shift();}
   if(ts-diagPaintAt<250)return;diagPaintAt=ts;
   const d=diagnosticsSnapshot(),mem=performance.memory&&performance.memory.usedJSHeapSize?Math.round(performance.memory.usedJSHeapSize/1048576)+' MB':'n/a';
-  $('diag').textContent='ASHES // PERFORMANCE\\nFPS       '+d.fps.toFixed(1)+'\\nFRAME AVG '+d.frameMs.toFixed(2)+' ms\\nFRAME P95 '+d.p95Ms.toFixed(2)+' ms\\nREGION    '+d.region+'\\nCANVAS    '+d.width+' x '+d.height+'\\nDPR       '+d.dpr.toFixed(2)+'  /  '+d.quality+'\\nWEBGL     '+(d.webgl?'READY':'LOST')+'\\nJS HEAP   '+mem+'\\nF3  HIDE';
+  $('diag').textContent='ASHES // PERFORMANCE\nFPS       '+d.fps.toFixed(1)+'\nFRAME AVG '+d.frameMs.toFixed(2)+' ms\nFRAME P95 '+d.p95Ms.toFixed(2)+' ms\nREGION    '+d.region+'\nCANVAS    '+d.width+' x '+d.height+'\nDPR       '+d.dpr.toFixed(2)+'  /  '+d.quality+'\nWEBGL     '+(d.webgl?'READY':'LOST')+'\nJS HEAP   '+mem+'\nF3  HIDE';
 }
 function frame(ts){
   const now=ts/1000,rawDt=Math.max(0,now-last),dt=Math.min(.033,rawDt);last=now;updateDiagnostics(rawDt,ts);
