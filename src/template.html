@@ -330,7 +330,7 @@ function hasSave(){try{return !!localStorage.getItem(SAVE);}catch(_){return fals
 function wipe(){try{localStorage.removeItem(SAVE);}catch(_){}for(const k in RS)delete RS[k];
   Object.assign(stats,{lvl:1,vig:0,end:0,str:0,embers:0,wpn:'shield',glaive:false,tod:1,q:stats.q,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:pickGuardians(),boat:false,ended:0});REG='duhok';}
 function pickGuardians(){const c=ORDER.filter(id=>id!=='basra'&&id!=='baghdad'&&id!=='muthanna'),o=[];while(o.length<4){const id=c[Math.floor(Math.random()*c.length)];if(!o.includes(id))o.push(id);}return o;}
-function travel(id){save();loadRegion(id);applyWorld();updateBtns();respawn();say(RNAME,'#d9cbb0',3.5);if(id==='baghdad'&&!stats.boat){stats.boat=true;save();boatFilm();}}
+function travel(id){save();loadRegion(id);applyWorld();setEnvironment(REG);updateBtns();respawn();say(RNAME,'#d9cbb0',3.5);if(id==='baghdad'&&!stats.boat){stats.boat=true;save();boatFilm();}}
 
 /* ================= setup ================= */
 function mk(k,x,z,h){const T=TYPES[k];let y=floorAt(x,z,(h||0)+6);if(y<-900)y=h||0;return {k,T,x,z,y,j:0,hx:x,hz:z,a:PI,hp:Math.round(T.hp*(T.boss0?1:REGS.hs)),dm:T.boss0?1:REGS.ds,state:'idle',t:0,cd:0,flash:0,pd:0,pt:0,hit:false,dead:false,walk:0,boss:false,recT:0,tx:0,tz:0,sx:0,sz:0,ka:0,kv:0,n:0};}
@@ -1238,7 +1238,7 @@ window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(KEYS[k])input
 window.addEventListener('blur',()=>{input.kl=input.kr=input.ku=input.kd=input.cl=input.cr=false;input.jx=input.jy=0;input.atkDown=false;input.block=false;});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
-const begin=()=>{initAudio();goFull();$('title').classList.remove('on');if(!stats.intro&&REG==='duhok')startCine();else{paused=false;say(RNAME,'#d9cbb0',3);}};
+const begin=()=>{initAudio();setEnvironment(REG);goFull();$('title').classList.remove('on');if(!stats.intro&&REG==='duhok')startCine();else{paused=false;say(RNAME,'#d9cbb0',3);}};
 $('go').addEventListener('click',begin);
 $('newg').addEventListener('click',()=>{wipe();loadRegion('duhok');applyWorld();updateBtns();respawn();begin();});
 $('rise').addEventListener('click',()=>{$('shrine').classList.remove('on');paused=false;});
@@ -1311,7 +1311,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length};
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length};
 })();
 </script>
 </body>
