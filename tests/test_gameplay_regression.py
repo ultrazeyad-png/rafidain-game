@@ -589,7 +589,10 @@ def verify_boss_attack_variety() -> None:
         "function bossChoice(b,weighted)",
         "const pool=weighted.filter(move=>move!==b.lastAtk)",
         "b.lastAtk=move",
-        "bossChoice(b,ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp'])",
+        "const pool=ph2?[...adaptive.pool,'grab','c1']:adaptive.pool.slice()",
+        "if(b.elem&&b.elem!=='shadow')pool.push(adaptive.elementMove,adaptive.elementMove)",
+        "elementMove={storm:'leapW',fire:'charge',water:'sp',sand:'sl',poison:'grab',shadow:'c1'}",
+
         "if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55)",
         "bossChoice(b,['sp','sp','sp','leapW'])",
         "bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW'])",
@@ -597,7 +600,22 @@ def verify_boss_attack_variety() -> None:
     missing = [item for item in required if item not in source]
     if missing:
         raise AssertionError(f"Boss attack variety/repetition guard missing: {missing}")
-    print("PASS: major boss AI avoids consecutive repeats when alternatives exist and preserves phase/distance move pools")
+    for item in (
+        "const ELC={storm:'#9ad8ff',fire:'#ff7a30',water:'#6ac8ff',sand:'#e8c880',poison:'#9ae050',shadow:'#b060ff'}",
+        "if(el==='storm'){stormAround(b,count);snd('thunder');return;}",
+        "if(el==='fire'||el==='sand')",
+        "if(el==='water')",
+        "if(el==='poison')",
+        "dmg:el==='fire'?24:18",
+        "dmg:12",
+    ):
+        if item not in source:
+            raise AssertionError(f"Element-specific boss effect missing: {item}")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in ("w.col||'#ff3040'", "hurtP(w.dmg||26,w.x,w.z)"):
+        if item not in game:
+            raise AssertionError(f"Element telegraph rendering/damage contract missing: {item}")
+    print("PASS: major boss AI avoids consecutive repeats and elemental attacks use distinct, telegraphed effects")
 
 
 def main() -> int:
