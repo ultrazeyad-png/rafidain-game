@@ -110,6 +110,9 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError("Mini-boss combat music does not start and stop with the encounter")
             print("PASS: mini-boss first-contact cinematic, per-region persistence, and battle music lifecycle")
             audio_source = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
+            if "o.onended=()=>{VN=VN.filter(v=>v!==o);}" not in audio_source:
+                raise AssertionError("Completed fallback dialogue oscillators are not removed from the active voice list")
+            print("PASS: synthesized fallback dialogue releases completed oscillator references")
             for profile in ("wolfK:{notes:", "ghostK:{notes:", "scorpK:{notes:", "crocK:{notes:"):
                 if profile not in audio_source:
                     raise AssertionError(f"Distinct mini-boss music profile missing: {profile}")
