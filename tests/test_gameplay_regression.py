@@ -516,6 +516,23 @@ def verify_regional_mini_bosses() -> None:
 
 
 
+
+def verify_boss_stagger_reactions() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    for item in (
+        "e.stagT=2.4;setE(e,'stag')",
+        "e.stagT=heavy?2.1:1.35;setE(e,'stag')",
+        "src.stagT=0;setE(src,'parried')",
+        "case 'stag':if(b.t>=(b.stagT||1.3)){b.stagT=0;setE(b,'chase')",
+    ):
+        if item not in game:
+            raise AssertionError(f"Boss stagger reaction/timing hook missing: {item}")
+    if "case 'stag':if(b.t>=(b.stagT||2.4)){b.stagT=0;setE(b,'chase')" not in bosses:
+        raise AssertionError("Namtar/Adapa stagger recovery does not respect impact severity")
+    print("PASS: heavy hits, armour breaks, and parries produce distinct boss stagger/recovery windows")
+
+
 def verify_boss_attack_variety() -> None:
     source = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
     required = (
@@ -534,6 +551,7 @@ def verify_boss_attack_variety() -> None:
 
 
 def main() -> int:
+    verify_boss_stagger_reactions()
     verify_boss_attack_variety()
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
