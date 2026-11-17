@@ -323,14 +323,21 @@ async def run_suite(base_url: str) -> None:
                 __g.stats.embers = 654;
                 __g.stats.vig = 4;
                 window.dispatchEvent(new Event("pagehide"));
-                const raw = localStorage.getItem("ashes-rafidain-v1");
-                const saved = JSON.parse(raw);
-                return {embers: saved.stats.embers, vigor: saved.stats.vig, region: saved.reg};
+                const savedPagehide = JSON.parse(localStorage.getItem("ashes-rafidain-v1"));
+                const pagehide = {embers: savedPagehide.stats.embers, vigor: savedPagehide.stats.vig, region: savedPagehide.reg};
+                Object.defineProperty(document, "visibilityState", {configurable: true, value: "hidden"});
+                __g.stats.embers = 655;
+                __g.stats.vig = 5;
+                document.dispatchEvent(new Event("visibilitychange"));
+                const savedHidden = JSON.parse(localStorage.getItem("ashes-rafidain-v1"));
+                const hidden = {embers: savedHidden.stats.embers, vigor: savedHidden.stats.vig, region: savedHidden.reg};
+                return {pagehide, hidden};
             }""")
-            if background_save != {"embers": 654, "vigor": 4, "region": "muthanna"}:
+            if background_save["pagehide"] != {"embers": 654, "vigor": 4, "region": "muthanna"}:
                 raise AssertionError(f"Background pagehide did not persist the latest state: {background_save}")
-            print("PASS: pagehide flushes current player progression for mobile app switching")
-
+            if background_save["hidden"] != {"embers": 655, "vigor": 5, "region": "muthanna"}:
+                raise AssertionError(f"Hidden visibilitychange did not persist the latest state: {background_save}")
+            print("PASS: pagehide and hidden visibilitychange flush current player progression")
 
             # Legacy v1 saves are migrated in place only after preserving their exact bytes.
             legacy = {
