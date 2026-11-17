@@ -82,7 +82,7 @@ function upNamtar(b,dt){
       if(b.t>1.3)bRec(b,.8);break;
     case 'held':if(b.t>1.5){P.inv=0;P.grab=null;setP('idle');hurtP(Math.round(52*(b.dm||1)),b.x,b.z);P.kbs=300;shake=14;snd('land');burst(P.x,P.y+5,P.z,'#8a7a70',16,150,P.y);bRec(b,.9);}break;
     case 'rec':if(b.t>=b.recT){setE(b,'chase');b.cd=ph2?.25:.6;}break;
-    case 'stag':if(b.t>=2.4){setE(b,'chase');b.cd=.2;}break;
+    case 'stag':if(b.t>=(b.stagT||2.4)){b.stagT=0;setE(b,'chase');b.cd=.2;}break;
     case 'parried':b.a=turn(b.a,ang,2*dt);if(b.t>=.72){setE(b,'chase');b.cd=.55;}break;
   }
   if(mvs){const ca=mvs<0?b.a:b.a;moveBossBy(b,Math.cos(ca)*mvs*dt,Math.sin(ca)*mvs*dt);}
