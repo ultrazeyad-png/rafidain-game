@@ -19,12 +19,19 @@ function bossChoice(b,weighted){
   b.lastAtk=move;
   return move;
 }
-// Governorate bosses share one combat controller, but their counters follow their own weapon/element identity.
+// Governorate bosses share one controller, while weapon and element define their combat identity.
 function bossAdaptiveProfile(b){
   const weapon=b.wpn||'mace',element=b.elem||'shadow';
+  const styles={
+    spear:{range:148,turn:5.2,approach:86,retreat:42,orbit:34,pool:['sp','sp','c1','c1','leapW']},
+    sword:{range:92,turn:7.2,approach:96,retreat:28,orbit:52,pool:['c1','c1','c2','c2','sp']},
+    axe:{range:116,turn:4.8,approach:68,retreat:58,orbit:26,pool:['sl','sl','c1','charge','charge']},
+    mace:{range:110,turn:6,approach:78,retreat:50,orbit:44,pool:['c1','c1','sl','sl','sp']}
+  };
+  const style=styles[weapon]||styles.mace;
   const rollMove=element==='storm'?'leapW':(element==='water'||element==='poison')?'sp':'sl';
   const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab';
-  return {rollMove,guardMove};
+  return {...style,rollMove,guardMove};
 }
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
@@ -42,22 +49,23 @@ function upNamtar(b,dt){
       if(b.t>2.3){setE(b,'chase');b.cd=.2;say(b.k==='erra'?'العاصفة تنزل ويا إرّا':b.k==='boss'?'نمتار… يغضب':b.T.name.split('،')[0]+' يغضب',ELC[b.elem]||'#c0242e',2.4);}break;
     case 'chase':
       if(!alive)break;
-      b.a=turn(b.a,ang,(ad<160?4.5:6)*dt);
-      if(ad>110)mvs=ph2?110:78;else if(ad<70)mvs=-50;else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*44*dt,Math.sin(sa)*44*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
+      const adaptive=bossAdaptiveProfile(b);
+      b.a=turn(b.a,ang,adaptive.turn*dt);
+      if(ad>adaptive.range+18)mvs=(ph2?110:adaptive.approach);
+      else if(ad<adaptive.range-35)mvs=-adaptive.retreat;
+      else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*adaptive.orbit*dt,Math.sin(sa)*adaptive.orbit*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
       if(b.cd<=0){const r=Math.random();
-        if(behind&&ad<130)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
-        else if(ad<130){
-          const pool=ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp'];
-          // Each governorate boss answers habits through its own weapon/element profile.
-          // These are weighted choices only: attack timings and damage remain unchanged.
-          const adaptive=bossAdaptiveProfile(b);
+        if(behind&&ad<adaptive.range+35)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
+        else if(ad<adaptive.range+18){
+          const pool=ph2?['grab','c1','c1','c1','sl','sl','sp']:adaptive.pool.slice();
+          // Player-habit counters add readable, weapon-specific answers without altering damage or wind-up.
           if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove);
           if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove);
           const move=bossChoice(b,pool);
           setE(b,move);
           if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55);
         }
-        else if(ad<360){
+        else if(ad<adaptive.range+250){
           if(ph2)setE(b,bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW']));
           else if(r<.6)setE(b,bossChoice(b,['leapW','leapW','leapW']));
           else b.cd=.25;
