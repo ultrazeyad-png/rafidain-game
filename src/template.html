@@ -330,6 +330,9 @@ const cost=()=>120+(stats.lvl-1)*70;
 /* ================= save ================= */
 function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,minis:world.minis,miniFilm:world.miniFilm,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
   localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}}
+// Mobile browsers may suspend or discard the page while the player switches apps.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save();});
+window.addEventListener('pagehide',save);
 function saveRecord(v){return !!v&&typeof v==='object'&&!Array.isArray(v)&&(Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);}
 function validSaveShape(d){
   if(!saveRecord(d)||!saveRecord(d.stats)||!saveRecord(d.rs)||typeof d.reg!=='string'||!ORDER.includes(d.reg))return false;
