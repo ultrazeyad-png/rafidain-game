@@ -536,6 +536,7 @@ def verify_boss_adaptive_tactics() -> None:
         "const reachBias=playerWeapon==='glaive'?18:playerWeapon==='axe'?8:playerWeapon==='dual'?-10:0",
         "const staminaRatio=maxSt()>0?P.st/maxSt():1",
         "const healthRatio=maxHp()>0?P.hp/maxHp():1",
+        "lowStamina:staminaRatio<.24",
         "criticalHealth:healthRatio<.28",
         "if(adaptive.criticalHealth){const fairPool=pool.filter(move=>move!=='grab')",
         "if(adaptive.lowStamina)pool.push('sp','sp')",
