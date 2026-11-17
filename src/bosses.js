@@ -57,7 +57,7 @@ function upNamtar(b,dt){
       if(b.cd<=0){const r=Math.random();
         if(behind&&ad<adaptive.range+35)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
         else if(ad<adaptive.range+18){
-          const pool=ph2?['grab','c1','c1','c1','sl','sl','sp']:adaptive.pool.slice();
+          const pool=ph2?[...adaptive.pool,'grab','c1']:adaptive.pool.slice();
           // Player-habit counters add readable, weapon-specific answers without altering damage or wind-up.
           if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove);
           if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove);
