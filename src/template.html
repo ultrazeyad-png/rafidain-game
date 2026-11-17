@@ -113,29 +113,36 @@ body{background:#050509;color:#eadfc9}
 @media(max-height:520px){#title .card{padding:12px 18px}#title .sub{margin:4px 0 10px}#title .hint{margin-top:10px;padding-top:8px}#bAtk{width:68px;height:68px}#bRoll,#bJump{width:54px;height:54px}#bHeal{width:52px;height:52px}}
 
 
-/* MOBILE COMBAT HUD — left thumb utility cluster, right thumb combat cluster */
-#jb{left:clamp(22px,7vw,48px);bottom:calc(34px + env(safe-area-inset-bottom,0px));width:108px;height:108px}
-#bHeal{left:clamp(22px,7vw,48px);right:auto;bottom:calc(158px + env(safe-area-inset-bottom,0px));width:60px;height:60px}
-#bBlock{left:clamp(94px,24vw,132px);right:auto;bottom:calc(158px + env(safe-area-inset-bottom,0px));width:60px;height:60px}
-#bAtk{right:clamp(20px,5vw,34px);bottom:calc(28px + env(safe-area-inset-bottom,0px));width:82px;height:82px}
-#bRoll{right:clamp(112px,29vw,146px);bottom:calc(30px + env(safe-area-inset-bottom,0px));width:62px;height:62px}
-#bJump{right:clamp(112px,29vw,146px);bottom:calc(108px + env(safe-area-inset-bottom,0px));width:62px;height:62px}
-#bLock{right:clamp(20px,5vw,34px);bottom:calc(126px + env(safe-area-inset-bottom,0px));width:58px;height:58px}
-#bBow{right:clamp(20px,5vw,34px);bottom:calc(202px + env(safe-area-inset-bottom,0px));width:54px;height:54px}
-#bCast{right:clamp(90px,23vw,126px);bottom:calc(190px + env(safe-area-inset-bottom,0px));width:54px;height:54px}
+/* MOBILE COMBAT HUD — thumb zones tuned for rotated iPhone Safari and Android */
+#jz{width:43%;left:0;bottom:0}
+#cz{width:57%;right:0;bottom:0}
+#jb{left:clamp(22px,4vw,38px);bottom:calc(24px + env(safe-area-inset-bottom,0px));width:100px;height:100px;border:2px solid rgba(232,211,173,.55);background:rgba(13,12,17,.42);box-shadow:0 5px 18px rgba(0,0,0,.32)}
+#jk{width:44px;height:44px;margin:-22px 0 0 -22px;background:rgba(231,215,184,.58);box-shadow:0 1px 8px rgba(0,0,0,.25)}
+.btn{min-width:50px;min-height:50px;z-index:3;touch-action:none;-webkit-user-select:none;user-select:none;pointer-events:auto;transition:filter .12s,background-color .12s,box-shadow .12s}
+.btn:focus-visible{outline:2px solid #fff0c8;outline-offset:3px}
+.btn.dn{filter:brightness(1.35);box-shadow:0 0 0 4px rgba(255,224,170,.18),0 4px 15px #000}
+#bHeal{left:clamp(22px,4vw,38px);right:auto;bottom:calc(138px + env(safe-area-inset-bottom,0px));width:54px;height:54px;font-size:13px}
+#bBlock{left:clamp(84px,12vw,104px);right:auto;bottom:calc(138px + env(safe-area-inset-bottom,0px));width:54px;height:54px;font-size:13px}
+#bAtk{right:clamp(22px,4vw,38px);bottom:calc(22px + env(safe-area-inset-bottom,0px));width:76px;height:76px;font-size:17px}
+#bRoll{right:clamp(106px,15vw,126px);bottom:calc(26px + env(safe-area-inset-bottom,0px));width:56px;height:56px;font-size:13px}
+#bJump{right:clamp(106px,15vw,126px);bottom:calc(94px + env(safe-area-inset-bottom,0px));width:56px;height:56px;font-size:13px}
+#bLock{right:clamp(22px,4vw,38px);bottom:calc(112px + env(safe-area-inset-bottom,0px));width:52px;height:52px;font-size:13px}
+#bBow{right:clamp(22px,4vw,38px);bottom:calc(174px + env(safe-area-inset-bottom,0px));width:50px;height:50px;font-size:12px}
+#bCast{right:clamp(82px,12vw,102px);bottom:calc(170px + env(safe-area-inset-bottom,0px));width:50px;height:50px;font-size:12px}
+#bMap{z-index:4;min-height:38px}
 @media(max-height:520px){
-  #jb{width:84px;height:84px;left:24px;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
-  #bHeal,#bBlock{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:50px;height:50px}
-  #bHeal{left:24px}#bBlock{left:84px}
-  #bAtk{width:68px;height:68px;bottom:calc(18px + env(safe-area-inset-bottom,0px))}
-  #bRoll,#bJump{width:52px;height:52px}
-  #bRoll{right:96px;bottom:calc(22px + env(safe-area-inset-bottom,0px))}
-  #bJump{right:96px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
-  #bLock{right:20px;bottom:calc(98px + env(safe-area-inset-bottom,0px));width:50px;height:50px}
-  #bBow{right:20px;bottom:calc(156px + env(safe-area-inset-bottom,0px));width:48px;height:48px}
-  #bCast{right:82px;bottom:calc(150px + env(safe-area-inset-bottom,0px));width:48px;height:48px}
+  #jb{width:82px;height:82px;left:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+  #jk{width:38px;height:38px;margin:-19px 0 0 -19px}
+  #bHeal,#bBlock{bottom:calc(104px + env(safe-area-inset-bottom,0px));width:48px;height:48px}
+  #bHeal{left:18px}#bBlock{left:72px}
+  #bAtk{width:66px;height:66px;right:18px;bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  #bRoll,#bJump{width:48px;height:48px;right:92px}
+  #bRoll{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+  #bJump{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  #bLock{right:18px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:48px;height:48px}
+  #bBow{right:18px;bottom:calc(146px + env(safe-area-inset-bottom,0px));width:46px;height:46px}
+  #bCast{right:72px;bottom:calc(142px + env(safe-area-inset-bottom,0px));width:46px;height:46px}
 }
-
 </style>
 </head>
 <body>
