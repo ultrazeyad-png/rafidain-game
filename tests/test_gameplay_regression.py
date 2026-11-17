@@ -306,11 +306,18 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.reload(wait_until="commit")
-            await page.wait_for_function(
+            # Re-open the game in a fresh page within the same browser context.
+            # This exercises persisted localStorage without relying on a flaky reload
+            # navigation event from the long-running WebGL page.
+            saved_page = await page.context.new_page()
+            saved_page.on("pageerror", lambda error: page_errors.append(str(error)))
+            await saved_page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await saved_page.wait_for_function(
                 "window.__g && window.__g.ok() && window.__g.chunks > 0",
-                timeout=15000,
+                timeout=30000,
             )
+            await page.close()
+            page = saved_page
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
             )
