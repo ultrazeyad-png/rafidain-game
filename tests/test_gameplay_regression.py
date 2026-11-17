@@ -306,7 +306,7 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.reload(wait_until="load")
+            await page.reload(wait_until="commit")
             await page.wait_for_function(
                 "window.__g && window.__g.ok() && window.__g.chunks > 0",
                 timeout=15000,
