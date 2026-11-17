@@ -73,6 +73,25 @@ python tests/test_gameplay_regression.py
 
 > اختبارات CI تستخدم Chromium مع SwiftShader (محاكاة رسومية برمجية). نجاحها لا يُعد بديلاً عن اختبار أجهزة iPhone وAndroid فعلية.
 
+## تطبيق Android
+
+متطلبات البناء: Node.js 22، Python 3.12، Java 21، وAndroid SDK.
+
+لإنشاء مشروع Android محلياً:
+
+```bash
+npm install
+npm run android:init
+cd android
+./gradlew assembleDebug
+```
+
+ملف الاختبار الناتج:
+
+`android/app/build/outputs/apk/debug/app-debug.apk`
+
+يتحقق `tests/test_android_config.py` من هوية التطبيق وإعدادات Capacitor قبل بناء APK. كما ينشئ GitHub Actions نسخة Debug تلقائياً عند فتح Pull Request أو تشغيل سير العمل يدوياً، ويحفظ APK كـ Artifact لمدة 14 يوماً. هذه نسخة اختبار وليست إصدار متجر موقّعاً.
+
 ## الخطوة الجاية
 
-تحويلها لتطبيق APK للأندرويد.
+اختبار APK على أجهزة Android فعلية، ثم إعداد مفاتيح توقيع آمنة لنسخة Release.
