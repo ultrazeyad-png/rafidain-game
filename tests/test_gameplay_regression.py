@@ -540,6 +540,13 @@ def verify_boss_adaptive_tactics() -> None:
     ):
         if item not in bosses:
             raise AssertionError(f"Governorate-specific adaptive boss response missing: {item}")
+    for item in (
+        "boss.elem=B_.el",
+        "boss.wpn=B_.w",
+        "boss=mk('gb',AC.x+60,AC.z,AC.y)",
+    ):
+        if item not in game:
+            raise AssertionError(f"Governorate boss identity is not wired into adaptive profile: {item}")
     if "if(e.boss){upNamtar(e,dt);return;}" not in game:
         raise AssertionError("Governorate bosses no longer share the adaptive boss controller")
     if "boss:{n:'أدابا، معلم الحراس'" not in roster or "boss:{n:'نرگال، سيد الوباء'" not in roster:
