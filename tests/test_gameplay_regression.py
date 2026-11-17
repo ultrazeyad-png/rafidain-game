@@ -532,8 +532,13 @@ def verify_boss_adaptive_tactics() -> None:
     for item in (
         "function bossAdaptiveProfile(b)",
         "const weapon=b.wpn||'mace',element=b.elem||'shadow'",
+        "spear:{range:148,turn:5.2,approach:86,retreat:42,orbit:34,pool:['sp','sp','c1','c1','leapW']}",
+        "sword:{range:92,turn:7.2,approach:96,retreat:28,orbit:52,pool:['c1','c1','c2','c2','sp']}",
+        "axe:{range:116,turn:4.8,approach:68,retreat:58,orbit:26,pool:['sl','sl','c1','charge','charge']}",
         "const rollMove=element==='storm'?'leapW':(element==='water'||element==='poison')?'sp':'sl'",
         "const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab'",
+        "if(ad>adaptive.range+18)mvs=(ph2?110:adaptive.approach)",
+        "else if(ad<adaptive.range-35)mvs=-adaptive.retreat",
         "if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove)",
         "if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove)",
         "const move=bossChoice(b,pool)",
