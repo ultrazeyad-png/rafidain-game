@@ -29,9 +29,13 @@ function bossAdaptiveProfile(b){
     mace:{range:110,turn:6,approach:78,retreat:50,orbit:44,pool:['c1','c1','sl','sl','sp']}
   };
   const style=styles[weapon]||styles.mace;
+  const playerWeapon=stats.wpn||'shield';
+  const reachBias=playerWeapon==='glaive'?18:playerWeapon==='axe'?8:playerWeapon==='dual'?-10:0;
+  const staminaRatio=maxSt()>0?P.st/maxSt():1;
+  const healthRatio=maxHp()>0?P.hp/maxHp():1;
   const rollMove=element==='storm'?'leapW':(element==='water'||element==='poison')?'sp':'sl';
   const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab';
-  return {...style,rollMove,guardMove};
+  return {...style,range:style.range+reachBias,lowStamina:staminaRatio<.24,criticalHealth:healthRatio<.28,rollMove,guardMove};
 }
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
@@ -58,6 +62,9 @@ function upNamtar(b,dt){
         if(behind&&ad<adaptive.range+35)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
         else if(ad<adaptive.range+18){
           const pool=ph2?[...adaptive.pool,'grab','c1']:adaptive.pool.slice();
+          // Read player equipment and condition; these only alter move weights, never damage or timing.
+          if(adaptive.criticalHealth){const fairPool=pool.filter(move=>move!=='grab');pool.splice(0,pool.length,...fairPool,'c1');}
+          if(adaptive.lowStamina)pool.push('sp','sp');
           // Player-habit counters add readable, weapon-specific answers without altering damage or wind-up.
           if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove);
           if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove);
