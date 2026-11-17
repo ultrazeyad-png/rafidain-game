@@ -13,7 +13,7 @@ function arClamp(x,z,m){if(REG==='muthanna')return [clamp(x,AX0+m,AX1-m),clamp(z
 function bossHalf(b){return b.hp<b.T.hp*.5;}
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
-  b.cd-=dt;let mvs=0;
+  b.cd-=dt;b.sigCd=Math.max(0,(b.sigCd||0)-dt);let mvs=0;
   if(!b.p2&&bossHalf(b)&&b.state!=='stag'&&b.state!=='grab'&&b.state!=='parried'&&!b.j){b.p2=true;setE(b,'trans');snd('boss');snd('roar');if(isAdapa){voiceBoss(b,'المفاتيح الخمسة ما تنطيك بغداد!');say('المفاتيح الخمسة ما تنطيك بغداد!','#c0242e',2.6);}return;}
   const atk=(m,next)=>{const A=NM[m];if(isAdapa&&!b.vsaid&&['c3','sp','sl'].includes(m)){b.vsaid=true;voiceBoss(b,m==='sl'?'اركع أمام باب الطلسم!':m==='sp'?'لا تدير ظهرك إليّ!':'هذا حدّك يا فرات!');}if(b.t<A.w/sp){b.a=turn(b.a,ang,(b.t<A.w*.6?5:1.5)*dt);mvs=b.t>A.w*.7/sp?A.step*.25:0;return;}
     const k=b.t-A.w/sp;if(k<A.a){mvs=A.step;if(!b.hit&&hitP(b,A.reach,A.arc,A.dmg))b.hit=true;if(k<dt*1.5)snd('swingH');return;}
@@ -28,6 +28,10 @@ function upNamtar(b,dt){
     case 'chase':
       if(!alive)break;
       b.a=turn(b.a,ang,(ad<160?4.5:6)*dt);
+      if(ph2&&b.sigCd<=0&&ad<440&&ad>95){
+        b.sigKind=isAdapa?'keys':b.k==='erra'?'storm':'quake';
+        b.sigCd=9;b.sigDone=false;setE(b,'signature');break;
+      }
       if(ad>110)mvs=ph2?110:78;else if(ad<70)mvs=-50;else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*44*dt,Math.sin(sa)*44*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
       if(b.cd<=0){const r=Math.random();
         if(behind&&ad<130)setE(b,'sp');
@@ -35,6 +39,23 @@ function upNamtar(b,dt){
         else if(ad<360){if(ph2&&r<.35)setE(b,'stomp');else if(ph2&&r<.6)setE(b,'charge');else if(r<.6){setE(b,'leapW');}else b.cd=.25;}
         else if(r<.5)setE(b,'leapW');else b.cd=.3;}
       break;
+    case 'signature':{
+      b.a=turn(b.a,ang,2.2*dt);
+      const adapa=b.sigKind==='keys',erra=b.sigKind==='storm';
+      if(b.t<.82){
+        if(!b.sigWarned){b.sigWarned=true;say(adapa?'أدابا يوقظ المفاتيح الخمسة!':erra?'إرّا يستدعي صواعق الجبل!':'الزعيم يضرب الأرض بقوة!','#e8c66a',1.8);if(adapa)voiceBoss(b,'المفاتيح الخمسة… استعد!');else if(erra)voiceBoss(b,'لتتكلم السماء الآن!');}
+        if(Math.random()<dt*18)parts.push({x:b.x+(Math.random()-.5)*90,y:b.y+35+Math.random()*95,z:b.z+(Math.random()-.5)*90,vx:0,vz:0,vy:18,l:.45,m:.45,col:adapa?'#d8ad54':erra?'#bfe4ff':'#c0242e',s:2.8,g:-12,f:-999});
+      }else if(!b.sigDone){
+        b.sigDone=true;shake=12;snd('boss');
+        if(adapa){
+          for(let n=0;n<5;n++){const a=n*PI*2/5+time*.35,x=b.x+Math.cos(a)*78,z=b.z+Math.sin(a)*78;burst(x,b.y+28,z,'#d8ad54',12,150,b.y);waves.push({x,z,y:arY(),r:12,l:1.35});}
+        }else if(erra){stormAround(b,5);}
+        else{waves.push({x:b.x,z:b.z,y:arY(),r:25,l:1.45});waves.push({x:b.x+Math.cos(b.a)*95,z:b.z+Math.sin(b.a)*95,y:arY(),r:16,l:1.2});burst(b.x,b.y+4,b.z,'#c0242e',24,190,b.y);}
+        if(ad<240&&!P.guard&&P.state!=='roll')hurtP(Math.round((adapa?24:erra?27:30)*(b.dm||1)),b.x,b.z);
+      }
+      if(b.t>1.75){b.sigWarned=false;b.sigDone=false;bRec(b,.7);}
+      break;
+    }
     case 'c1':atk('c1','c2');break;
     case 'c2':atk('c2',ph2?'c3':null);break;
     case 'c3':atk('c3',null);break;
