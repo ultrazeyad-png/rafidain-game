@@ -40,7 +40,11 @@ function upNamtar(b,dt){
       if(b.cd<=0){const r=Math.random();
         if(behind&&ad<130)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
         else if(ad<130){
-          const move=bossChoice(b,ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp']);
+          const pool=ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp'];
+          // Adapt softly to repeated player habits, without changing attack timings or damage.
+          if((b.rollReads||0)>=3)pool.push('sl','sl');
+          if(ph2&&(b.guardReads||0)>=3)pool.push('grab','grab');
+          const move=bossChoice(b,pool);
           setE(b,move);
           if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55);
         }
