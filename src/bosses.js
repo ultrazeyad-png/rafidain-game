@@ -19,6 +19,13 @@ function bossChoice(b,weighted){
   b.lastAtk=move;
   return move;
 }
+// Governorate bosses share one combat controller, but their counters follow their own weapon/element identity.
+function bossAdaptiveProfile(b){
+  const weapon=b.wpn||'mace',element=b.elem||'shadow';
+  const rollMove=element==='storm'?'leapW':(element==='water'||element==='poison')?'sp':'sl';
+  const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab';
+  return {rollMove,guardMove};
+}
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
   b.cd-=dt;let mvs=0;
@@ -41,9 +48,11 @@ function upNamtar(b,dt){
         if(behind&&ad<130)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
         else if(ad<130){
           const pool=ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp'];
-          // Adapt softly to repeated player habits, without changing attack timings or damage.
-          if((b.rollReads||0)>=3)pool.push('sl','sl');
-          if(ph2&&(b.guardReads||0)>=3)pool.push('grab','grab');
+          // Each governorate boss answers habits through its own weapon/element profile.
+          // These are weighted choices only: attack timings and damage remain unchanged.
+          const adaptive=bossAdaptiveProfile(b);
+          if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove);
+          if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove);
           const move=bossChoice(b,pool);
           setE(b,move);
           if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55);
