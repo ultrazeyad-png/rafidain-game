@@ -405,7 +405,7 @@ function tryAct(){
   if(b.a==='heal'){P.buf=null;if(P.flasks>0&&P.hp<maxHp()){P.flasks--;setP('heal');return true;}return false;}
   if(P.st<=0)return false;
   P.buf=null;
-  if(b.a==='roll'){spend(22+((ARM[stats.arm]||{}).roll||0));P.rd=P.mv?P.ma:P.a;P.a=P.rd;setP('roll');P.inv=.34;P.combo=0;snd('roll');puff(P.x,P.y,P.z,5,8,40);}
+  if(b.a==='roll'){if(boss&&!boss.dead&&Math.hypot(boss.x-P.x,boss.z-P.z)<520)boss.rollReads=Math.min(6,(boss.rollReads||0)+1);spend(22+((ARM[stats.arm]||{}).roll||0));P.rd=P.mv?P.ma:P.a;P.a=P.rd;setP('roll');P.inv=.34;P.combo=0;snd('roll');puff(P.x,P.y,P.z,5,8,40);}
   else if((b.a==='atk'||b.a==='heavy')&&(P.critT=critTarget())){const e=P.critT;P.a=Math.atan2(e.z-P.z,e.x-P.x);P.atk=CRIT;P.combo=0;P.inv=.9;setP('atk');}
   else if(b.a==='atk'){autoFace();const L=WPN[stats.wpn].light;P.atk=L[P.combo%L.length];P.combo=(P.combo+1)%L.length;P.comboT=0;spend(P.atk.cost);setP('atk');}
   else if(b.a==='heavy'){autoFace();P.atk=WPN[stats.wpn].heavy;P.combo=0;spend(P.atk.cost);setP('atk');}
@@ -495,6 +495,7 @@ function hurtP(d,fx,fz,src){
   d=Math.round(d*armDef()*(P.ward>0?.5:1));
   const fa=Math.atan2(fz-P.z,fx-P.x);
   if(P.guard&&adiff(fa,P.a)<1.3){
+    if(src&&src.boss&&!src.dead)src.guardReads=Math.min(6,(src.guardReads||0)+1);
     const perfect=P.gt<.25;
     burst(P.x+Math.cos(P.a)*13,P.y+34,P.z+Math.sin(P.a)*13,perfect?'#ffffff':'#ffd890',perfect?18:9,perfect?170:110,P.y);if(!perfect)snd('block');shake=perfect?6:3;
     if(perfect){hs=.07;snd('parry');if(src&&src.boss&&!src.dead){
