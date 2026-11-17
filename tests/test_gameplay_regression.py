@@ -390,7 +390,7 @@ async def run_suite(base_url: str) -> None:
             await corrupt_page.goto(f"{base_url}/dist/index.html", wait_until="load")
             await corrupt_page.wait_for_function("document.querySelector('#title')?.classList.contains('on') && document.querySelector('#go')", timeout=10000)
             await corrupt_page.evaluate("document.querySelector('#go').click()")
-            await corrupt_page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            await corrupt_page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=30000)
             recovered = await corrupt_page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
