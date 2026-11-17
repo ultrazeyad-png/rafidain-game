@@ -11,6 +11,14 @@ const NM={c1:{w:.62,a:.2,r:.32,key:'A',reach:96,arc:1.25,dmg:28,step:120},
 function arY(){return REG==='muthanna'?AY:AC.y;}
 function arClamp(x,z,m){if(REG==='muthanna')return [clamp(x,AX0+m,AX1-m),clamp(z,AZ0+m,AZ1-m)];return inArena(x,z,m);}
 function bossHalf(b){return b.hp<b.T.hp*.5;}
+// Avoid repeating the same move twice: the player gets a readable change of rhythm.
+function bossChoice(b,weighted){
+  const pool=weighted.filter(move=>move!==b.lastAtk);
+  const options=pool.length?pool:weighted;
+  const move=options[Math.floor(Math.random()*options.length)];
+  b.lastAtk=move;
+  return move;
+}
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
   b.cd-=dt;let mvs=0;
@@ -30,10 +38,17 @@ function upNamtar(b,dt){
       b.a=turn(b.a,ang,(ad<160?4.5:6)*dt);
       if(ad>110)mvs=ph2?110:78;else if(ad<70)mvs=-50;else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*44*dt,Math.sin(sa)*44*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
       if(b.cd<=0){const r=Math.random();
-        if(behind&&ad<130)setE(b,'sp');
-        else if(ad<130){if(ph2&&r<.18)setE(b,'grab');else if(r<.55)setE(b,'c1');else if(r<.82)setE(b,'sl');else setE(b,'sp');b.hold=.25+Math.random()*(ph2?.85:.55);}
-        else if(ad<360){if(ph2&&r<.35)setE(b,'stomp');else if(ph2&&r<.6)setE(b,'charge');else if(r<.6){setE(b,'leapW');}else b.cd=.25;}
-        else if(r<.5)setE(b,'leapW');else b.cd=.3;}
+        if(behind&&ad<130)setE(b,bossChoice(b,['sp','sp','sp']));
+        else if(ad<130){
+          const move=bossChoice(b,ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp']);
+          setE(b,move);
+          if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55);
+        }
+        else if(ad<360){
+          const move=ph2?bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW']):bossChoice(b,['leapW','leapW','leapW']);
+          if(ph2||r<.6)setE(b,move);else b.cd=.25;
+        }
+        else if(bossChoice(b,['leapW','leapW','chase'])==='leapW')setE(b,'leapW');else b.cd=.3;}
       break;
     case 'c1':atk('c1','c2');break;
     case 'c2':atk('c2',ph2?'c3':null);break;
