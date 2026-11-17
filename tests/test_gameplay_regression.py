@@ -521,6 +521,7 @@ def verify_regional_mini_bosses() -> None:
 def verify_boss_adaptive_tactics() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    roster = (ROOT / "src" / "gen.js").read_text(encoding="utf-8")
     for item in (
         "boss.rollReads=Math.min(6,(boss.rollReads||0)+1)",
         "src.guardReads=Math.min(6,(src.guardReads||0)+1)",
@@ -529,14 +530,21 @@ def verify_boss_adaptive_tactics() -> None:
         if item not in game:
             raise AssertionError(f"Boss player-tactic observation hook missing: {item}")
     for item in (
-        "if((b.rollReads||0)>=3)pool.push('sl','sl')",
-        "if(ph2&&(b.guardReads||0)>=3)pool.push('grab','grab')",
+        "function bossAdaptiveProfile(b)",
+        "const weapon=b.wpn||'mace',element=b.elem||'shadow'",
+        "const rollMove=element==='storm'?'leapW':(element==='water'||element==='poison')?'sp':'sl'",
+        "const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab'",
+        "if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove)",
+        "if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove)",
         "const move=bossChoice(b,pool)",
     ):
         if item not in bosses:
-            raise AssertionError(f"Adaptive boss response missing: {item}")
-    print("PASS: boss softly adapts to repeated rolling and guarding, with capped encounter-local counters")
-
+            raise AssertionError(f"Governorate-specific adaptive boss response missing: {item}")
+    if "if(e.boss){upNamtar(e,dt);return;}" not in game:
+        raise AssertionError("Governorate bosses no longer share the adaptive boss controller")
+    if "boss:{n:'أدابا، معلم الحراس'" not in roster or "boss:{n:'نرگال، سيد الوباء'" not in roster:
+        raise AssertionError("Regional major-boss roster anchors missing")
+    print("PASS: all major bosses use capped habit observation and weapon/element-specific adaptive responses")
 
 def verify_boss_stagger_reactions() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
