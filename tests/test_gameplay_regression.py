@@ -573,6 +573,18 @@ def verify_glb_enemy_boss_asset_acceptance() -> None:
 
 
 
+def verify_phase_two_signature_boss_attacks() -> None:
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    for item in ("b.sigCd=Math.max(0,(b.sigCd||0)-dt)",
+        "if(ph2&&b.sigCd<=0&&ad<440&&ad>95)",
+        "b.sigKind=isAdapa?'keys':b.k==='erra'?'storm':'quake'",
+        "case 'signature':", "for(let n=0;n<5;n++)",
+        "stormAround(b,5)", "b.sigCd=9", "bRec(b,.7)"):
+        if item not in bosses:
+            raise AssertionError(f"Phase-two signature attack hook missing: {item}")
+    print("PASS: phase-two signature attacks have telegraph, distinct boss effects, cooldown and recovery")
+
+
 def verify_regional_boss_intro_cinematics() -> None:
     bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
     systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
@@ -662,6 +674,7 @@ def main() -> int:
     verify_glb_gameplay_entity_render_binding()
     verify_glb_hero_load_is_transactional()
     verify_glb_enemy_boss_asset_acceptance()
+    verify_phase_two_signature_boss_attacks()
     verify_regional_boss_intro_cinematics()
     verify_regional_miniboss_voice_routing()
     verify_region_specific_boss_voice_profiles()
