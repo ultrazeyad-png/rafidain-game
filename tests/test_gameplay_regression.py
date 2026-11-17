@@ -346,27 +346,20 @@ async def run_suite(base_url: str) -> None:
                 "rs": {},
             }
             legacy_raw = __import__("json").dumps(legacy, separators=(",", ":"))
-            await page.add_init_script(
-                """() => {
-                    if (sessionStorage.getItem("__seedLegacySave") === "1") {
-                        localStorage.setItem("ashes-rafidain-v1", sessionStorage.getItem("__legacySaveRaw"));
-                        localStorage.removeItem("ashes-rafidain-v1.backup-v1");
-                        localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
-                        sessionStorage.removeItem("__seedLegacySave");
-                        sessionStorage.removeItem("__legacySaveRaw");
-                    }
-                }"""
+            legacy_page = await browser.new_page(viewport={"width": 960, "height": 540})
+            legacy_page.on("pageerror", lambda error: page_errors.append(str(error)))
+            legacy_literal = __import__("json").dumps(legacy_raw)
+            await legacy_page.add_init_script(
+                f"""() => {{
+                    localStorage.setItem("ashes-rafidain-v1", {legacy_literal});
+                    localStorage.removeItem("ashes-rafidain-v1.backup-v1");
+                    localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
+                }}"""
             )
-            await page.evaluate(
-                """raw => {
-                    sessionStorage.setItem("__legacySaveRaw", raw);
-                    sessionStorage.setItem("__seedLegacySave", "1");
-                }""",
-                legacy_raw,
-            )
-            await page.reload(wait_until="load")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
-            migrated = await page.evaluate(
+            await legacy_page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await legacy_page.click("#go")
+            await legacy_page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            migrated = await legacy_page.evaluate(
                 """() => ({
                     live: JSON.parse(localStorage.getItem("ashes-rafidain-v1")),
                     backup: localStorage.getItem("ashes-rafidain-v1.backup-v1"),
@@ -380,29 +373,23 @@ async def run_suite(base_url: str) -> None:
             if (migrated["region"], migrated["embers"], migrated["vigor"]) != ("muthanna", 777, 3):
                 raise AssertionError(f"Legacy save progress was not preserved: {migrated}")
             print("PASS: legacy v1 save migrates to schema v2 with byte-for-byte backup")
+            await legacy_page.close()
 
-            # A structurally incomplete save must not be loaded as valid progress.
+            # Seed malformed data before a fresh game page starts, avoiding autosave races.
             partial_raw = '{"stats":{"lvl":99},"reg":"muthanna","rs":{}}'
-            await page.add_init_script(
-                """() => {
-                    if (sessionStorage.getItem("__seedCorruptSave") === "1") {
-                        localStorage.setItem("ashes-rafidain-v1", sessionStorage.getItem("__corruptSaveRaw"));
-                        localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
-                        sessionStorage.removeItem("__seedCorruptSave");
-                        sessionStorage.removeItem("__corruptSaveRaw");
-                    }
-                }"""
+            corrupt_page = await browser.new_page(viewport={"width": 960, "height": 540})
+            corrupt_page.on("pageerror", lambda error: page_errors.append(str(error)))
+            partial_literal = __import__("json").dumps(partial_raw)
+            await corrupt_page.add_init_script(
+                f"""() => {{
+                    localStorage.setItem("ashes-rafidain-v1", {partial_literal});
+                    localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
+                }}"""
             )
-            await page.evaluate(
-                """raw => {
-                    sessionStorage.setItem("__corruptSaveRaw", raw);
-                    sessionStorage.setItem("__seedCorruptSave", "1");
-                }""",
-                partial_raw,
-            )
-            await page.reload(wait_until="load")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
-            recovered = await page.evaluate(
+            await corrupt_page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await corrupt_page.click("#go")
+            await corrupt_page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            recovered = await corrupt_page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
                     backup: localStorage.getItem("ashes-rafidain-v1.backup-corrupt")
@@ -411,6 +398,7 @@ async def run_suite(base_url: str) -> None:
             if recovered["level"] != 1 or recovered["backup"] != partial_raw:
                 raise AssertionError(f"Partial save recovery/backup failed: {recovered}")
             print("PASS: partial save rejected, preserved, and fresh game booted safely")
+            await corrupt_page.close()
 
             if page_errors:
                 raise AssertionError("Uncaught browser errors: " + " | ".join(page_errors))
