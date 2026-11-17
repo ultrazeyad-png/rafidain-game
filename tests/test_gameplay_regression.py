@@ -515,7 +515,26 @@ def verify_regional_mini_bosses() -> None:
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
 
 
+
+def verify_boss_attack_variety() -> None:
+    source = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    required = (
+        "function bossChoice(b,weighted)",
+        "const pool=weighted.filter(move=>move!==b.lastAtk)",
+        "b.lastAtk=move",
+        "bossChoice(b,ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp'])",
+        "if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55)",
+        "bossChoice(b,['sp','sp','sp'])",
+        "bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW'])",
+    )
+    missing = [item for item in required if item not in source]
+    if missing:
+        raise AssertionError(f"Boss attack variety/repetition guard missing: {missing}")
+    print("PASS: major boss AI avoids consecutive repeated attacks while preserving phase/distance move pools")
+
+
 def main() -> int:
+    verify_boss_attack_variety()
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
     verify_boss_finisher()
