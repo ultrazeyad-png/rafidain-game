@@ -517,6 +517,27 @@ def verify_regional_mini_bosses() -> None:
 
 
 
+
+def verify_boss_adaptive_tactics() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    for item in (
+        "boss.rollReads=Math.min(6,(boss.rollReads||0)+1)",
+        "src.guardReads=Math.min(6,(src.guardReads||0)+1)",
+        "if(boss&&!boss.dead&&Math.hypot(boss.x-P.x,boss.z-P.z)<520)",
+    ):
+        if item not in game:
+            raise AssertionError(f"Boss player-tactic observation hook missing: {item}")
+    for item in (
+        "if((b.rollReads||0)>=3)pool.push('sl','sl')",
+        "if(ph2&&(b.guardReads||0)>=3)pool.push('grab','grab')",
+        "const move=bossChoice(b,pool)",
+    ):
+        if item not in bosses:
+            raise AssertionError(f"Adaptive boss response missing: {item}")
+    print("PASS: boss softly adapts to repeated rolling and guarding, with capped encounter-local counters")
+
+
 def verify_boss_stagger_reactions() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
@@ -551,6 +572,7 @@ def verify_boss_attack_variety() -> None:
 
 
 def main() -> int:
+    verify_boss_adaptive_tactics()
     verify_boss_stagger_reactions()
     verify_boss_attack_variety()
     verify_adapa_visual_design()
