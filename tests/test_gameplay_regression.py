@@ -532,6 +532,13 @@ def verify_boss_adaptive_tactics() -> None:
     for item in (
         "function bossAdaptiveProfile(b)",
         "const weapon=b.wpn||'mace',element=b.elem||'shadow'",
+        "const playerWeapon=stats.wpn||'shield'",
+        "const reachBias=playerWeapon==='glaive'?18:playerWeapon==='axe'?8:playerWeapon==='dual'?-10:0",
+        "const staminaRatio=maxSt()>0?P.st/maxSt():1",
+        "const healthRatio=maxHp()>0?P.hp/maxHp():1",
+        "criticalHealth:healthRatio<.28",
+        "if(adaptive.criticalHealth){const fairPool=pool.filter(move=>move!=='grab')",
+        "if(adaptive.lowStamina)pool.push('sp','sp')",
         "spear:{range:148,turn:5.2,approach:86,retreat:42,orbit:34,pool:['sp','sp','c1','c1','leapW']}",
         "sword:{range:92,turn:7.2,approach:96,retreat:28,orbit:52,pool:['c1','c1','c2','c2','sp']}",
         "axe:{range:116,turn:4.8,approach:68,retreat:58,orbit:26,pool:['sl','sl','c1','charge','charge']}",
