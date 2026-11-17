@@ -120,9 +120,27 @@ let VN=[],voiceEnabled=true;
 try{voiceEnabled=localStorage.getItem('ashes-rafidain-voice')!=='0';}catch(_){}
 function voiceStop(){try{if(window.speechSynthesis)window.speechSynthesis.cancel();}catch(_){}for(const o of VN){try{o.stop();}catch(_){}}VN=[];}
 function setVoiceEnabled(on){voiceEnabled=!!on;try{localStorage.setItem('ashes-rafidain-voice',voiceEnabled?'1':'0');}catch(_){}if(!voiceEnabled)voiceStop();return voiceEnabled;}
+const voiceProfiles=new Map();
+function registerVoiceProfile(id,profile={}){
+  if(typeof id!=='string'||!id.trim())throw new Error('Voice profile id is required');
+  if(!profile||typeof profile!=='object'||Array.isArray(profile))throw new Error('Voice profile must be an object');
+  const next={pitch:profile.pitch??.52,rate:profile.rate??.78,volume:profile.volume??1};
+  if(!Number.isFinite(next.pitch)||next.pitch<.5||next.pitch>2||!Number.isFinite(next.rate)||next.rate<.5||next.rate>2||!Number.isFinite(next.volume)||next.volume<0||next.volume>1)throw new Error('Voice profile values are out of range');
+  voiceProfiles.set(id,next);return {id,...next};
+}
+function voiceBoss(entity,text){
+  if(!entity||typeof entity!=='object')return voice('boss',text);
+  const region=String(entity.regionId||'unknown'),id='boss:'+region;
+  if(!voiceProfiles.has(id)){
+    let hash=2166136261;for(let i=0;i<region.length;i++){hash^=region.charCodeAt(i);hash=Math.imul(hash,16777619);}
+    const pitch=.5+((hash>>>0)%31)/100,rate=.72+(((hash>>>8)&15)/100);
+    registerVoiceProfile(id,{pitch,rate,volume:1});
+  }
+  return voice(id,text);
+}
 function voice(id,text){
   voiceStop();if(!voiceEnabled)return;const phrase=String(text||'').trim();if(!phrase)return;
-  const profiles={khidr:{pitch:.72,rate:.88,volume:.96},shirin:{pitch:1.08,rate:.98,volume:1},derv:{pitch:.62,rate:.78,volume:.94},narrator:{pitch:.82,rate:.9,volume:.96},erra:{pitch:.55,rate:.76,volume:1},anzu:{pitch:.48,rate:.72,volume:1},boss:{pitch:.52,rate:.78,volume:1}},profile=profiles[id]||profiles.narrator;
+  const profiles={khidr:{pitch:.72,rate:.88,volume:.96},shirin:{pitch:1.08,rate:.98,volume:1},derv:{pitch:.62,rate:.78,volume:.94},narrator:{pitch:.82,rate:.9,volume:.96},erra:{pitch:.55,rate:.76,volume:1},anzu:{pitch:.48,rate:.72,volume:1},boss:{pitch:.52,rate:.78,volume:1}},profile=voiceProfiles.get(id)||profiles[id]||profiles.narrator;
   try{const synth=window.speechSynthesis,Utterance=window.SpeechSynthesisUtterance;if(synth&&typeof Utterance==='function'){
     const u=new Utterance(phrase);u.lang='ar-IQ';u.pitch=profile.pitch;u.rate=profile.rate;u.volume=profile.volume;
     const voices=synth.getVoices?synth.getVoices():[],arabic=voices.filter(v=>/^ar(?:-|$)/i.test(v.lang||''));
@@ -131,7 +149,7 @@ function voice(id,text){
     synth.speak(u);return;
   }}catch(_){}
   if(!AUC)return;
-  try{const V={khidr:[108,'sawtooth',.9],shirin:[225,'triangle',1.25],derv:[84,'sawtooth',.75],narrator:[118,'sawtooth',.9]}[id]||[140,'triangle',1],n=Math.max(5,Math.min(18,Math.round(phrase.length/4))),FM=[700,1050,520,880,1300,620];let t=AUC.currentTime+.03;
+  try{const V={khidr:[108,'sawtooth',.9],shirin:[225,'triangle',1.25],derv:[84,'sawtooth',.75],narrator:[118,'sawtooth',.9]}[id]||[Math.round(100+profile.pitch*90),'triangle',Math.max(.65,profile.rate)],n=Math.max(5,Math.min(18,Math.round(phrase.length/4))),FM=[700,1050,520,880,1300,620];let t=AUC.currentTime+.03;
     for(let k=0;k<n;k++){const o=AUC.createOscillator(),f=AUC.createBiquadFilter(),g=AUC.createGain(),d=(.075+Math.random()*.07)/V[2]*1.1,f0=V[0]*(1+(Math.random()-.5)*.3)*(k===n-1?.82:1);o.type=V[1];o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f0*(.9+Math.random()*.18),t+d);f.type='bandpass';f.Q.value=3.5;f.frequency.setValueAtTime(FM[Math.floor(Math.random()*FM.length)],t);f.frequency.linearRampToValueAtTime(FM[Math.floor(Math.random()*FM.length)],t+d);g.gain.setValueAtTime(.0005,t);g.gain.linearRampToValueAtTime(V[1]==='triangle'?.5:.3,t+.02);g.gain.exponentialRampToValueAtTime(.0008,t+d);o.connect(f);f.connect(g);g.connect(MG);o.start(t);o.stop(t+d+.03);VN.push(o);t+=d*.9+(Math.random()<.18?.11:.012);}
   }catch(_){}
 }

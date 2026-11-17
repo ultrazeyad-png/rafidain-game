@@ -38,6 +38,9 @@ jobs:
       - name: Build game and validate generated page
         run: python tests/smoke_build.py
 
+      - name: Verify GLB parser fixtures
+        run: node tests/test_gltf_parser.js
+
       - name: Install browser test dependencies
         run: |
           python -m pip install -r requirements-test.txt

@@ -27,11 +27,11 @@ function lookAt(o,e,c){
 const HEXC={};
 function hex(h){let c=HEXC[h];if(!c){const n=parseInt(h.slice(1),16);c=HEXC[h]=[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}return c;}
 function initGL(){
-  const vs='attribute vec3 p;attribute vec3 n;attribute vec4 c;uniform mat4 uVP,uM,uLVP;uniform vec3 uNS;uniform float uTime;varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;'+
-    'void main(){vP=p;vZ=n.z;vC=c;vec4 w=uM*vec4(p,1.);if(c.a>.13&&c.a<.19){float k=(c.a-.14)*25.,ph=uTime*1.7+w.x*.021+w.z*.017;w.x+=(sin(ph)*3.2+sin(ph*2.3)*1.)*k;w.z+=cos(ph*.8)*2.2*k;}vW=w.xyz;vN=mat3(uM)*(n*uNS);vL=uLVP*w;gl_Position=uVP*w;}';
+  const vs='attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute vec2 uv;attribute vec4 tangent;uniform mat4 uVP,uM,uLVP;uniform vec3 uNS;uniform float uTime;varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;varying vec3 vT;varying float vHand;'+
+    'void main(){vP=p;vZ=n.z;vC=c;vGLBUV=uv;vT=mat3(uM)*tangent.xyz;vHand=tangent.w;vec4 w=uM*vec4(p,1.);if(c.a>.13&&c.a<.19){float k=(c.a-.14)*25.,ph=uTime*1.7+w.x*.021+w.z*.017;w.x+=(sin(ph)*3.2+sin(ph*2.3)*1.)*k;w.z+=cos(ph*.8)*2.2*k;}vW=w.xyz;vN=mat3(uM)*(n*uNS);vL=uLVP*w;gl_Position=uVP*w;}';
   const fs=`precision highp float;
-varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;
-uniform sampler2D uT,uSh;uniform vec3 uSun,uSunC,uAT,uAB,uSk0,uSk1,uSd,uDc,uCam,uFog;uniform float uTx,uMode,uSP,uShOn,uTime,uStar,uE,uF,uA;uniform vec4 uUV,uC;uniform vec2 uFg;uniform vec4 uPL[3];
+varying vec3 vN,vW,vP;varying float vZ;varying vec4 vC,vL;varying vec2 vGLBUV;varying vec3 vT;varying float vHand;
+uniform sampler2D uT,uSh,uGLBTex,uGLBNormalTex;uniform float uGLBTexture,uGLBMaterial,uGLBMetallic,uGLBRoughness,uGLBNormalMap,uGLBNormalScale;uniform vec3 uSun,uSunC,uAT,uAB,uSk0,uSk1,uSd,uDc,uCam,uFog;uniform float uTx,uMode,uSP,uShOn,uTime,uStar,uE,uF,uA;uniform vec4 uUV,uC;uniform vec2 uFg;uniform vec4 uPL[3];
 float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h1(i),h1(i+vec2(1.,0.)),f.x),mix(h1(i+vec2(0.,1.)),h1(i+vec2(1.,1.)),f.x),f.y);}
 float upk(vec4 c){return dot(c.rgb,vec3(1.,1./255.,1./65025.));}
@@ -47,13 +47,14 @@ void main(){
     c+=vec3(step(.9975,h1(floor(d.xz/(abs(el)+.3)*260.))))*uStar*smoothstep(.05,.3,el);
     gl_FragColor=vec4(mix(uFog,c,smoothstep(-.03,.1,el)),1.);return;}
   vec3 n=normalize(vN);
+  if(uGLBNormalMap>.5){vec3 T=normalize(vT-n*dot(n,vT));vec3 B=normalize(cross(n,T))*vHand;vec3 mapN=texture2D(uGLBNormalTex,vGLBUV).xyz*2.-1.;mapN.xy*=uGLBNormalScale;n=normalize(mat3(T,B,n)*mapN);}
   if(uMode>2.5){float g=pow(max(dot(n,normalize(uCam-vW)),0.),2.6);gl_FragColor=vec4(uC.rgb*g*uC.a,1.);return;}   // soft glow, added on top
   if(uMode>1.5){   // water: moving ripples, sky on the surface, sun glitter
     vec2 p=vW.xz*.035;float w1=ns(p+uTime*vec2(.25,.1)),w2=ns(p*2.7-uTime*vec2(.2,.3));n=normalize(vec3((w1-.5)*.55,1.,(w2-.5)*.55));
     vec3 v=normalize(uCam-vW);float fr=pow(1.-max(dot(n,v),0.),3.);vec3 c=mix(vec3(.06,.22,.28)*(uA*.6+.4),uSk1*.85+.08,fr*.8+.12);
     c+=uSunC*pow(max(dot(n,normalize(v+normalize(uSun))),0.),90.)*.9;
     float f=clamp((dist-uFg.x)/uFg.y,0.,1.)*uF;gl_FragColor=vec4(mix(c,uFog,f),.88);return;}
-  vec4 bc=vec4(uC.rgb*vC.rgb,uC.a);float mt=vC.a;
+  vec4 bc=vec4(uC.rgb*vC.rgb,uC.a);if(uGLBTexture>.5)bc*=texture2D(uGLBTex,vGLBUV);float mt=vC.a;
   if(uTx>.5&&abs(vZ)>.5){float uu=(vP.x+.5)*uUV.z+uUV.x;if(vZ<0.)uu=1.-uu;bc=vec4(texture2D(uT,vec2(uu,(.5-vP.y)*uUV.w+uUV.y)).rgb,uC.a);}
   else if(mt>.2&&mt<.75){   // surface grain for land and stone; coursed blocks on walls
     float g=ns(vW.xz*.31+vW.y*.17)*.55+ns(vW.xz*.07+vW.y*.05)*.45;bc.rgb*=.82+.36*g;
@@ -68,7 +69,21 @@ void main(){
       vec2 ed=abs(q.xy-.5)*2.;sh=mix(s*.25,1.,smoothstep(.85,1.,max(ed.x,ed.y)));}}
   vec3 lit=(mix(uAB,uAT,n.y*.5+.5)*(.72+.28*sh)+uSunC*d*sh)*uA;float rim=pow(1.-max(dot(n,normalize(uCam-vW)),0.),3.);lit+=uAT*.5*rim*uA;
   for(int i=0;i<3;i++){vec3 l=uPL[i].xyz-vW;float dd=dot(l,l);lit+=vec3(1.,.5,.18)*uPL[i].w*max(dot(n,normalize(l)),.3)/(1.+dd*.0004);}
-  vec3 c=mix(bc.rgb*lit,bc.rgb,max(uE,step(.75,mt)));float f=clamp((dist-uFg.x)/uFg.y,0.,1.)*uF;
+  vec3 c=mix(bc.rgb*lit,bc.rgb,max(uE,step(.75,mt)));
+  if(uGLBMaterial>.5){
+    vec3 V=normalize(uCam-vW),L=normalize(uSun),H=normalize(V+L);
+    float ndv=max(dot(n,V),.001),ndh=max(dot(n,H),0.),vdh=max(dot(V,H),0.);
+    float rough=clamp(uGLBRoughness,.06,1.),metal=clamp(uGLBMetallic,0.,1.);
+    float a=rough*rough,a2=a*a,den=ndh*ndh*(a2-1.)+1.;
+    float D=a2/(3.14159265*den*den+.0001);
+    float k=(rough+1.)*(rough+1.)/8.;
+    float G=(ndv/(ndv*(1.-k)+k))*(max(dot(n,L),.001)/(max(dot(n,L),.001)*(1.-k)+k));
+    vec3 F0=mix(vec3(.04),bc.rgb,metal);
+    vec3 F=F0+(1.-F0)*pow(1.-vdh,5.);
+    vec3 spec=(D*G*F/(4.*ndv*max(dot(n,L),.001)+.001))*uSunC*sh;
+    c+=spec*(.18+.82*(1.-rough));
+  }
+  float f=clamp((dist-uFg.x)/uFg.y,0.,1.)*uF;
   c=mix(c,uFog,f);
   // Cinematic Mesopotamian grade: restrained saturation, cool shadow bias, warm ember highlights.
   c=clamp(c,0.,1.);float lum=dot(c,vec3(.299,.587,.114));

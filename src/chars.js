@@ -68,7 +68,7 @@ function drawTrail(){
   ribbon(q,.6);
 }
 
-function drawHero(){dressHero();
+function drawHero(){if(gltfHero&&drawGLBHero())return;dressHero();
   const wpn=stats.wpn,st=P.state;
   gAlpha=1;gFlash=false;
   if(cam.d<44)gAlpha=.3;
@@ -218,6 +218,18 @@ function drawBossCore(e){
   }
 }
 function drawMob(e){
+  // Keep the existing death dissolve and distance culling on the procedural path.
+  // GLB models replace only living, nearby entities until equivalent fade support exists.
+  if(!e.dead&&Math.hypot(e.x-P.x,e.z-P.z)<=DR&&window.__g&&window.__g.getGLBEntityId){
+    const glbId=window.__g.getGLBEntityId(e);
+    if(glbId){
+      window.__g.syncGLBEntityAction(glbId,e);
+      if(window.__g.drawGLBEntity(glbId,e.x,e.y+(e.j||0),e.z,e.a)){
+        if(e.boss||e.k==='boss'||e.k==='erra'||e.k==='gb')drawBossCore(e);
+        return;
+      }
+    }
+  }
   if(e.k==='gmini'){const mk=MINI_GUARDS[REG]&&MINI_GUARDS[REG].k;if(mk==='scorpK')drawScorp(e);else if(mk==='crocK')drawCroc(e);else if(mk==='ghostK')drawGhost(e);else drawWolf(e);return;}if(e.k==='wolf'){drawWolf(e);return;}if(e.k==='anzu'){drawAnzu(e);return;}if(e.k==='boss'){drawNamtar(e);drawBossCore(e);return;}if(e.k==='erra'){drawErra(e);drawBossCore(e);return;}if(e.k==='gb'){drawWarrior(e);drawBossCore(e);return;}if(e.k==='scorp'||e.k==='scorpK'){drawScorp(e);return;}if(e.k==='croc'||e.k==='crocK'){drawCroc(e);return;}if(e.k==='ghost'||e.k==='ghostK'){drawGhost(e);return;}if(e.k==='wolfK'){drawWolf(e);return;}
   const T_=e.T,k=e.k==='guard'?'brute':(e.k==='sling'||e.k==='archer')?'husk':e.k,s=T_.h/46,wf=k==='brute'?1.25:k==='boss'?1.12:1,c=MC[e.k],st=e.state;
   let fall=0;gAlpha=1;

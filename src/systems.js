@@ -164,7 +164,7 @@ function miniBossFilm(e,m){
   ];
   cine={i:0,t:0,boss:e,mini:true,shots};paused=true;root.classList.add('cine');cineShot();bossMusic(true,m.k);return true;
 }
-function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}if(cine.finisher&&s.impact&&cine.boss){const b=cine.boss;burst(b.x,b.y+b.T.h*.68,b.z,s.col||'#f2d18a',42,260,b.y);if(s.bossCol)burst(b.x,b.y+b.T.h*.68,b.z,s.bossCol,34,190,b.y);shake=16;}voice('narrator',s.t);}
+function cineShot(){const s=(cine.shots||CINE)[cine.i];if(s.reg)cineRegion(s.reg);if(s.mk){const q=s.mk();s.a=q[0];s.b=q[1];}todO=s.tod==null?null:s.tod;const c=$('cT');c.textContent=s.t;c.classList.toggle('v',!!s.v);c.classList.remove('in');void c.offsetWidth;c.classList.add('in');if(s.fx){shake=9;snd('boss');}if(cine.finisher&&s.impact&&cine.boss){const b=cine.boss;burst(b.x,b.y+b.T.h*.68,b.z,s.col||'#f2d18a',42,260,b.y);if(s.bossCol)burst(b.x,b.y+b.T.h*.68,b.z,s.bossCol,34,190,b.y);shake=16;}if(cine.boss&&s.voice==='boss')voiceBoss(cine.boss,s.t);else voice('narrator',s.t);}
 function upCine(dt){cine.t+=dt;if(cine.finisher){const a=cine.boss&&cine.boss.finisherPose;P.t=Math.min(a||1.45,P.t+dt);if(cine.boss)cine.boss.t+=dt;}const L=cine.shots||CINE,s=L[cine.i];
   if(!cine.finisher&&cine.boss&&cine.boss.k==='boss'&&cine.i===0){const b=cine.boss;b.t+=dt;b.state='trans';if(b.t>1.6)b.state='intro';}
   if(cine.t>=s.d){cine.i++;cine.t=0;if(cine.i>=L.length){endCine();return;}cineShot();}}
@@ -172,7 +172,7 @@ function endCine(){voiceStop();if(cine&&cine.finisher){
   const b=cine.boss;cine=null;todO=null;root.classList.remove('cine');paused=false;P.inv=0;P.finisherKey=null;P.finisherWeapon=null;setP('idle');
   cam.x=P.x;cam.y=P.y+58;cam.z=P.z;cam.d=165;waves=[];bossMusic(false);snd('rest');b.finishing=false;b.armor=0;b.weakT=0;
   hurtE(b,b.hp,true,true);$('cT').textContent='';save();return;
-}if(!(cine&&cine.mini))setTimeout(()=>regionMusic(true),900);if(cine&&!cine.boss&&!cine.boat&&REG!=='duhok')cineRegion('duhok');if(cine&&cine.boss){const b=cine.boss,isMini=!!cine.mini;cine=null;todO=null;root.classList.remove('cine');paused=false;setE(b,'chase');b.cd=.6;b.hit=false;if(isMini){const m=MINI_GUARDS[REG];bossMusic(true,m&&m.k);if(m)voice('boss',m.line);}$('cT').textContent='';return;}
+}if(!(cine&&cine.mini))setTimeout(()=>regionMusic(true),900);if(cine&&!cine.boss&&!cine.boat&&REG!=='duhok')cineRegion('duhok');if(cine&&cine.boss){const b=cine.boss,isMini=!!cine.mini;cine=null;todO=null;root.classList.remove('cine');paused=false;setE(b,'chase');b.cd=.6;b.hit=false;if(isMini){const m=MINI_GUARDS[REG];bossMusic(true,m&&m.k);if(m)voiceBoss(b,m.line);}$('cT').textContent='';return;}
   cine=null;todO=null;setQ();root.classList.remove('cine');stats.intro=true;stats.tod=0;setTod();paused=false;music(false);
   P.inv=3;setP('wake');snd('hurt');cam.yaw=1.25;cam.pitch=.5;cam.pe=.5;cam.x=P.x;cam.y=P.y+30;cam.z=P.z;cam.d=150;save();}
 function cineCam(e3,tg){const s=(cine.shots||CINE)[cine.i],k=Math.min(1,cine.t/s.d),q=k*k*(3-2*k);for(let i=0;i<3;i++){e3[i]=lerp(s.a[i],s.b[i],q);tg[i]=lerp(s.a[i+3],s.b[i+3],q);}if(HG){let top=hv(e3[0],e3[2]);for(let k=0;k<8;k++)top=Math.max(top,hv(e3[0]+Math.cos(k*.785)*110,e3[2]+Math.sin(k*.785)*110));e3[1]=Math.max(e3[1],top+45);}}   // never inside the mountain

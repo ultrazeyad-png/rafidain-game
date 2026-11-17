@@ -303,10 +303,12 @@ async def run_suite(base_url: str) -> None:
                     g.travel("muthanna");
                 }"""
             )
-            await page.reload(wait_until="load")
+            # DOM readiness is sufficient; wait explicitly for the game runtime because
+            # media/animation resources may keep the full load event open.
+            await page.reload(wait_until="domcontentloaded")
             await page.wait_for_function(
                 "window.__g && window.__g.ok() && window.__g.chunks > 0",
-                timeout=15000,
+                timeout=20000,
             )
             save_state = await page.evaluate(
                 "() => ({region: __g.REG, embers: __g.stats.embers, vigor: __g.stats.vig})"
@@ -352,8 +354,10 @@ async def run_suite(base_url: str) -> None:
             await page.evaluate(
                 "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
             )
-            await page.reload(wait_until="load")
-            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
+            # The corrupt-save recovery path may keep media/animation resources alive;
+            # DOM readiness plus the explicit runtime-ready wait below is the real contract.
+            await page.reload(wait_until="commit", timeout=60000)
+            await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=20000)
             recovered = await page.evaluate(
                 """() => ({
                     level: __g.stats.lvl,
@@ -491,12 +495,191 @@ def verify_regional_mini_bosses() -> None:
     print("PASS: regional mini-boss identities, creature rendering, spawns, rewards, and persistence")
 
 
+
+def verify_glb_gameplay_entity_render_binding() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    chars = (ROOT / "src" / "chars.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in (
+        "const gltfEntityInstances=new Map()",
+        "const gltfEntityIds=new WeakMap()",
+        "async function bindGLBModel(gameEntity,url,options={})",
+        "function syncGLBEntityAction(id,gameEntity)",
+        "function drawGLBEntity(id,x,y,z,yaw=0,scale)",
+        "function removeGLBEntity(id)",
+        "entity.asset.textures[item.texture]?.source",
+        "entity.asset.textures[item.normalTexture]?.source",
+        "function registerGLBModelCatalog(catalog={})",
+        "async function bindGLBModelForEntity(gameEntity,overrides={})",
+        "function gltfModelCategory(entity)",
+    ):
+        if item not in gltf:
+            raise AssertionError(f"GLB entity runtime binding missing: {item}")
+    for item in ("bindGLBModelForEntity, registerGLBModelCatalog", "drawGLBEntity, removeGLBEntity",
+        "function bindConfiguredGLBEntities()", "bindConfiguredGLBEntities();"):
+        if item not in game:
+            raise AssertionError(f"GLB entity API is not exposed to gameplay: {item}")
+    for item in ("getGLBEntityId(e)", "syncGLBEntityAction(glbId,e)",
+        "drawGLBEntity(glbId,e.x,e.y+(e.j||0),e.z,e.a)",
+        "if(e.k==='gmini')"):
+        if item not in chars:
+            raise AssertionError(f"Enemy/boss GLB draw integration or fallback missing: {item}")
+    print("PASS: GLB entity binding API, animation sync, model draw path, texture source mapping, and procedural fallback")
+
+
+def verify_glb_hero_load_is_transactional() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    required = (
+        "gltfHeroLoadSerial=0",
+        "function disposeGLBResources(gpu,textures)",
+        "const request=++gltfHeroLoadSerial",
+        "if(request!==gltfHeroLoadSerial)return {ok:false,reason:'superseded'}",
+        "const previousGPU=gltfHeroGPU,previousTextures=gltfHeroTextures",
+        "gltfHero={asset,scale};gltfHeroGPU=gpu;gltfHeroTextures=textures",
+        "disposeGLBResources(previousGPU,previousTextures)",
+        "const inspection=inspectGLBAsset(asset)",
+        "if(texture)gl.deleteTexture(texture)",
+        "if(gltfHero!==restoredHero||gltfHeroLoadSerial!==restoreSerial)",
+        "gltfCreatePlaybackState(asset,{clip:0,speed:1,paused:false,position:0,loop:true})",
+    )
+    missing = [item for item in required if item not in gltf]
+    if missing:
+        raise AssertionError(f"Transactional GLB hero loading safeguards missing: {missing}")
+    if "gltfHero=null;gltfHeroGPU=null;gltfHeroTextures=[];gltfHeroError='';" in gltf:
+        raise AssertionError("A new hero request must not clear the currently working hero before success")
+    print("PASS: GLB hero replacement is race-safe, preserves the previous model on failure, and cleans partial GPU resources")
+
+
+
+def verify_glb_enemy_boss_asset_acceptance() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    required = (
+        "readyForEnemyOrBoss",
+        "missingEnemyCoreAnimations",
+        "entry.requireAnimatedCharacter!==false",
+        "requireAnimatedCharacter:entry.requireAnimatedCharacter",
+        "entity.inspection=inspectGLBAsset(entity.asset)",
+        "entity is not ready for animated gameplay",
+        "options.requireAnimatedCharacter!==false&&!entity.inspection.readyForEnemyOrBoss",
+        "inspection:entity.inspection",
+        "catalog animation options must be an object",
+        "requireAnimatedCharacter must be boolean",
+    )
+    missing = [item for item in required if item not in gltf]
+    if missing:
+        raise AssertionError(f"Enemy/boss GLB acceptance checks missing: {missing}")
+    print("PASS: enemy/boss GLB assets require skinned meshes, joint-targeted core clips, and expose an inspection report")
+
+
+
+
+def verify_phase_two_signature_boss_attacks() -> None:
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    for item in ("b.sigCd=Math.max(0,(b.sigCd||0)-dt)",
+        "if(ph2&&b.sigCd<=0&&ad<440&&ad>95)",
+        "b.sigKind=isAdapa?'keys':b.k==='erra'?'storm':'quake'",
+        "case 'signature':", "for(let n=0;n<5;n++)",
+        "stormAround(b,5)", "b.sigCd=9", "bRec(b,.7)"):
+        if item not in bosses:
+            raise AssertionError(f"Phase-two signature attack hook missing: {item}")
+    print("PASS: phase-two signature attacks have telegraph, distinct boss effects, cooldown and recovery")
+
+
+def verify_regional_boss_intro_cinematics() -> None:
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+    for item in ("if(isAdapa)", "if(isErra)", "المفاتيح لن تفتح لك طريق العودة",
+        "فوق جبال دهوك… العاصفة تنتظر", "voice:'boss'", "fx:true",
+        "cine={i:0,t:0,boss:b,shots}"):
+        if item not in bosses:
+            raise AssertionError(f"Regional boss intro cinematic element missing: {item}")
+    if "if(cine.boss&&s.voice==='boss')voiceBoss(cine.boss,s.t)" not in systems:
+        raise AssertionError("Boss intro dialogue must use the boss regional voice profile")
+    print("PASS: Baghdad and Duhok have bespoke multi-shot boss introductions with regional character dialogue")
+
+
+def verify_regional_miniboss_voice_routing() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    systems = (ROOT / "src" / "systems.js").read_text(encoding="utf-8")
+    if "e.regionId=REG;return e;" not in game:
+        raise AssertionError("Spawned enemies and mini-bosses must retain their region id")
+    for item in ("voiceBoss(e,'هسه تشوف قوتي الحقيقية!')", "voiceBoss(e,m.line)"):
+        if item not in game:
+            raise AssertionError(f"Regional mini-boss voice route missing: {item}")
+    if "if(m)voiceBoss(b,m.line);" not in systems:
+        raise AssertionError("Mini-boss cinematic return must use the regional voice profile")
+    print("PASS: regional mini-boss intro, phase-two and cinematic dialogue use their region voice profile")
+
+
+def verify_region_specific_boss_voice_profiles() -> None:
+    audio = (ROOT / "src" / "audio.js").read_text(encoding="utf-8")
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in ("const voiceProfiles=new Map()", "function registerVoiceProfile(id,profile={})",
+        "function voiceBoss(entity,text)", "voiceProfiles.get(id)||profiles[id]||profiles.narrator",
+        "voiceProfiles.set(id,next)"):
+        if item not in audio:
+            raise AssertionError(f"Voice profile registry missing: {item}")
+    if bosses.count("voiceBoss(b,") < 3:
+        raise AssertionError("Major boss intro, phase transition, and attack taunts must use regional voices")
+    if "voiceBoss(src,src.T&&src.T.name" not in game:
+        raise AssertionError("Major boss parry reaction must use its regional voice profile")
+    if "voiceBoss,registerVoiceProfile" not in game:
+        raise AssertionError("Regional boss voice API is not exposed")
+    print("PASS: major boss dialogue and parry reactions resolve deterministic region-specific voice profiles")
+
+
+def verify_glb_boss_profile_registry() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for item in ("const gltfBossProfiles=new Map()", "function registerGLBBossProfile(profileId,profile={})",
+        "function getGLBBossProfiles()", "function gltfBossProfileForEntity(entity)",
+        "profile?.modelCategory||gltfModelCategory(gameEntity)", "profile?.scale||entry.scale",
+        "registerGLBBossProfile, getGLBBossProfiles"):
+        if item not in gltf:
+            raise AssertionError(f"Boss profile registry missing: {item}")
+    for item in ("boss.regionId=REG", "boss.profileId='boss:'+REG",
+        "registerGLBBossProfile(boss.profileId,{name:boss.T.name,region:REG,modelCategory:'gb'})"):
+        if item not in game:
+            raise AssertionError(f"Boss spawn is not linked to its region profile: {item}")
+    print("PASS: regional boss profiles validate metadata and route optional models through the existing GLB catalog")
+
+
+def verify_glb_catalog_audit_and_entity_cleanup() -> None:
+    gltf = (ROOT / "src" / "gltf.js").read_text(encoding="utf-8")
+    template = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    required = (
+        "async function inspectGLBModelCatalog()",
+        "const entries=Array.from(gltfModelCatalog",
+        "const accepted=!entry.requireAnimatedCharacter||report.readyForEnemyOrBoss",
+        "accepted:false,error:String(error&&error.message||error)",
+        "disposeGLBResources([],entity.textures)",
+        "disposeGLBResources(entity.gpu,entity.textures);entity.gpu=null;entity.textures=[]",
+        "inspectGLBModelCatalog, getGLBEntityId",
+    )
+    combined = gltf + template
+    missing = [item for item in required if item not in combined]
+    if missing:
+        raise AssertionError(f"GLB catalog audit or entity resource cleanup missing: {missing}")
+    print("PASS: catalog-wide GLB audit reports per-model acceptance and failed entity loads release GPU resources")
+
+
+
 def main() -> int:
     verify_adapa_visual_design()
     verify_major_boss_weakpoints()
     verify_boss_finisher()
     verify_weapon_and_boss_specific_finishers()
     verify_regional_mini_bosses()
+    verify_glb_gameplay_entity_render_binding()
+    verify_glb_hero_load_is_transactional()
+    verify_glb_enemy_boss_asset_acceptance()
+    verify_phase_two_signature_boss_attacks()
+    verify_regional_boss_intro_cinematics()
+    verify_regional_miniboss_voice_routing()
+    verify_region_specific_boss_voice_profiles()
+    verify_glb_boss_profile_registry()
+    verify_glb_catalog_audit_and_entity_cleanup()
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)

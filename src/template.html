@@ -386,13 +386,21 @@ function travel(id){save();loadRegion(id);applyWorld();setEnvironment(REG);updat
 /* ================= setup ================= */
 function mk(k,x,z,h){const T=TYPES[k];let y=floorAt(x,z,(h||0)+6);if(y<-900)y=h||0;return {k,T,x,z,y,j:0,hx:x,hz:z,a:PI,hp:Math.round(T.hp*(T.boss0?1:REGS.hs)),dm:T.boss0?1:REGS.ds,state:'idle',t:0,cd:0,flash:0,pd:0,pt:0,hit:false,dead:false,walk:0,boss:false,recT:0,tx:0,tz:0,sx:0,sz:0,ka:0,kv:0,n:0};}
 function spawnAll(){
+  if(window.__g?.releaseGLBEntities)window.__g.releaseGLBEntities(enemies);
   const mini=MINI_GUARDS[REG];if(mini)TYPES.gmini=Object.assign({},TYPES[mini.k],{name:mini.n});
-  enemies=SPAWN.filter(s=>!(s[0]==='guard'&&world.key)&&!(s[0]==='gmini'&&world.minis)).map(s=>mk(s[0],s[1],s[2],s[3]));boss=null;lock=null;setLockBtn();
+  enemies=SPAWN.filter(s=>!(s[0]==='guard'&&world.key)&&!(s[0]==='gmini'&&world.minis)).map(s=>{const e=mk(s[0],s[1],s[2],s[3]);e.regionId=REG;return e;});boss=null;lock=null;setLockBtn();
   if(!world.bossDead){if(REG==='muthanna'){boss=mk('boss',1840,900,AY);boss.a=-PI/2;boss.elem='shadow';}
     else if(REG==='duhok'){boss=mk('erra',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem='storm';boss.spd=1.12;}
     else{const g=GOVM[REG],B_=g.boss;TYPES.gb={hp:Math.round(B_.hp*(1+regIdx(REG)*.03)),r:B_.fem?22:26,h:110,embers:1200+regIdx(REG)*120,poise:14+Math.floor(regIdx(REG)/4),name:B_.n,boss0:1};
-      boss=mk('gb',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem=B_.el;boss.wpn=B_.w;boss.look=Object.assign({fem:B_.fem,two:B_.w==='axe'||B_.w==='spear'},B_.look);boss.spd=1+regIdx(REG)*.012;boss.dm=1+regIdx(REG)*.04;}boss.boss=true;boss.state='sleep';enemies.push(boss);}
+      boss=mk('gb',AC.x+60,AC.z,AC.y);boss.a=PI;boss.elem=B_.el;boss.wpn=B_.w;boss.look=Object.assign({fem:B_.fem,two:B_.w==='axe'||B_.w==='spear'},B_.look);boss.spd=1+regIdx(REG)*.012;boss.dm=1+regIdx(REG)*.04;}boss.boss=true;boss.regionId=REG;boss.profileId='boss:'+REG;boss.state='sleep';registerGLBBossProfile(boss.profileId,{name:boss.T.name,region:REG,modelCategory:'gb'});enemies.push(boss);}
   waves=[];shots=[];world.locked=false;if(GATE)GATE.off=world.gate;if(MGATE)MGATE.off=world.mgate;for(const d of DOORS){d.o=0;d.t=0;d.blk.off=false;}
+  bindConfiguredGLBEntities();
+}
+function bindConfiguredGLBEntities(){
+  const api=window.__g;if(!api?.bindGLBModelForEntity||!api.getGLBModelCatalog?.().length)return;
+  for(const entity of enemies){
+    Promise.resolve(api.bindGLBModelForEntity(entity)).catch(error=>console.warn('GLB entity bind failed:',entity.k,error));
+  }
 }
 function setP(s){P.state=s;P.t=0;P.hit=false;}
 function setE(e,s){e.state=s;e.t=0;e.hit=false;e.blinked=false;e.j=0;if(e.boss)e.vsaid=false;}
@@ -516,7 +524,7 @@ function hurtP(d,fx,fz,src){
       setE(src,'parried');src.cd=.55;
       if(src.armor===0){src.weakT=7;src.weakNotice=false;say('صدّ مثالي! انكشفت نقطة ضعف الزعيم','#e8c66a',2.3);snd('boss');}
       else say('صدّ مثالي! تصدّع درع الزعيم','#e8c66a',1.7);
-      if(src.T&&src.T.name&&src.T.name.includes('أدابا'))voice('boss','مستحيل… كيف صدّيت سيفي؟');else voice('boss','صدّيت ضربتي…!');
+      voiceBoss(src,src.T&&src.T.name&&src.T.name.includes('أدابا')?'مستحيل… كيف صدّيت سيفي؟':'صدّيت ضربتي…!');
     }else if(src&&!src.boss&&!src.dead){setE(src,'stun');src.ka=fa;src.kv=70;src.t=-.6;}return true;}
     const SLV=wlv('shield');P.st-=d*.55*(1-.05*(SLV-1));P.sd=.5;
     if(P.st>0){moveEnt(P,P.x-Math.cos(fa)*5,P.z-Math.sin(fa)*5,P.r);return true;}
@@ -640,14 +648,14 @@ function upEnemy(e,dt){
   const T=e.T,dx=P.x-e.x,dz=P.z-e.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),alive=P.state!=='dead',dy=Math.abs(P.y-e.y);
   if(e.k==='gmini'&&!e.p2&&e.hp<=T.hp*.5){
     e.p2=true;e.cd=.65;setE(e,'miniTrans');
-    const m=MINI_GUARDS[REG];if(m){say(m.n+'… أطلق طوره الأخير!','#c66cff',2.6);voice('boss','هسه تشوف قوتي الحقيقية!');}
+    const m=MINI_GUARDS[REG];if(m){say(m.n+'… أطلق طوره الأخير!','#c66cff',2.6);voiceBoss(e,'هسه تشوف قوتي الحقيقية!');}
     burst(e.x,e.y+T.h*.55,e.z,'#c66cff',34,190,e.y);snd('boss');snd('roar');shake=8;return;
   }
   if(ad>1100)return;
   e.cd-=dt;
   switch(e.state){
     case 'idle':{const hx=e.hx-e.x,hz=e.hz-e.z;if(Math.hypot(hx,hz)>6){e.a=Math.atan2(hz,hx);stepE(e,T.speed*.7,dt);}
-      if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m&&!world.miniFilm){world.miniFilm=true;save();miniBossFilm(e,m);return;}if(m){say(m.n,'#d6b7ff',2.8);voice('boss',m.line);}}setE(e,'chase');}break;}
+      if(alive&&ad<T.aggro&&dy<75){if(e.k==='gmini'&&!e.awoken){e.awoken=true;const m=MINI_GUARDS[REG];if(m&&!world.miniFilm){world.miniFilm=true;save();miniBossFilm(e,m);return;}if(m){say(m.n,'#d6b7ff',2.8);voiceBoss(e,m.line);}}setE(e,'chase');}break;}
     case 'miniTrans':e.a=turn(e.a,ang,2.5*dt);if(e.t>=1.05){setE(e,'chase');e.cd=.25;}break;
     case 'chase':
       if(!alive||ad>T.aggro*2.2||dy>150||Math.hypot(e.x-e.hx,e.z-e.hz)>650){setE(e,'idle');break;}
@@ -734,6 +742,10 @@ function update(dt){
   input.wx=fx*my-fz*mx;input.wz=fz*my+fx*mx;
   if(input.atkDown){input.hold+=dt;if(input.hold>.3&&!input.hv){input.hv=true;act('heavy');}}
   upPlayer(dt);
+  if(window.__g?.setGLBHeroAction){
+    const action=P.state==='dead'?'death':P.state==='roll'?'dodge':P.state==='atk'?(P.atk?.heavy?'heavy':'attack'):P.state==='hurt'?'hurt':P.state==='plunge'?'jump':P.state==='cast'?'cast':P.state==='aim'?'aim':P.state==='heal'?'heal':P.guard?'block':P.air?'jump':P.spd>95?'run':P.spd>20?'walk':'idle';
+    window.__g.setGLBHeroAction(action);
+  }
   for(const e of enemies)upEnemy(e,dt);
   for(let i=0;i<enemies.length;i++){const a=enemies[i];if(a.dead||a.boss)continue;
     for(let j=i+1;j<enemies.length;j++){const b=enemies[j];if(b.dead||b.boss||Math.abs(a.y-b.y)>40)continue;
@@ -1428,7 +1440,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
+window.__g={setGLBHero,setGLBHeroAnimation,setGLBHeroAction,gltfResolveEnemyAction,createGLBPlaybackState:gltfCreatePlaybackState,setGLBPlaybackState:gltfSetPlaybackAnimation,advanceGLBPlayback:gltfAdvancePlayback,createAnimatedEntity:gltfCreateAnimatedEntity,setEntityAction:gltfSetEntityAction,updateAnimatedEntity:gltfUpdateAnimatedEntity,loadGLBEntity, bindGLBModel, inspectGLB, inspectGLBAsset, bindGLBModelForEntity, registerGLBBossProfile, getGLBBossProfiles, registerGLBModelCatalog, getGLBModelCatalog, inspectGLBModelCatalog, getGLBEntityId, setGLBEntityAction, syncGLBEntityAction, updateGLBEntity, drawGLBEntity, removeGLBEntity, releaseGLBEntities, get glbEntities(){return Array.from(gltfEntityInstances.values()).map(e=>({id:e.id,loaded:!!e.asset,error:e.error,action:e.action}));},get gltfHeroStatus(){return {loaded:!!gltfHero,error:gltfHeroError};},voice,voiceBoss,registerVoiceProfile,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>
