@@ -318,6 +318,20 @@ async def run_suite(base_url: str) -> None:
                 raise AssertionError(f"Save/load round trip mismatch: {save_state}")
             print("PASS: Muthanna save/load round trip preserves region and player progression")
 
+            # Backgrounding/closing the mobile page must flush the latest player state.
+            background_save = await page.evaluate("""() => {
+                __g.stats.embers = 654;
+                __g.stats.vig = 4;
+                window.dispatchEvent(new Event("pagehide"));
+                const raw = localStorage.getItem("ashes-rafidain-v1");
+                const saved = JSON.parse(raw);
+                return {embers: saved.stats.embers, vigor: saved.stats.vig, region: saved.reg};
+            }""")
+            if background_save != {"embers": 654, "vigor": 4, "region": "muthanna"}:
+                raise AssertionError(f"Background pagehide did not persist the latest state: {background_save}")
+            print("PASS: pagehide flushes current player progression for mobile app switching")
+
+
             # Legacy v1 saves are migrated in place only after preserving their exact bytes.
             legacy = {
                 "stats": {"lvl": 1, "vig": 3, "end": 2, "str": 1, "embers": 777, "wpn": "shield"},
