@@ -310,6 +310,10 @@ async def run_suite(base_url: str) -> None:
             # This exercises persisted localStorage without relying on a flaky reload
             # navigation event from the long-running WebGL page.
             saved_state = await page.context.storage_state()
+            # Release the first WebGL page before creating another context. Chromium's
+            # software renderer can otherwise retain scarce GPU contexts during the
+            # save/load regression and starve later recovery pages.
+            await page.close()
             saved_context = await browser.new_context(
                 viewport={"width": 960, "height": 540},
                 storage_state=saved_state,
@@ -350,6 +354,10 @@ async def run_suite(base_url: str) -> None:
             if background_save["hidden"] != {"embers": 655, "vigor": 5, "region": "muthanna"}:
                 raise AssertionError(f"Hidden visibilitychange did not persist the latest state: {background_save}")
             print("PASS: pagehide and hidden visibilitychange flush current player progression")
+            # Close the restored WebGL context before opening isolated migration and
+            # corrupt-save pages; each scenario should get a clean renderer budget.
+            await page.close()
+            await saved_context.close()
 
             # Legacy v1 saves are migrated in place only after preserving their exact bytes.
             legacy = {
