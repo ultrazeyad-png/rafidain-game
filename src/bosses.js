@@ -49,7 +49,7 @@ function upNamtar(b,dt){
     case 'sleep':if(world.locked)setE(b,'intro');break;
     case 'intro':b.a=turn(b.a,ang,3*dt);if(b.t>1.4){if(isAdapa)voice('boss','أنا أدابا… وحارس هذا الباب.');setE(b,'chase');b.cd=.5;}break;
     case 'trans':b.a=turn(b.a,ang,2*dt);shake=Math.max(shake,b.t<1.6?4:0);
-      if(Math.random()<dt*40)parts.push({x:b.x+(Math.random()-.5)*60,y:b.y+Math.random()*150,z:b.z+(Math.random()-.5)*60,vx:(Math.random()-.5)*60,vz:(Math.random()-.5)*60,vy:60+Math.random()*80,l:.9,m:.9,col:Math.random()<.5?'#2a0c14':'#c0242e',s:2.6,g:-30,f:-999});
+      {const glow=ELC[b.elem]||'#c0242e';if(Math.random()<dt*40)parts.push({x:b.x+(Math.random()-.5)*60,y:b.y+Math.random()*150,z:b.z+(Math.random()-.5)*60,vx:(Math.random()-.5)*60,vz:(Math.random()-.5)*60,vy:60+Math.random()*80,l:.9,m:.9,col:Math.random()<.35?'#160b10':glow,s:2.6,g:-30,f:-999});}
       if(b.t>.9&&!b.hit){b.hit=true;elemHit(b,5);waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.2});if(Math.hypot(dx,dz)<120)hurtP(Math.round(18*(b.dm||1)),b.x,b.z);}
       if(b.t>2.3){setE(b,'chase');b.cd=.2;say(b.k==='erra'?'العاصفة تنزل ويا إرّا':b.k==='boss'?'نمتار… يغضب':b.T.name.split('،')[0]+' يغضب',ELC[b.elem]||'#c0242e',2.4);}break;
     case 'chase':
@@ -98,7 +98,7 @@ function upNamtar(b,dt){
         if(Math.hypot(P.x-b.x,P.z-b.z)<100&&P.y-arY()<20)hurtP(Math.round(38*(b.dm||1)),b.x,b.z);if(ph2)elemHit(b,3);if(ph2)waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});bRec(b,ph2?.7:1.05);}
       break;}
     case 'stomp':b.a=turn(b.a,ang,2*dt);
-      if(b.elem&&b.elem!=='shadow'){if(b.t>.5&&b.n<1){b.n=1;elemHit(b,6);}if(b.t>1.6){b.n=0;bRec(b,.5);}break;}
+      if(b.elem&&b.elem!=='shadow'){if(b.t>.5&&b.n<1){b.n=1;shake=8;snd('land');elemHit(b,6);puff(b.x,b.y,b.z,12,14,120);}if(b.t>1.6){b.n=0;bRec(b,.5);}break;}
       if(b.t>.75&&b.n<1){b.n=1;shake=9;snd('land');waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});puff(b.x,b.y,b.z,10,12,120);}
       if(b.t>1.35&&b.n<2){b.n=2;shake=9;snd('land');waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25});}
       if(b.t>1.9){b.n=0;bRec(b,.5);}break;
@@ -160,7 +160,7 @@ function drawNamtar(e){
   const fall=mobFx(e,2.2);if(fall<0)return;
   const st=e.state,p2=e.p2,isAdapa=!!(e.T&&e.T.name&&e.T.name.includes('أدابا'));
   const body=isAdapa?'#d9d0bd':'#4e3e2c',dark=isAdapa?'#30251f':'#241a12',
-    cape=isAdapa?(p2?'#351018':'#641d25'):(p2?'#120708':'#3a1218'),
+    cape=isAdapa?(p2?'#351018':'#641d25'):(p2?({storm:'#101e30',fire:'#3b1008',water:'#092b38',sand:'#332714',poison:'#1b2b0c',shadow:'#120708'}[e.elem]||'#160b10'):'#3a1218'),
     trim=isAdapa?'#d8ad54':'#8a7045',plate=isAdapa?'#eee5d2':'#5e4a32';
   let key=null,u=0,lean=0,crouch=0;
   const A=NM[st];
