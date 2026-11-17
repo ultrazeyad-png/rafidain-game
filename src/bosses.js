@@ -38,15 +38,16 @@ function upNamtar(b,dt){
       b.a=turn(b.a,ang,(ad<160?4.5:6)*dt);
       if(ad>110)mvs=ph2?110:78;else if(ad<70)mvs=-50;else{b.sx=(b.sx||1);mvs=0;const sa=b.a+PI/2*b.sx;moveBossBy(b,Math.cos(sa)*44*dt,Math.sin(sa)*44*dt);if(Math.random()<dt*.6)b.sx=-b.sx;}
       if(b.cd<=0){const r=Math.random();
-        if(behind&&ad<130)setE(b,bossChoice(b,['sp','sp','sp']));
+        if(behind&&ad<130)setE(b,bossChoice(b,['sp','sp','sp','leapW']));
         else if(ad<130){
           const move=bossChoice(b,ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp']);
           setE(b,move);
           if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55);
         }
         else if(ad<360){
-          const move=ph2?bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW']):bossChoice(b,['leapW','leapW','leapW']);
-          if(ph2||r<.6)setE(b,move);else b.cd=.25;
+          if(ph2)setE(b,bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW']));
+          else if(r<.6)setE(b,bossChoice(b,['leapW','leapW','leapW']));
+          else b.cd=.25;
         }
         else if(bossChoice(b,['leapW','leapW','chase'])==='leapW')setE(b,'leapW');else b.cd=.3;}
       break;
