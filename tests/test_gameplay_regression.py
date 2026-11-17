@@ -309,7 +309,12 @@ async def run_suite(base_url: str) -> None:
             # Re-open the game in a fresh page within the same browser context.
             # This exercises persisted localStorage without relying on a flaky reload
             # navigation event from the long-running WebGL page.
-            saved_page = await page.context.new_page()
+            saved_state = await page.context.storage_state()
+            saved_context = await browser.new_context(
+                viewport={"width": 960, "height": 540},
+                storage_state=saved_state,
+            )
+            saved_page = await saved_context.new_page()
             saved_page.on("pageerror", lambda error: page_errors.append(str(error)))
             await saved_page.goto(f"{base_url}/dist/index.html", wait_until="load")
             await saved_page.wait_for_function(
