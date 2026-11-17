@@ -143,6 +143,23 @@ body{background:#050509;color:#eadfc9}
   #bBow{right:18px;bottom:calc(146px + env(safe-area-inset-bottom,0px));width:46px;height:46px}
   #bCast{right:72px;bottom:calc(142px + env(safe-area-inset-bottom,0px));width:46px;height:46px}
 }
+
+/* FINAL MOBILE HUD PLACEMENT — heal and guard stay beside the movement stick
+   Shared template: browser and Capacitor APK use this exact layout. */
+#bHeal,#bBlock{
+  left:clamp(112px,14vw,132px);
+  right:auto;
+  width:52px;
+  height:52px;
+}
+#bHeal{bottom:calc(26px + env(safe-area-inset-bottom,0px))}
+#bBlock{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+@media(max-height:520px){
+  #bHeal,#bBlock{left:108px;width:48px;height:48px}
+  #bHeal{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+  #bBlock{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+}
+
 </style>
 </head>
 <body>
