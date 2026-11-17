@@ -539,6 +539,7 @@ def verify_boss_adaptive_tactics() -> None:
         "const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab'",
         "if(ad>adaptive.range+18)mvs=(ph2?110:adaptive.approach)",
         "else if(ad<adaptive.range-35)mvs=-adaptive.retreat",
+        "const pool=ph2?[...adaptive.pool,'grab','c1']:adaptive.pool.slice()",
         "if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove)",
         "if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove)",
         "const move=bossChoice(b,pool)",
