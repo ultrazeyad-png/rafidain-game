@@ -466,7 +466,7 @@ function hurtE(e,d,heavy,crit){
       if(heavy||crit){
         e.armor=Math.max(0,e.armor-1);snd('parry');
         burst(e.x,e.y+e.T.h*.68,e.z,'#b9c4cc',16,145,e.y);
-        if(e.armor===0){e.weakT=7;e.weakNotice=false;setE(e,'stag');say('انكسر الدرع! نقطة ضعفه انكشفت','#e8c66a',2.3);snd('boss');}
+        if(e.armor===0){e.weakT=7;e.weakNotice=false;e.stagT=2.4;setE(e,'stag');say('انكسر الدرع! نقطة ضعفه انكشفت','#e8c66a',2.3);snd('boss');}
         else say('تصدّع درع الزعيم! بقيت طبقة واحدة','#c7d2dc',1.4);
       }
     }
@@ -487,7 +487,7 @@ function hurtE(e,d,heavy,crit){
     return;}
   e.pd+=heavy?2:1;e.pt=4;
   if(e.boss){if(crit){if(e.state==='stag')e.t=Math.max(e.t,1.6);return;}
-    if(e.pd>=e.T.poise&&!/^(leap|dash|dive|sleep|intro|trans|held|charge|stag|fly)$/.test(e.state)){e.pd=0;setE(e,'stag');snd('parry');shake=8;say('اختل توازنه… اضربه','#e8c66a',1.6);}}
+    if(e.pd>=e.T.poise&&!/^(leap|dash|dive|sleep|intro|trans|held|charge|stag|fly)$/.test(e.state)){e.pd=0;e.stagT=heavy?2.1:1.35;setE(e,'stag');snd('parry');shake=8;say('اختل توازنه… اضربه','#e8c66a',1.6);}}
   else{if(crit)return;if(e.pd>=e.T.poise){e.pd=0;setE(e,'stun');e.ka=Math.atan2(e.z-P.z,e.x-P.x);e.kv=80;}else if(e.state==='idle')setE(e,'chase');}
 }
 function hurtP(d,fx,fz,src){
@@ -500,7 +500,7 @@ function hurtP(d,fx,fz,src){
     if(perfect){hs=.07;snd('parry');if(src&&src.boss&&!src.dead){
       if(src.armor==null)src.armor=2;
       if(src.armor>0)src.armor=Math.max(0,src.armor-1);
-      setE(src,'parried');src.cd=.55;
+      src.stagT=0;setE(src,'parried');src.cd=.55;
       if(src.armor===0){src.weakT=7;src.weakNotice=false;say('صدّ مثالي! انكشفت نقطة ضعف الزعيم','#e8c66a',2.3);snd('boss');}
       else say('صدّ مثالي! تصدّع درع الزعيم','#e8c66a',1.7);
       if(src.T&&src.T.name&&src.T.name.includes('أدابا'))voice('boss','مستحيل… كيف صدّيت سيفي؟');else voice('boss','صدّيت ضربتي…!');
@@ -686,7 +686,7 @@ function upBoss(b,dt){
       if(!b.hit&&ad<b.T.r+P.r+14&&hurtP(30,b.x,b.z))b.hit=true;
       if(b.t>=.5||b.x<=AX0+34||b.x>=AX1-34||b.z<=AZ0+34||b.z>=AZ1-34)bRec(b,1);break;
     case 'rec':if(b.t>=b.recT){setE(b,'chase');b.cd=ph2?.3:.65;}break;
-    case 'stag':if(b.t>=1.3){setE(b,'chase');b.cd=.3;}break;
+    case 'stag':if(b.t>=(b.stagT||1.3)){b.stagT=0;setE(b,'chase');b.cd=.3;}break;
     case 'parried':b.a=turn(b.a,ang,2*dt);if(b.t>=.72){setE(b,'chase');b.cd=.55;}break;
   }
   if(mvs){const nx=b.x+Math.cos(b.a)*mvs*dt,nz=b.z+Math.sin(b.a)*mvs*dt;if(Math.hypot(P.x-nx,P.z-nz)>=P.r+b.T.r-1||P.state==='roll'){b.x=nx;b.z=nz;b.walk+=mvs*dt*.11;}}
