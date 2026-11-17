@@ -350,14 +350,15 @@ async def run_suite(base_url: str) -> None:
             legacy_page.on("pageerror", lambda error: page_errors.append(str(error)))
             legacy_literal = __import__("json").dumps(legacy_raw)
             await legacy_page.add_init_script(
-                f"""() => {{
+                f"""(() => {{
                     localStorage.setItem("ashes-rafidain-v1", {legacy_literal});
                     localStorage.removeItem("ashes-rafidain-v1.backup-v1");
                     localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
-                }}"""
+                }})();"""
             )
             await legacy_page.goto(f"{base_url}/dist/index.html", wait_until="load")
-            await legacy_page.click("#go")
+            await legacy_page.wait_for_function("document.querySelector('#title')?.classList.contains('on') && document.querySelector('#go')", timeout=10000)
+            await legacy_page.evaluate("document.querySelector('#go').click()")
             await legacy_page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
             migrated = await legacy_page.evaluate(
                 """() => ({
@@ -381,13 +382,14 @@ async def run_suite(base_url: str) -> None:
             corrupt_page.on("pageerror", lambda error: page_errors.append(str(error)))
             partial_literal = __import__("json").dumps(partial_raw)
             await corrupt_page.add_init_script(
-                f"""() => {{
+                f"""(() => {{
                     localStorage.setItem("ashes-rafidain-v1", {partial_literal});
                     localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
-                }}"""
+                }})();"""
             )
             await corrupt_page.goto(f"{base_url}/dist/index.html", wait_until="load")
-            await corrupt_page.click("#go")
+            await corrupt_page.wait_for_function("document.querySelector('#title')?.classList.contains('on') && document.querySelector('#go')", timeout=10000)
+            await corrupt_page.evaluate("document.querySelector('#go').click()")
             await corrupt_page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
             recovered = await corrupt_page.evaluate(
                 """() => ({
