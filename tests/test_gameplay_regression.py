@@ -612,7 +612,7 @@ def verify_boss_attack_variety() -> None:
         if item not in source:
             raise AssertionError(f"Element-specific boss effect missing: {item}")
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
-    for item in ("w.col||'#ff3040'", "hurtP(w.dmg||26,w.x,w.z)"):
+    for item in ("w.col||'#ff3040'", "hurtP(w.dmg||26,w.x,w.z)", "hurtP(w.dmg||16,w.x,w.z)"):
         if item not in game:
             raise AssertionError(f"Element telegraph rendering/damage contract missing: {item}")
     print("PASS: major boss AI avoids consecutive repeats and elemental attacks use distinct, telegraphed effects")
