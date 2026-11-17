@@ -346,11 +346,21 @@ async def run_suite(base_url: str) -> None:
                 "rs": {},
             }
             legacy_raw = __import__("json").dumps(legacy, separators=(",", ":"))
+            await page.add_init_script(
+                """() => {
+                    if (sessionStorage.getItem("__seedLegacySave") === "1") {
+                        localStorage.setItem("ashes-rafidain-v1", sessionStorage.getItem("__legacySaveRaw"));
+                        localStorage.removeItem("ashes-rafidain-v1.backup-v1");
+                        localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
+                        sessionStorage.removeItem("__seedLegacySave");
+                        sessionStorage.removeItem("__legacySaveRaw");
+                    }
+                }"""
+            )
             await page.evaluate(
                 """raw => {
-                    localStorage.removeItem("ashes-rafidain-v1.backup-v1");
-                    localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
-                    localStorage.setItem("ashes-rafidain-v1", raw);
+                    sessionStorage.setItem("__legacySaveRaw", raw);
+                    sessionStorage.setItem("__seedLegacySave", "1");
                 }""",
                 legacy_raw,
             )
@@ -373,8 +383,22 @@ async def run_suite(base_url: str) -> None:
 
             # A structurally incomplete save must not be loaded as valid progress.
             partial_raw = '{"stats":{"lvl":99},"reg":"muthanna","rs":{}}'
+            await page.add_init_script(
+                """() => {
+                    if (sessionStorage.getItem("__seedCorruptSave") === "1") {
+                        localStorage.setItem("ashes-rafidain-v1", sessionStorage.getItem("__corruptSaveRaw"));
+                        localStorage.removeItem("ashes-rafidain-v1.backup-corrupt");
+                        sessionStorage.removeItem("__seedCorruptSave");
+                        sessionStorage.removeItem("__corruptSaveRaw");
+                    }
+                }"""
+            )
             await page.evaluate(
-                "raw => localStorage.setItem('ashes-rafidain-v1', raw)", partial_raw
+                """raw => {
+                    sessionStorage.setItem("__corruptSaveRaw", raw);
+                    sessionStorage.setItem("__seedCorruptSave", "1");
+                }""",
+                partial_raw,
             )
             await page.reload(wait_until="load")
             await page.wait_for_function("window.__g && window.__g.ok() && window.__g.chunks > 0", timeout=15000)
