@@ -730,7 +730,7 @@ function update(dt){
   for(const n of NPCS){if(Math.hypot(P.x-n.x,P.z-n.z)<230)n.a=turn(n.a,Math.atan2(P.z-n.z,P.x-n.x),3*dt);}
   upShots(dt);upArrows(dt);upSecret();upSpells(dt);upWeather(dt);{const n=String(stats.arrows||0);if($('arN').textContent!==n)$('arN').textContent=n;}
   for(let i=waves.length-1;i>=0;i--){const w=waves[i];
-    if(w.k==='b'){w.t+=dt;if(!w.hit&&w.t>=w.d){w.hit=true;snd('thunder');shake=Math.max(shake,7);burst(w.x,w.y+6,w.z,'#bfe4ff',16,200,w.y);if(Math.hypot(P.x-w.x,P.z-w.z)<58&&Math.abs(P.y-w.y)<34)hurtP(26,w.x,w.z);}
+    if(w.k==='b'){w.t+=dt;if(!w.hit&&w.t>=w.d){w.hit=true;snd('thunder');shake=Math.max(shake,7);burst(w.x,w.y+6,w.z,w.col||'#bfe4ff',16,200,w.y);if(Math.hypot(P.x-w.x,P.z-w.z)<58&&Math.abs(P.y-w.y)<34)hurtP(w.dmg||26,w.x,w.z);}
       if(w.t>=w.d+.22)waves.splice(i,1);continue;}
     w.r+=230*dt;w.l-=dt;
     if(P.y-(w.y!=null?w.y:AY)<12&&Math.abs(Math.hypot(P.x-w.x,P.z-w.z)-w.r)<12&&hurtP(16,w.x,w.z)){waves.splice(i,1);continue;}
@@ -1108,7 +1108,7 @@ function render3D(){
   if(!SHON&&P.state!=='dead'){const f=floorAt(P.x,P.z,P.y),q=22*(1-Math.min(.5,(P.y-f)/140));if(f>-900)cyl(q,.2,q,'#000000',P.x,Math.min(f,P.ry)+.5,P.z,1,.45);}
   if(AC&&world.locked)for(let i=0;i<30;i++){const a=i/30*2*PI;box(6,90,6,'#d8cfe8',AC.x+Math.cos(a)*AC.r,AC.y+45,AC.z+Math.sin(a)*AC.r,1,.07+.05*Math.sin(time*2.4+i));}
   gl.uniform1f(uMode,2);for(const w of WATER)box(w.x1-w.x0,2,w.z1-w.z0,'#2f6f8c',(w.x0+w.x1)/2,w.y+Math.sin(time*1.1)*.8,(w.z0+w.z1)/2,0,1);gl.uniform1f(uMode,0);
-  for(const w of waves){if(w.k==='b'){if(w.t<0)continue;if(w.hit)box(12,700,12,'#eaf6ff',w.x,w.y+350,w.z,1,.9);else cyl(116,.2,116,'#ff3040',w.x,w.y+.7,w.z,1,.16+.34*w.t/w.d);continue;}
+  for(const w of waves){if(w.k==='b'){if(w.t<0)continue;if(w.hit)box(12,700,12,w.hitCol||w.col||'#eaf6ff',w.x,w.y+350,w.z,1,.9);else cyl(116,.2,116,w.col||'#ff3040',w.x,w.y+.7,w.z,1,.16+.34*w.t/w.d);continue;}
     const n=28,al=Math.min(.85,w.l);for(let i=0;i<n;i++){const a=i/n*2*PI;push();T(w.x+Math.cos(a)*w.r,w.y!=null?w.y:AY,w.z+Math.sin(a)*w.r);RY(-a);box(5,9,w.r*.24,w.col||'#ff4040',0,4.5,0,1,al);pop();}}
   if(REG==='muthanna'&&boss&&!boss.dead){const a=world.locked?.07:.08;for(let i=0;i<12;i++)box(40,170,5,'#d8cfe8',AX0+30+i*(AX1-AX0-60)/11,AY+85,AZ0+Math.sin(time*1.3+i)*3,1,a*(.5+.5*Math.sin(time*2.4+i*1.7)));}
   if(world.stain){const s=world.stain,f=Math.sin(time*6)*2;push();T(s.x,s.y+16+f,s.z);RY(time*3);RZ(.785);box(7,7,7,'#ffbe5a',0,0,0,1,.9);box(13,13,13,'#ff9a3c',0,0,0,1,.25);pop();}
