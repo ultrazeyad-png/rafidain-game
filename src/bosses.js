@@ -34,8 +34,9 @@ function bossAdaptiveProfile(b){
   const staminaRatio=maxSt()>0?P.st/maxSt():1;
   const healthRatio=maxHp()>0?P.hp/maxHp():1;
   const rollMove=element==='storm'?'leapW':(element==='water'||element==='poison')?'sp':'sl';
+  const elementMove={storm:'leapW',fire:'charge',water:'sp',sand:'sl',poison:'grab',shadow:'c1'}[element]||'c1';
   const guardMove=weapon==='spear'?'sp':weapon==='sword'?'c3':'grab';
-  return {...style,range:style.range+reachBias,lowStamina:staminaRatio<.24,criticalHealth:healthRatio<.28,rollMove,guardMove};
+  return {...style,range:style.range+reachBias,lowStamina:staminaRatio<.24,criticalHealth:healthRatio<.28,rollMove,elementMove,guardMove};
 }
 function upNamtar(b,dt){
   const dx=P.x-b.x,dz=P.z-b.z,ad=Math.hypot(dx,dz),ang=Math.atan2(dz,dx),ph2=b.p2,sp=ph2?1.18:1,alive=P.state!=='dead',behind=adiff(ang,b.a)>1.9,isAdapa=!!(b.T&&b.T.name&&b.T.name.includes('أدابا'));
@@ -67,6 +68,7 @@ function upNamtar(b,dt){
           if(adaptive.lowStamina)pool.push('sp','sp');
           // Player-habit counters add readable, weapon-specific answers without altering damage or wind-up.
           if((b.rollReads||0)>=3)pool.push(adaptive.rollMove,adaptive.rollMove);
+          if(b.elem&&b.elem!=='shadow')pool.push(adaptive.elementMove,adaptive.elementMove);
           if(ph2&&(b.guardReads||0)>=3)pool.push(adaptive.guardMove,adaptive.guardMove);
           const move=bossChoice(b,pool);
           setE(b,move);
@@ -332,7 +334,27 @@ function drawErra(e){
 }
 
 const ELC={storm:'#9ad8ff',fire:'#ff7a30',water:'#6ac8ff',sand:'#e8c880',poison:'#9ae050',shadow:'#b060ff'};
-function elemHit(b,n){let el=b.elem;if(el==='all')el=['storm','fire','water','sand','poison'][Math.floor(Math.random()*5)];
-  if(el==='storm'){stormAround(b,n);snd('thunder');return;}
-  const c=ELC[el]||'#ff4040';for(let k=0;k<Math.max(1,Math.floor(n/3));k++)waves.push({x:b.x,z:b.z,y:arY(),r:30-k*45,l:1.25+k*.2,col:c});
-  if(el==='sand'||el==='fire'){const q=arClamp(P.x,P.z,20);waves.push({k:'b',x:q[0],z:q[1],y:arY(),t:-.2,d:.9});}}
+function elemHit(b,n){
+  let el=b.elem;
+  if(el==='all')el=['storm','fire','water','sand','poison'][Math.floor(Math.random()*5)];
+  const c=ELC[el]||'#ff4040',count=Math.max(1,Math.min(6,Math.floor(n)));
+  if(el==='storm'){stormAround(b,count);snd('thunder');return;}
+  if(el==='fire'||el==='sand'){
+    const side=Math.atan2(P.z-b.z,P.x-b.x),base=arClamp(P.x,P.z,24);
+    for(let k=0;k<(el==='fire'?1:2);k++){
+      const spread=el==='fire'?0:(k?1:-1),distance=el==='fire'?0:72;
+      const q=arClamp(base[0]+Math.cos(side+spread*.8)*distance,base[1]+Math.sin(side+spread*.8)*distance,24);
+      waves.push({k:'b',x:q[0],z:q[1],y:arY(),t:-k*.22,d:el==='fire'?.9:1.05,col:c,hitCol:c,dmg:el==='fire'?24:18});
+    }
+    snd('swingH');return;
+  }
+  if(el==='water'){
+    for(let k=0;k<2;k++)waves.push({x:b.x,z:b.z,y:arY(),r:34+k*34,l:1.45+k*.18,col:c,dmg:12});
+    return;
+  }
+  if(el==='poison'){
+    for(let k=0;k<2;k++)waves.push({x:P.x,z:P.z,y:arY(),r:26+k*24,l:1.8+k*.2,col:c,dmg:10});
+    return;
+  }
+  waves.push({x:b.x,z:b.z,y:arY(),r:30,l:1.25,col:c,dmg:12});
+}
