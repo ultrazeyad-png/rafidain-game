@@ -524,13 +524,13 @@ def verify_boss_attack_variety() -> None:
         "b.lastAtk=move",
         "bossChoice(b,ph2?['grab','c1','c1','c1','sl','sl','sp']:['c1','c1','c1','sl','sl','sp'])",
         "if(move==='sl')b.hold=.25+Math.random()*(ph2?.85:.55)",
-        "bossChoice(b,['sp','sp','sp'])",
+        "bossChoice(b,['sp','sp','sp','leapW'])",
         "bossChoice(b,['stomp','stomp','charge','charge','leapW','leapW'])",
     )
     missing = [item for item in required if item not in source]
     if missing:
         raise AssertionError(f"Boss attack variety/repetition guard missing: {missing}")
-    print("PASS: major boss AI avoids consecutive repeated attacks while preserving phase/distance move pools")
+    print("PASS: major boss AI avoids consecutive repeats when alternatives exist and preserves phase/distance move pools")
 
 
 def main() -> int:
