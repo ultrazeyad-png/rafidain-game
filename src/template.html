@@ -733,7 +733,7 @@ function update(dt){
     if(w.k==='b'){w.t+=dt;if(!w.hit&&w.t>=w.d){w.hit=true;snd('thunder');shake=Math.max(shake,7);burst(w.x,w.y+6,w.z,w.col||'#bfe4ff',16,200,w.y);if(Math.hypot(P.x-w.x,P.z-w.z)<58&&Math.abs(P.y-w.y)<34)hurtP(w.dmg||26,w.x,w.z);}
       if(w.t>=w.d+.22)waves.splice(i,1);continue;}
     w.r+=230*dt;w.l-=dt;
-    if(P.y-(w.y!=null?w.y:AY)<12&&Math.abs(Math.hypot(P.x-w.x,P.z-w.z)-w.r)<12&&hurtP(16,w.x,w.z)){waves.splice(i,1);continue;}
+    if(P.y-(w.y!=null?w.y:AY)<12&&Math.abs(Math.hypot(P.x-w.x,P.z-w.z)-w.r)<12&&hurtP(w.dmg||16,w.x,w.z)){waves.splice(i,1);continue;}
     if(w.l<=0)waves.splice(i,1);}
   upDoors(dt);upCam(dt);markSeen();
   if(winT>0&&(winT-=dt)<=0){const L=lastWords(),fin=()=>{paused=true;if(REG==='baghdad')endChoice();else showWin();};
