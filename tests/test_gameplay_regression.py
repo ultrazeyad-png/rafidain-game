@@ -102,7 +102,7 @@ async def run_suite(base_url: str) -> None:
                 if control["left"] + control["width"] >= hud_layout["root"]["width"] * .43:
                     raise AssertionError(f"{name} escaped the left movement thumb zone: {hud_layout}")
             portrait_page = await browser.new_page(viewport={"width": 390, "height": 844})
-            await portrait_page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            await portrait_page.goto(f"{base_url}/dist/index.html", wait_until="domcontentloaded", timeout=15000)
             portrait_hud = await portrait_page.evaluate("""() => {
                 const root = document.getElementById("root");
                 const read = id => { const e=document.getElementById(id),s=getComputedStyle(e);
