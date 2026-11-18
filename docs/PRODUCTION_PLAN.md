@@ -152,6 +152,14 @@ Exit criteria:
 - Performance budgets pass on the supported device matrix.
 - Release build is reproducible and deployment is verified on the live site.
 
+## Current implementation note — 2026-11-18
+
+- The boss weakpoint already has a seven-second exposure period and a 2.15x damage multiplier after armor depletion.
+- The HUD now displays the remaining exposure time to make the punish window readable, including during the finisher prompt.
+- A regression assertion checks that the countdown is present in the boss HUD.
+- This change is isolated on a production-prefixed validation branch; it is not deployed to the live game.
+- Automated Quality Gates and Android Debug APK workflows must pass before this update is considered ready for testing.
+
 ## 4. Quality gates
 
 Every code change should satisfy the relevant gates:
