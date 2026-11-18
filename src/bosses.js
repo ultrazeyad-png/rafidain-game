@@ -113,7 +113,7 @@ function upNamtar(b,dt){
     case 'held':if(b.t>1.5){P.inv=0;P.grab=null;setP('idle');hurtP(Math.round(52*(b.dm||1)),b.x,b.z);P.kbs=300;shake=14;snd('land');burst(P.x,P.y+5,P.z,'#8a7a70',16,150,P.y);bRec(b,.9);}break;
     case 'rec':if(b.t>=b.recT){setE(b,'chase');b.cd=ph2?.25:.6;}break;
     case 'stag':if(b.t>=(b.stagT||2.4)){b.stagT=0;setE(b,'chase');b.cd=.2;}break;
-    case 'parried':b.a=turn(b.a,ang,2*dt);if(b.t>=.72){setE(b,'chase');b.cd=.55;}break;
+    case 'parried':b.a=turn(b.a,ang,2*dt);if(b.t<dt*1.5){const a=Math.atan2(P.z-b.z,P.x-b.x),c=b.T&&b.T.name&&b.T.name.includes('أدابا')?'#ffe2a0':(ELC[b.elem]||'#d8c7a0');burst(b.x+Math.cos(a)*b.T.r*.72,b.y+72,b.z+Math.sin(a)*b.T.r*.72,c,18,190,b.y);snd('parry');shake=Math.max(shake,8);}if(b.t>= (b.T&&b.T.name&&b.T.name.includes('أدابا')?.92:.72)){setE(b,'chase');b.cd=.55;}break;
   }
   if(mvs){const ca=mvs<0?b.a:b.a;moveBossBy(b,Math.cos(ca)*mvs*dt,Math.sin(ca)*mvs*dt);}
   {const q=arClamp(b.x,b.z,30);b.x=q[0];b.z=q[1];}b.y=arY();
@@ -172,7 +172,7 @@ function drawNamtar(e){
   else if(st==='stomp'){key=null;lean=-.1;}
   else if(st==='charge'){lean=e.t<.6?.15:-.4;}
   else if(st==='stag'){lean=.6;crouch=-14;}
-  else if(st==='parried'){lean=.62;crouch=-10;}
+  else if(st==='parried'){const recoil=1-Math.min(1,e.t/.22);lean=isAdapa?.92:.62;crouch=isAdapa?-14:-10;}
   else if(st==='trans'){lean=-.35+Math.sin(e.t*9)*.04;}
   else if(st==='grab'||st==='held'){lean=st==='grab'?-.25:-.05;}
   const p=key?keyPose(key,u):{t:.45,y:.25,e:.4,w:-.25,r:0,ln:0};if(key)lean+=p.ln;
@@ -181,6 +181,7 @@ function drawNamtar(e){
   if(st==='held'){o={t:2.4,y:-.35,e:.25,w:0};m={t:.5,y:.4,e:.5,w:.6};}
   if(st==='trans'){m={t:2.7,y:.6,e:.4,w:.4};o={t:2.6,y:.6,e:.4,w:0};}
   if(st==='stag'){m={t:.2,y:.3,e:.3,w:.9};o={t:.6,y:0,e:.4,w:0};}
+  if(isAdapa&&st==='parried'){const recoil=1-Math.min(1,e.t/.22);m={t:1.42+recoil*.28,y:-.62,e:.24,w:-1.12-recoil*.42,r:-.18};o={t:.92,y:.36,e:.48,w:.28,r:.08};}
   // Adapa has a measured royal guard stance, not Namtar's heavy axe posture.
   if(isAdapa&&st==='sleep'){
     const breath=Math.sin(time*1.35);
