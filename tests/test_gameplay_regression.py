@@ -13,6 +13,24 @@ from playwright.async_api import async_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 
+
+def verify_parry_window_indicator() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    required = (
+        "#bBlock.parry-window{",
+        "animation:parryReady .42s ease-in-out infinite alternate",
+        "@keyframes parryReady{",
+        "classList.toggle('parry-window',!!(P.guard&&P.gt<.25))",
+        "const perfect=P.gt<.25",
+    )
+    missing = [item for item in required if item not in game]
+    if missing:
+        raise AssertionError(f"Perfect-parry visual cue is missing or out of sync with combat timing: {missing}")
+    if game.count("classList.toggle('parry-window',!!(P.guard&&P.gt<.25))") != 1:
+        raise AssertionError("Perfect-parry visual cue must have exactly one authoritative HUD timing hook")
+    print("PASS: gold guard-button cue is tied to the exact perfect-parry window and stays synchronized with combat logic")
+
+
 def verify_adapa_visual_design() -> None:
     source = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
     required = (
@@ -692,6 +710,7 @@ def main() -> int:
     verify_boss_stagger_reactions()
     verify_boss_attack_variety()
     verify_adapa_visual_design()
+    verify_parry_window_indicator()
     verify_major_boss_weakpoints()
     verify_boss_finisher()
     verify_weapon_and_boss_specific_finishers()
