@@ -494,6 +494,7 @@ def verify_major_boss_weakpoints() -> None:
         "src.armor=Math.max(0,src.armor-1)",
         "case 'parried'",
         "نقطة الضعف مكشوفة",
+        "boss.weakT.toFixed(1)",
         "درع الحارس:",
     ):
         if item not in game:
