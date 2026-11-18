@@ -654,6 +654,30 @@ def verify_boss_adaptive_tactics() -> None:
         raise AssertionError("Regional major-boss roster anchors missing")
     print("PASS: all major bosses use capped habit observation and weapon/element-specific adaptive responses")
 
+
+def verify_boss_specific_parry_feedback() -> None:
+    game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
+    for item in (
+        "صدّيت سيف أدابا!",
+        "كسرت عاصفتي…!",
+        "أطفأت ناري…!",
+        "ردّيت موجتي عليّ…!",
+        "شلّيت سُمّي…!",
+    ):
+        if item not in game:
+            raise AssertionError(f"Boss-specific perfect-parry voice or combat feedback missing: {item}")
+    for item in (
+        "if(isAdapa&&st==='parried'){const recoil=1-Math.min(1,e.t/.22)",
+        "w:-1.12-recoil*.42",
+        "burst(b.x+Math.cos(a)*b.T.r*.72,b.y+72,b.z+Math.sin(a)*b.T.r*.72",
+        "b.t>= (b.T&&b.T.name&&b.T.name.includes('أدابا')?.92:.72)",
+    ):
+        if item not in bosses:
+            raise AssertionError(f"Distinct boss parry recoil/impact response missing: {item}")
+    print("PASS: Adapa has a bespoke sword recoil; elemental bosses use unique parry voice lines and weapon-impact bursts")
+
+
 def verify_boss_stagger_reactions() -> None:
     game = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     bosses = (ROOT / "src" / "bosses.js").read_text(encoding="utf-8")
@@ -708,6 +732,7 @@ def verify_boss_attack_variety() -> None:
 def main() -> int:
     verify_boss_adaptive_tactics()
     verify_boss_stagger_reactions()
+    verify_boss_specific_parry_feedback()
     verify_boss_attack_variety()
     verify_adapa_visual_design()
     verify_parry_window_indicator()
