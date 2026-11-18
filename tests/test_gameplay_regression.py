@@ -81,6 +81,41 @@ async def run_suite(base_url: str) -> None:
             }""")
             if not cinematic_frame:
                 raise AssertionError("Opening cinematic is missing its non-interactive film vignette layer")
+            # The shared HTML template powers both browser and Capacitor builds.
+            # Verify heal and guard stay beside the movement stick in landscape and portrait.
+            hud_layout = await page.evaluate("""() => {
+                const read = id => {
+                    const el = document.getElementById(id), s = getComputedStyle(el);
+                    return {left: parseFloat(s.left), right: parseFloat(s.right),
+                            bottom: parseFloat(s.bottom), width: el.getBoundingClientRect().width,
+                            display: s.display};
+                };
+                const root = document.getElementById("root");
+                return {root: {width: parseFloat(getComputedStyle(root).width),
+                               height: parseFloat(getComputedStyle(root).height)},
+                        stick: read("jb"), heal: read("bHeal"), guard: read("bBlock")};
+            }""")
+            for name in ("heal", "guard"):
+                control = hud_layout[name]
+                if control["left"] <= hud_layout["stick"]["left"]:
+                    raise AssertionError(f"{name} must sit to the right of the movement stick: {hud_layout}")
+                if control["left"] + control["width"] >= hud_layout["root"]["width"] * .43:
+                    raise AssertionError(f"{name} escaped the left movement thumb zone: {hud_layout}")
+            portrait_page = await browser.new_page(viewport={"width": 390, "height": 844})
+            await portrait_page.goto(f"{base_url}/dist/index.html", wait_until="load")
+            portrait_hud = await portrait_page.evaluate("""() => {
+                const root = document.getElementById("root");
+                const read = id => { const e=document.getElementById(id),s=getComputedStyle(e);
+                    return {left:parseFloat(s.left),width:e.getBoundingClientRect().width}; };
+                return {width:parseFloat(getComputedStyle(root).width),
+                        stick:read("jb"),heal:read("bHeal"),guard:read("bBlock")};
+            }""")
+            for name in ("heal", "guard"):
+                control = portrait_hud[name]
+                if control["left"] <= portrait_hud["stick"]["left"] or control["left"] + control["width"] >= portrait_hud["width"] * .43:
+                    raise AssertionError(f"{name} is not beside the stick in portrait orientation: {portrait_hud}")
+            await portrait_page.close()
+            print("PASS: heal and guard remain beside the movement stick in landscape and portrait layouts")
             print("PASS: opening film stays in Baghdad for four shots, reveals the Talisman Gate and Adapa, then transitions to Zakho")
             print("PASS: cinematic film vignette is present and does not intercept controls")
 
