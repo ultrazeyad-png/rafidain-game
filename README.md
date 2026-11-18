@@ -43,6 +43,55 @@ python3 tests/g1.py nineveh,anbar,maysan,baghdad   # يمشي بالمحافظا
 python3 tests/g7.py   # الأسرار والرسائل والألواح والسحر
 ```
 
+## فحوصات الجودة الجديدة
+
+للفحص السريع القابل للتشغيل في CI:
+
+```bash
+python -m py_compile build.py tools/site_split.py tests/*.py
+python tests/smoke_build.py
+```
+
+لاختبار استعادة WebGL في Chromium (يتطلب Node.js وPlaywright):
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m playwright install chromium
+python tests/test_webgl_recovery.py
+python tests/test_gameplay_regression.py
+```
+
+تعمل فحوصات الجودة تلقائياً عند فتح Pull Request أو الدفع إلى فروع التطوير. لا تدمج التغييرات قبل نجاحها.
+
+### سلامة ملفات الحفظ
+
+- تحفظ اللعبة البيانات مع `schemaVersion: 2`.
+- ملفات الإصدار القديم (v1) تُرحّل تلقائياً عند تحميلها.
+- قبل الترحيل تُحفظ نسخة مطابقة من الملف القديم في `ashes-rafidain-v1.backup-v1`.
+- ملفات الحفظ الناقصة أو التالفة تُرفض ولا تُحمّل كتقدم صالح، وتُحفظ نسخة منها في `ashes-rafidain-v1.backup-corrupt` قبل بدء جلسة جديدة.
+- اختبار المتصفح يغطي الحفظ الحالي، وترحيل v1، ورفض الحفظ الجزئي واسترجاع التشغيل.
+
+> اختبارات CI تستخدم Chromium مع SwiftShader (محاكاة رسومية برمجية). نجاحها لا يُعد بديلاً عن اختبار أجهزة iPhone وAndroid فعلية.
+
+## تطبيق Android
+
+متطلبات البناء: Node.js 22، Python 3.12، Java 21، وAndroid SDK.
+
+لإنشاء مشروع Android محلياً:
+
+```bash
+npm install
+npm run android:init
+cd android
+./gradlew assembleDebug
+```
+
+ملف الاختبار الناتج:
+
+`android/app/build/outputs/apk/debug/app-debug.apk`
+
+يتحقق `tests/test_android_config.py` من هوية التطبيق وإعدادات Capacitor قبل بناء APK. كما ينشئ GitHub Actions نسخة Debug تلقائياً عند فتح Pull Request أو تشغيل سير العمل يدوياً، ويحفظ APK كـ Artifact لمدة 14 يوماً. هذه نسخة اختبار وليست إصدار متجر موقّعاً.
+
 ## الخطوة الجاية
 
-تحويلها لتطبيق APK للأندرويد.
+اختبار APK على أجهزة Android فعلية، ثم إعداد مفاتيح توقيع آمنة لنسخة Release.
