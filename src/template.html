@@ -27,6 +27,8 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 #bLock{width:58px;height:58px;right:208px;bottom:22px;background:rgba(96,48,150,.62);border-color:#c79cf5}
 #bBlock{width:60px;height:60px;right:200px;bottom:92px;background:rgba(70,92,116,.7);border-color:#bcd4ec;display:none}
 #bBlock.on{display:flex}
+#bBlock.parry-window{border-color:#ffe6a0;box-shadow:0 0 0 3px rgba(255,224,150,.24),0 0 20px rgba(255,196,90,.9);animation:parryReady .42s ease-in-out infinite alternate}
+@keyframes parryReady{from{filter:brightness(1);transform:scale(1)}to{filter:brightness(1.55);transform:scale(1.07)}}
 #bBow{width:56px;height:56px;right:196px;bottom:162px;background:rgba(110,80,40,.7);border-color:#e0bc84;display:none;flex-direction:column;line-height:1.05;font-size:13px}
 #bBow.on{display:flex}
 #bCast{width:54px;height:54px;right:262px;bottom:156px;background:rgba(50,70,140,.7);border-color:#9ab8ff;display:none;font-size:13px}#bCast.on{display:flex}#bBow small{font-size:11px;color:#ffe2b0}
@@ -1192,7 +1194,7 @@ function compass(){   // north, and the way back to embers you dropped
     ctx.beginPath();ctx.moveTo(p[0],p[1]-q);ctx.lineTo(p[0]+q,p[1]);ctx.lineTo(p[0],p[1]+q);ctx.lineTo(p[0]-q,p[1]);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillStyle='#ffcf80';ctx.font='600 7px '+FONT;ctx.fillText(Math.round(Math.hypot(s.x-P.x,s.z-P.z)/10)+' م',x,y+r+16);}
   ctx.restore();}
-function drawHUD(){drawHUD0();if(!cine&&!$('title').classList.contains('on'))compass();}
+function drawHUD(){$('bBlock').classList.toggle('parry-window',!!(P.guard&&P.gt<.25));drawHUD0();if(!cine&&!$('title').classList.contains('on'))compass();}
 function drawHUD0(){
   ctx.setTransform(DPR*S,0,0,DPR*S,0,0);ctx.clearRect(0,0,VW,VH);if(cine)return;
   try{ctx.direction='rtl';}catch(_){}
