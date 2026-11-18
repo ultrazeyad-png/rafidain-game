@@ -554,7 +554,7 @@ function hurtP(d,fx,fz,src){
       src.stagT=0;setE(src,'parried');src.cd=.55;
       if(src.armor===0){src.weakT=7;src.weakNotice=false;say('صدّ مثالي! انكشفت نقطة ضعف الزعيم','#e8c66a',2.3);snd('boss');}
       else say('صدّ مثالي! تصدّع درع الزعيم','#e8c66a',1.7);
-      if(src.T&&src.T.name&&src.T.name.includes('أدابا'))voice('boss','مستحيل… كيف صدّيت سيفي؟');else voice('boss','صدّيت ضربتي…!');
+      if(src.T&&src.T.name&&src.T.name.includes('أدابا')){say('صدّيت سيف أدابا!','#ffe2a0',1.9);voice('boss','مستحيل… كيف صدّيت سيفي؟');}else if(src.elem==='storm')voice('boss','كسرت عاصفتي…!');else if(src.elem==='fire')voice('boss','أطفأت ناري…!');else if(src.elem==='water')voice('boss','ردّيت موجتي عليّ…!');else if(src.elem==='poison')voice('boss','شلّيت سُمّي…!');else voice('boss','صدّيت ضربتي…!');
     }else if(src&&!src.boss&&!src.dead){setE(src,'stun');src.ka=fa;src.kv=70;src.t=-.6;}return true;}
     const SLV=wlv('shield');P.st-=d*.55*(1-.05*(SLV-1));P.sd=.5;
     if(P.st>0){moveEnt(P,P.x-Math.cos(fa)*5,P.z-Math.sin(fa)*5,P.r);return true;}
