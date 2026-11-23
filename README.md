@@ -29,6 +29,8 @@ python3 tools/site_split.py 6  # يطلع site/index.html + site/game.js للم�
 | `src/systems.js` | الحچي والدفتر، المشاعل، أنزو (قديم)، المقدمة السينمائية |
 | `src/chars.js` | رسم البطل والأعداء والشخصيات وحركات السيف |
 | `src/audio.js` | كل الأصوات وطبول البوس |
+| `src/travel.js` | الدرب بين المحافظات: باب النار ورا ساحة الحارس، كارت السفر، وفلم الدرب على خريطة العراق |
+| `src/link.js` | ربط الرحلة بحساب نيكست لفل: يبين اسمك بشاشة البداية ويرسل تقدمك لـ `/api/game/progress` |
 | `src/logo.b64` | شعار Next Level |
 | `tests/` | فحوصات بالمتصفح الآلي (Playwright + Chrome) |
 
@@ -41,8 +43,11 @@ python3 build.py
 python3 tests/d4.py   # طريق زاخو كامل: الصحوة، الجسر، القطع، المشاعل، إرّا، السفر لأوروك
 python3 tests/g1.py nineveh,anbar,maysan,baghdad   # يمشي بالمحافظات
 python3 tests/g7.py   # الأسرار والرسائل والألواح والسحر
+python3 tests/route.py  # يمشي كل محافظة من الموقد الأول للثاني للثالث لساحة الحارس
+python3 tests/road.py   # باب النار، كارت السفر، الفلم، والرجوع للخريطة
+python3 tests/link.py   # ربط الحساب (الموقع مزيف داخل الفحص)
 ```
 
-## الخطوة الجاية
+## تطبيق الأندرويد
 
-تحويلها لتطبيق APK للأندرويد.
+مشروع التطبيق بمستودع الموقع (`nextlevel-v3/game-app`) والـ workflow مالته `Build the game app`. ياخذ نفس ملفي `/game/` اللي على الموقع ويحطهم داخل التطبيق، فيشتغل بدون إنترنت، ويتنزّل من `/download/rafidain-ashes.apk`.
