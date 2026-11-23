@@ -7,7 +7,7 @@ const TERC={
   desert:{g:[.74,.63,.43],d:[.80,.70,.50],rock:[.70,.58,.42],snow:9999,rim:150,rimA:90,rough:.5,grass:3,veg:'dtree',vegN:60,dry:1,path:[0,6,14,20,24,30,36,40]},
   marsh:{g:[.38,.50,.27],d:[.52,.50,.34],rock:[.42,.40,.32],snow:9999,rim:-30,rimA:0,rough:.25,grass:30,veg:'reed',vegN:260,water:1,path:[4,4,4,4,4,4,4,4]},
   city:{g:[.56,.52,.42],d:[.64,.58,.46],rock:[.62,.56,.46],snow:9999,rim:60,rimA:30,rough:0,grass:5,veg:'palm',vegN:70,dry:1,city:1,path:[0,0,0,0,0,0,0,0]}};
-let REGC=null,RIVZ=null,LABELS=[],REGB=null;
+let REGC=null,RIVZ=null,LABELS=[],REGB=null,MINI_ARENA=null;
 const OLD={robe:'#5a4a3a',vest:'#3c3428',sash:'#8a2a2a',skin:'#c49a72',beard:'#e8e4dc',hat:'turban',hatC:'#d8d0c0',staff:true};
 const WOM={robe:'#2a2a3a',vest:'#3a2a3a',sash:'#8a6a2a',skin:'#c99a74',hat:'scarf',hatC:'#1a1a22',staff:false};
 const YNG={robe:'#5a5040',vest:'#7a5a3a',sash:'#2a5a7a',skin:'#c08a64',beard:'#2a1c14',hat:'turban',hatC:'#e8e0d0',staff:true};
@@ -68,6 +68,7 @@ const GOV=[
   npc:{id:'bag',name:'الوراق العجوز',look:OLD,l:['بشارع المتنبي چنا نبيع الكتب، وهسه بس الريح تقلّب صفحاتها.','أدابا… معلم الحراس. هو اللي كتب كل شي، وهو اللي شطب اسمك من كل شي.','{R}','البوابة تحت باب الطلسم. خمس مفاتيح، ولا وحدة أقل.']},
   boss:{n:'أدابا، معلم الحراس',w:'sword',el:'all',hp:2000,look:{a:'#e0d8c8',a2:'#6a6458',t:'#e0c050',c:'#f0e8d8',sk:'#b08460',bd:'#d8d0c0',helm:'crown',e:'#ffffff'}}}];
 const GOVM={};for(const g of GOV)GOVM[g.id]=g;
+const MINI_GUARDS={nineveh:{k:'ghostK',n:'حارس الحدباء المنفي',line:'لا تقترب من ظلال الحدباء!'},erbil:{k:'wolfK',n:'ذيب القلعة الأبيض',line:'هذه القلعة لا يدخلها إلا الموتى!'},sulay:{k:'wolfK',n:'ذيب قمة آزمر',line:'ريح آزمر تحمل رائحتك إليّ!'},halabja:{k:'crocK',n:'وحش بحيرة زريبار',line:'أعماق البحيرة ستكون قبرك!'},kirkuk:{k:'scorpK',n:'عقرب النار الأزلية',line:'سمّي يحرق الدم قبل الجسد!'},saladin:{k:'ghostK',n:'طيف الملوية',line:'كل حجر هنا يتذكر موتك!'},diyala:{k:'scorpK',n:'عقرب بساتين ديالى',line:'لن تنجو من لسعة البساتين!'},anbar:{k:'wolfK',n:'ذيب الرمادي',line:'الصحراء ما ترحم الغريب!'},karbala:{k:'scorpK',n:'عقرب عين التمر',line:'حتى الواحة صارت أرضي!'},babil:{k:'ghostK',n:'ظل بوابة عشتار',line:'الأسوار تفتح للموت فقط!'},najaf:{k:'wolfK',n:'ذيب بحر النجف',line:'راح أسمع عواءك بين الرمال!'},qadis:{k:'scorpK',n:'عقرب تل إيسن',line:'تراب إيسن راح يبتلعك!'},wasit:{k:'crocK',n:'تمساح سدّة الكوت',line:'الماء يخفي أكثر مما تظن!'},maysan:{k:'crocK',n:'تمساح الهور الأسود',line:'الهور ما يرجّع اللي ياخذه!'},dhiqar:{k:'ghostK',n:'حارس مقبرة أور',line:'لا توقظ ملوك أور!'},muthanna:{k:'scorpK',n:'ملك عقارب أوروك',line:'أوروك تحت سمي وسلطاني!'},basra:{k:'crocK',n:'تمساح شط العرب',line:'شط العرب راح يصير مثواك!'},baghdad:{k:'ghostK',n:'شبح باب الطلسم',line:'باب الطلسم ما ينفتح للأحياء!'},duhok:{k:'wolfK',n:'ذيب وادي الخابور',line:'الوادي إليّ… وما تطلع منه!'}};
 const ORDER=['duhok','nineveh','erbil','sulay','halabja','kirkuk','saladin','diyala','anbar','karbala','babil','najaf','qadis','wasit','maysan','dhiqar','muthanna','basra','baghdad'];
 function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function rng(seed){let s=seed||1;return ()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
@@ -130,6 +131,7 @@ function regGen(g){
     :g.ter==='marsh'?['husk','croc','sling','archer','croc']:g.ter==='city'?['spear','archer','brute','ghost','ghost']:['husk','spear','archer','brute','wolf',g.id==='saladin'?'ghost':'husk'];
   SPAWN=[];const put=(k,d,m)=>{for(let q=0;q<m;q++){const a=R()*6.283,r=d[2]*(.25+R()*.5);SPAWN.push([pool[Math.floor(R()*pool.length)],d[0]+Math.cos(a)*r,d[1]+Math.sin(a)*r,d[3]]);}};
   put(0,D[1],3);put(0,D[2],3);put(0,D[3],2);put(0,D[4],3);put(0,D[5],2);put(0,b1,3);put(0,b2,3);SPAWN.push(['brute',D[4][0],D[4][1],D[4][3]]);
+  const mini=MINI_GUARDS[g.id];MINI_ARENA=mini?{region:g.id,kind:mini.k,name:mini.n,x:b1[0]+70,z:b1[1]+70,y:b1[3]}:null;if(mini)SPAWN.push(['gmini',MINI_ARENA.x,MINI_ARENA.z,MINI_ARENA.y]);
   ITEMS=[{k:'shard',x:b2[0],y:b2[3],z:b2[1]-30,n:2},{k:'shard',x:D[3][0]+80,y:D[3][3],z:D[3][1]-60},{k:'arrows',x:D[2][0]-60,y:D[2][3],z:D[2][1]+40,n:6}];
   if(idx>=8)ITEMS.push({k:'dshard',x:b2[0]+50,y:b2[3],z:b2[1]+30});
   for(const it of ITEMS)it.y=floorAt(it.x,it.z,it.y+30);
@@ -267,7 +269,7 @@ function drawIraq(){
 }
 function iraqTap(e){if(!IQP)return;const p=loc(e);let best=null,bd=22;
   for(const id of ORDER){const g=GOVM[id],d=Math.hypot(IQP.X(g.lon)-p[0],IQP.Y(g.lat)-p[1]);if(d<bd){bd=d;best=id;}}
-  if(!best||!canGo(best)||best===REG)return;iqOpen=false;$('iraq').classList.remove('on');paused=false;travel(best);}
+  if(!best||!canGo(best)||best===REG)return;iqOpen=false;$('iraq').classList.remove('on');askTravel(best,'map');}
 /* ---------- the boat from Basra, and the end ---------- */
 function boatFilm(){if(!RIVZ)return;const z=RIVZ-10,y=-24;
   cine={i:0,t:0,boat:1,shots:[
