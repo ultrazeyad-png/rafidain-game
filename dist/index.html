@@ -113,6 +113,7 @@ body{background:#050509;color:#eadfc9}
 .card button{border:1px solid #a77a45;border-radius:3px;background:linear-gradient(135deg,#51251f,#241216);box-shadow:0 3px 12px #000}
 .card button.ghost{background:rgba(255,255,255,.025)}
 #diag{border-color:#a77a45;background:rgba(3,5,9,.9)}
+#title #acct{border-top:0;margin-top:8px;padding-top:0;color:#e8c66a}#title #acct a{color:#ffd08a}
 @media(max-height:520px){#title .card{padding:12px 18px}#title .sub{margin:4px 0 10px}#title .hint{margin-top:10px;padding-top:8px}#bAtk{width:68px;height:68px}#bRoll,#bJump{width:54px;height:54px}#bHeal{width:52px;height:52px}}
 
 
@@ -192,6 +193,7 @@ body{background:#050509;color:#eadfc9}
   <p class="sub">من زاخو لبغداد… امشِ ويا الماي.</p>
   <button id="go">ابدأ الرحلة</button>
   <button id="newg" class="ghost" hidden>رحلة جديدة</button>
+  <p class="hint" id="acct"></p>
   <p class="hint">يسار الشاشة: حركة. اسحب بيمين الشاشة: تدوير الكاميرا.<br><b>ضربة</b>: ضغطة خفيفة، وإذا بقيت ضاغط تطلع قوية. <b>قفز</b> ثم ضربة = ضربة ساحقة. <b>صد</b> ويا الترس، و<b>قفل</b> يثبت الكاميرا على العدو.<br>احچي ويا الناس واحفظ كلامهم: الألغاز حلها بيه، ودفترك بشاشة <b>الخريطة</b> ويا الوقت والجودة.</p>
 </div></div>
 
@@ -744,7 +746,7 @@ function bossMusic(on,profile){
 
 /* ================= save ================= */
 function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,minis:world.minis,miniFilm:world.miniFilm,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
-  localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}}
+  localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}linkSync();}
 // Mobile browsers may suspend or discard the page while the player switches apps.
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save();});
 window.addEventListener('pagehide',save);
@@ -2160,6 +2162,28 @@ function drawRoad(cv,a,b,k){
   m.font='700 13px '+FONT;m.textAlign='center';m.textBaseline='middle';m.lineWidth=3;m.strokeStyle='rgba(216,200,150,.95)';
   for(const [x,y,t] of[[ax,ay-18,govName(a)],[bx,by-24,govName(b)]]){m.strokeText(t,x,y);m.fillStyle='#2a1c10';m.fillText(t,x,y);}}
 
+/* ================= the Next Level account: your journey on your profile =================
+   Only on the website (or the app showing the website): the game asks who is signed in, shows it on the
+   title card, and after a guardian falls or a road is taken sends how far you got to /api/game/progress.
+   Played from a file or offline, nothing here runs and the game is exactly as before. */
+const LINK={on:false,user:null,sig:'',busy:false,t:0};
+function linkSite(){try{return /^https?:$/.test(location.protocol)&&/\/game\/?/.test(location.pathname);}catch(_){return false;}}
+function linkPayload(){return {done:Object.keys(stats.done||{}).filter(k=>stats.done[k]),keys:stats.keys||0,level:stats.lvl||1,region:REG,ending:stats.ended||0,playSeconds:Math.floor(stats.playSec||0)};}
+function linkSig(p){return [p.done.slice().sort().join(','),p.keys,p.level,p.region,p.ending].join('|');}
+function linkShow(){const el=$('acct');if(!el)return;el.textContent='';
+  if(LINK.user){el.textContent='رحلتك تنحفظ ببروفايلك: '+LINK.user;return;}
+  const a=document.createElement('a');a.href='/login?next=/game/';a.textContent='سجّل دخول بحسابك بنيكست لفل';el.append(a,' حتى تطلع رحلتك ببروفايلك.');}
+function linkStart(){if(!linkSite())return;LINK.on=true;
+  fetch('/api/game/me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(d=>{
+    if(!d||!d.success)return;LINK.user=d.loggedIn?(d.name||'حسابك'):null;linkShow();if(LINK.user&&linkPayload().done.length)linkSync(true);}).catch(()=>{});
+  setInterval(()=>{if(!paused&&!cine&&document.visibilityState==='visible')stats.playSec=(stats.playSec||0)+10;},10000);}
+function linkSync(force){
+  if(!LINK.on||!LINK.user||LINK.busy)return;const p=linkPayload(),s=linkSig(p);if(!force&&s===LINK.sig)return;
+  const wait=5000-(Date.now()-LINK.t);if(wait>0){clearTimeout(LINK.tm);LINK.tm=setTimeout(()=>linkSync(force),wait+50);return;}
+  LINK.busy=true;LINK.t=Date.now();
+  fetch('/api/game/progress',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(p)})
+    .then(r=>{if(r.ok)LINK.sig=s;else if(r.status===401){LINK.user=null;linkShow();}}).catch(()=>{}).finally(()=>{LINK.busy=false;});}
+
 
 /* ================= update ================= */
 function upCam(dt){
@@ -3445,7 +3469,8 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,askTravel,roadGo,nearExit,exitPt,get nearX(){return nearX;},get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},hurtE,ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
+linkStart();
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,linkPayload,get LINK(){return LINK;},askTravel,roadGo,nearExit,exitPt,get nearX(){return nearX;},get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},hurtE,ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>

@@ -113,6 +113,7 @@ body{background:#050509;color:#eadfc9}
 .card button{border:1px solid #a77a45;border-radius:3px;background:linear-gradient(135deg,#51251f,#241216);box-shadow:0 3px 12px #000}
 .card button.ghost{background:rgba(255,255,255,.025)}
 #diag{border-color:#a77a45;background:rgba(3,5,9,.9)}
+#title #acct{border-top:0;margin-top:8px;padding-top:0;color:#e8c66a}#title #acct a{color:#ffd08a}
 @media(max-height:520px){#title .card{padding:12px 18px}#title .sub{margin:4px 0 10px}#title .hint{margin-top:10px;padding-top:8px}#bAtk{width:68px;height:68px}#bRoll,#bJump{width:54px;height:54px}#bHeal{width:52px;height:52px}}
 
 
@@ -192,6 +193,7 @@ body{background:#050509;color:#eadfc9}
   <p class="sub">من زاخو لبغداد… امشِ ويا الماي.</p>
   <button id="go">ابدأ الرحلة</button>
   <button id="newg" class="ghost" hidden>رحلة جديدة</button>
+  <p class="hint" id="acct"></p>
   <p class="hint">يسار الشاشة: حركة. اسحب بيمين الشاشة: تدوير الكاميرا.<br><b>ضربة</b>: ضغطة خفيفة، وإذا بقيت ضاغط تطلع قوية. <b>قفز</b> ثم ضربة = ضربة ساحقة. <b>صد</b> ويا الترس، و<b>قفل</b> يثبت الكاميرا على العدو.<br>احچي ويا الناس واحفظ كلامهم: الألغاز حلها بيه، ودفترك بشاشة <b>الخريطة</b> ويا الوقت والجودة.</p>
 </div></div>
 
@@ -389,7 +391,7 @@ const cost=()=>120+(stats.lvl-1)*70;
 
 /* ================= save ================= */
 function save(){try{RS[REG]={shrine:world.shrine,lit:world.lit,bossDead:world.bossDead,minis:world.minis,miniFilm:world.miniFilm,stain:world.stain,door:world.door,frags:world.frags,key:world.key,gate:world.gate,brz:world.brz,mgate:world.mgate,sec:world.sec,npc:world.npc,items:world.items,seen:Array.from(seen)};
-  localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}}
+  localStorage.setItem(SAVE,JSON.stringify({schemaVersion:SAVE_SCHEMA,stats,reg:REG,rs:RS}));}catch(_){}linkSync();}
 // Mobile browsers may suspend or discard the page while the player switches apps.
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save();});
 window.addEventListener('pagehide',save);
@@ -1476,7 +1478,8 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,askTravel,roadGo,nearExit,exitPt,get nearX(){return nearX;},get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},hurtE,ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
+linkStart();
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,linkPayload,get LINK(){return LINK;},askTravel,roadGo,nearExit,exitPt,get nearX(){return nearX;},get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},hurtE,ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>
