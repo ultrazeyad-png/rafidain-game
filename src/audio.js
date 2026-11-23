@@ -77,32 +77,101 @@ function music(on){   // a low drone with a slow Hijaz phrase, only under the op
     musN={g,o};}catch(_){}
 }
 
-/* a wordless voice for each character: short vowel-like syllables, pitched to the speaker */
-let VN=[];
-function voice(id,len){
+
+/* ================= regional environmental soundscape =================
+   Procedural ambience only: filtered water and wind beds, not field recordings. */
+let ENV=null,envRegion='none';
+function setEnvironment(region){
+  envRegion=String(region||'none');
+  if(!AUC||!MG)return envRegion;
+  try{
+    if(!ENV){
+      const master=AUC.createGain();master.gain.value=0;master.connect(MG);
+      const makeBed=(kind)=>{
+        const src=AUC.createBufferSource();src.buffer=NB;src.loop=true;
+        const filter=AUC.createBiquadFilter();filter.type=kind==='water'?'bandpass':'lowpass';
+        filter.frequency.value=kind==='water'?620:kind==='city'?165:420;filter.Q.value=kind==='water'?.45:.25;
+        const slow=AUC.createOscillator(),depth=AUC.createGain(),gain=AUC.createGain();
+        slow.type='sine';slow.frequency.value=kind==='water'?.075:kind==='city'?.045:.035;depth.gain.value=kind==='water'?.012:kind==='city'?.004:.009;
+        gain.gain.value=0;slow.connect(depth);depth.connect(gain.gain);
+        src.connect(filter);filter.connect(gain);gain.connect(master);src.start();slow.start();
+        return {src,slow,gain};
+      };
+      ENV={master,water:makeBed('water'),wind:makeBed('wind'),city:makeBed('city')};
+    }
+    const water=envRegion==='duhok'?.055:envRegion==='baghdad'?.008:0;
+    const wind=envRegion==='duhok'?.024:envRegion==='muthanna'?.035:envRegion==='baghdad'?.012:.018;
+    const city=envRegion==='baghdad'?.018:0;
+    const t=AUC.currentTime;
+    for(const [bed,value,tc] of [[ENV.water,water,.9],[ENV.wind,wind,1.4],[ENV.city,city,1.8]]){
+      bed.gain.gain.cancelScheduledValues(t);
+      bed.gain.gain.setTargetAtTime(value,t,tc);
+    }
+    ENV.master.gain.cancelScheduledValues(t);
+    ENV.master.gain.setTargetAtTime(1,t,.8);
+  }catch(_){}
+  return envRegion;
+}
+function environmentSnapshot(){return {region:envRegion,active:!!ENV};}
+
+/* ================= spoken character dialogue =================
+   Prefer native Arabic speech; keep a short synthesized signature as fallback. */
+let VN=[],voiceEnabled=true;
+try{voiceEnabled=localStorage.getItem('ashes-rafidain-voice')!=='0';}catch(_){}
+function voiceStop(){try{if(window.speechSynthesis)window.speechSynthesis.cancel();}catch(_){}for(const o of VN){try{o.stop();}catch(_){}}VN=[];}
+function setVoiceEnabled(on){voiceEnabled=!!on;try{localStorage.setItem('ashes-rafidain-voice',voiceEnabled?'1':'0');}catch(_){}if(!voiceEnabled)voiceStop();return voiceEnabled;}
+function voice(id,text){
+  voiceStop();if(!voiceEnabled)return;const phrase=String(text||'').trim();if(!phrase)return;
+  const profiles={khidr:{pitch:.72,rate:.88,volume:.96},shirin:{pitch:1.08,rate:.98,volume:1},derv:{pitch:.62,rate:.78,volume:.94},narrator:{pitch:.82,rate:.9,volume:.96},erra:{pitch:.55,rate:.76,volume:1},anzu:{pitch:.48,rate:.72,volume:1},boss:{pitch:.52,rate:.78,volume:1}},profile=profiles[id]||profiles.narrator;
+  try{const synth=window.speechSynthesis,Utterance=window.SpeechSynthesisUtterance;if(synth&&typeof Utterance==='function'){
+    const u=new Utterance(phrase);u.lang='ar-IQ';u.pitch=profile.pitch;u.rate=profile.rate;u.volume=profile.volume;
+    const voices=synth.getVoices?synth.getVoices():[],arabic=voices.filter(v=>/^ar(?:-|$)/i.test(v.lang||''));
+    if(arabic.length){let chosen=arabic[0];if(id==='shirin')chosen=arabic.find(v=>/female|woman|zira|laila|mona/i.test((v.name||'')+' '+(v.voiceURI||'')))||arabic[0];else chosen=arabic.find(v=>!/female|woman|zira|laila|mona/i.test((v.name||'')+' '+(v.voiceURI||'')))||arabic[0];u.voice=chosen;}
+    else if(voices.length)throw new Error('No Arabic speech voice installed');
+    synth.speak(u);return;
+  }}catch(_){}
   if(!AUC)return;
-  try{for(const o of VN){try{o.stop();}catch(_){}}VN=[];
-    const V={khidr:[108,'sawtooth',.9],shirin:[225,'triangle',1.25],derv:[84,'sawtooth',.75]}[id]||[140,'triangle',1];
-    const n=Math.max(5,Math.min(18,Math.round(len/4))),FM=[700,1050,520,880,1300,620];let t=AUC.currentTime+.03;
-    for(let k=0;k<n;k++){const o=AUC.createOscillator(),f=AUC.createBiquadFilter(),g=AUC.createGain(),d=(.075+Math.random()*.07)/V[2]*1.1,
-        f0=V[0]*(1+(Math.random()-.5)*.3)*(k===n-1?.82:1);
-      o.type=V[1];o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f0*(.9+Math.random()*.18),t+d);
-      f.type='bandpass';f.Q.value=3.5;f.frequency.setValueAtTime(FM[Math.floor(Math.random()*FM.length)],t);f.frequency.linearRampToValueAtTime(FM[Math.floor(Math.random()*FM.length)],t+d);
-      g.gain.setValueAtTime(.0005,t);g.gain.linearRampToValueAtTime(V[1]==='triangle'?.5:.3,t+.02);g.gain.exponentialRampToValueAtTime(.0008,t+d);
-      o.connect(f);f.connect(g);g.connect(MG);o.start(t);o.stop(t+d+.03);VN.push(o);
-      t+=d*.9+(Math.random()<.18?.11:.012);}
+  try{const V={khidr:[108,'sawtooth',.9],shirin:[225,'triangle',1.25],derv:[84,'sawtooth',.75],narrator:[118,'sawtooth',.9]}[id]||[140,'triangle',1],n=Math.max(5,Math.min(18,Math.round(phrase.length/4))),FM=[700,1050,520,880,1300,620];let t=AUC.currentTime+.03;
+    for(let k=0;k<n;k++){const o=AUC.createOscillator(),f=AUC.createBiquadFilter(),g=AUC.createGain(),d=(.075+Math.random()*.07)/V[2]*1.1,f0=V[0]*(1+(Math.random()-.5)*.3)*(k===n-1?.82:1);o.type=V[1];o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f0*(.9+Math.random()*.18),t+d);f.type='bandpass';f.Q.value=3.5;f.frequency.setValueAtTime(FM[Math.floor(Math.random()*FM.length)],t);f.frequency.linearRampToValueAtTime(FM[Math.floor(Math.random()*FM.length)],t+d);g.gain.setValueAtTime(.0005,t);g.gain.linearRampToValueAtTime(V[1]==='triangle'?.5:.3,t+.02);g.gain.exponentialRampToValueAtTime(.0008,t+d);o.connect(f);f.connect(g);g.connect(MG);o.onended=()=>{VN=VN.filter(v=>v!==o);};o.start(t);o.stop(t+d+.03);VN.push(o);t+=d*.9+(Math.random()<.18?.11:.012);}
   }catch(_){}
 }
 
 /* boss fight: war drums over a low drone */
 let BM=null;
-function bossMusic(on){
+function bossMusic(on,profile){
+  profile=profile||'default';
   if(!AUC)return;
-  try{if(!on){if(BM){clearInterval(BM.iv);BM.g.gain.linearRampToValueAtTime(0,AUC.currentTime+1.2);const m=BM;setTimeout(()=>{try{m.o.forEach(o=>o.stop());}catch(_){}} ,1400);BM=null;}return;}
-    if(BM)return;const g=AUC.createGain(),t=AUC.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+1.5);g.connect(MG);
-    const o=[];for(const f of[55,82.4,110]){const os=AUC.createOscillator(),fl=AUC.createBiquadFilter();os.type='sawtooth';os.frequency.value=f;fl.type='lowpass';fl.frequency.value=380;os.connect(fl);fl.connect(g);os.start();o.push(os);}
+  try{
+    if(!on){if(BM){clearInterval(BM.iv);BM.g.gain.linearRampToValueAtTime(0,AUC.currentTime+1.2);const m=BM;setTimeout(()=>{try{m.o.forEach(o=>o.stop());}catch(_){}} ,1400);BM=null;}return;}
+    if(BM&&BM.profile===profile)return;
+    if(BM){clearInterval(BM.iv);BM.g.gain.linearRampToValueAtTime(0,AUC.currentTime+.35);const old=BM;setTimeout(()=>{try{old.o.forEach(o=>o.stop());}catch(_){}} ,500);BM=null;}
+    const cfg={
+      wolfK:{notes:[65.4,98,130.8,196],filter:720,pulse:'wind'},
+      ghostK:{notes:[55,82.4,123.5,164.8],filter:520,pulse:'echo'},
+      scorpK:{notes:[49,73.4,98,146.8],filter:360,pulse:'metal'},
+      crocK:{notes:[41.2,61.7,82.4,110],filter:260,pulse:'water'},
+      default:{notes:[55,82.4,110],filter:380,pulse:'heavy'}
+    }[profile]||{notes:[55,82.4,110],filter:380,pulse:'heavy'};
+    const g=AUC.createGain(),t=AUC.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+1.5);g.connect(MG);
+    const o=[];cfg.notes.slice(0,3).forEach((f)=>{const os=AUC.createOscillator(),fl=AUC.createBiquadFilter();os.type='sawtooth';os.frequency.value=f;fl.type='lowpass';fl.frequency.value=cfg.filter;os.connect(fl);fl.connect(g);os.start();o.push(os);});
     let n=0;const iv=setInterval(()=>{if(!AUC)return;const k=n%8;n++;
-      if(k===0||k===3||k===4||k===6){tone(k===0?70:90,38,.38,'sine',.32);nz(.18,.12,'lowpass',260,80,1);}
-      if(k===2||k===7)nz(.09,.06,'highpass',2400,1600,1);},235);
-    BM={g,o,iv};}catch(_){}
+      if(cfg.pulse==='wind'){
+        if(k===0||k===4){tone(130,55,.34,'sine',.27);nz(.28,.1,'bandpass',500,1800,.8);}
+        if(k===2||k===6)nz(.12,.07,'highpass',1900,4200,1);
+      }else if(cfg.pulse==='echo'){
+        if(k===0||k===4)ring([440,659,988,1480],.7,.025);
+        if(k===2||k===6){tone(220,110,.48,'sine',.16);nz(.2,.07,'bandpass',1200,420,.7);}
+      }else if(cfg.pulse==='metal'){
+        if(k===0||k===3||k===6)ring([174,263,392,587],.42,.04);
+        if(k===2||k===5)nz(.11,.1,'highpass',2600,1100,2);
+      }else if(cfg.pulse==='water'){
+        if(k===0||k===4){tone(88,34,.55,'sine',.3);nz(.42,.09,'lowpass',420,95,.7);}
+        if(k===2||k===6)nz(.24,.06,'bandpass',700,260,.5);
+      }else{
+        if(k===0||k===3||k===4||k===6){tone(k===0?70:90,38,.38,'sine',.32);nz(.18,.12,'lowpass',260,80,1);}
+        if(k===2||k===7)nz(.09,.06,'highpass',2400,1600,1);
+      }
+    },235);
+    BM={g,o,iv,profile};
+  }catch(_){}
 }
