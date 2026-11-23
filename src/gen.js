@@ -269,7 +269,7 @@ function drawIraq(){
 }
 function iraqTap(e){if(!IQP)return;const p=loc(e);let best=null,bd=22;
   for(const id of ORDER){const g=GOVM[id],d=Math.hypot(IQP.X(g.lon)-p[0],IQP.Y(g.lat)-p[1]);if(d<bd){bd=d;best=id;}}
-  if(!best||!canGo(best)||best===REG)return;iqOpen=false;$('iraq').classList.remove('on');paused=false;travel(best);}
+  if(!best||!canGo(best)||best===REG)return;iqOpen=false;$('iraq').classList.remove('on');askTravel(best,'map');}
 /* ---------- the boat from Basra, and the end ---------- */
 function boatFilm(){if(!RIVZ)return;const z=RIVZ-10,y=-24;
   cine={i:0,t:0,boat:1,shots:[

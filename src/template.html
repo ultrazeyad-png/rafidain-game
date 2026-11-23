@@ -39,7 +39,10 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 #bMap{left:50%;top:8px;transform:translateX(-50%);width:auto;height:auto;border-radius:16px;padding:5px 16px;font-size:13px;background:rgba(24,96,104,.66);border-color:#7fd6dc}
 #bMap.dn{transform:translateX(-50%) scale(.94)}
 #map{padding:0;background:#17120e}
-#iraq{padding:0;background:#17120e}#iqbar{position:absolute;top:6px;left:0;right:0;display:flex;gap:10px;justify-content:center;align-items:center;color:#f1e1c2;font:700 15px var(--ff)}
+#iraq{padding:0;background:#17120e}#roadv{padding:0;background:#17120e}#rvc{position:absolute;inset:0;width:100%;height:100%}
+#rvT{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#f1e1c2;font:700 18px var(--ff);text-shadow:0 2px 6px #000}
+#rvSkip{position:absolute;top:8px;left:10px;font:600 13px var(--ff);color:#f1e1c2;background:#3a2a1c;border:1px solid #a8824c;border-radius:14px;padding:4px 12px}
+#rC{display:flex;gap:10px;justify-content:center;margin-top:8px}#iqbar{position:absolute;top:6px;left:0;right:0;display:flex;gap:10px;justify-content:center;align-items:center;color:#f1e1c2;font:700 15px var(--ff)}
 #iqbar button{font:600 13.5px var(--ff);color:#f1e1c2;background:#3a2a1c;border:1px solid #a8824c;border-radius:14px;padding:5px 14px}
 #endC{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 #mapbar{position:absolute;top:6px;left:0;right:0;display:flex;gap:8px;justify-content:center;align-items:center}
@@ -208,6 +211,12 @@ body{background:#050509;color:#eadfc9}
   <button id="ft" class="ghost">انتقل لموقد ثاني</button><button id="rise">انهض</button><button id="trv" class="ghost">خريطة العراق</button>
 </div></div>
 
+<div class="ov" id="road"><div class="card">
+  <h2 id="rH"></h2>
+  <p class="sub" id="rP"></p>
+  <div id="rC"><button id="rGo">امشِ</button><button id="rNo" class="ghost">بعدين</button></div>
+</div></div>
+<div class="ov" id="roadv"><canvas id="rvc"></canvas><div id="rvT"></div><button id="rvSkip">تخطي</button></div>
 <div class="ov" id="iraq"><canvas id="iqc"></canvas><div id="iqbar"><span>خريطة العراق</span><button id="iqClose">رجوع</button></div></div>
 <div class="ov" id="end"><div class="card"><h2>البوابة</h2><p class="sub" id="endT">أدابا طاح. البوابة گدامك مفتوحة، والجمرة بصدرك تحرگ. تگدر تحطها بالقفل وتسدها للأبد… لو تخليها مفتوحة وتنزل تدوّر على دجلة بنفسك.</p>
   <div id="endC"><button id="end1">اختم البوابة بالجمرة</button><button id="end2" class="ghost">خليها مفتوحة وانزل</button><button id="end3" hidden>اقرا رسائل دجلة على البوابة</button></div><button id="endR" hidden>النهاية · رجوع للبداية</button></div></div>
@@ -218,7 +227,8 @@ body{background:#050509;color:#eadfc9}
 <div class="ov" id="win"><div class="card">
   <h2 id="wH"></h2>
   <p class="sub" id="wP"></p>
-  <button id="cont">كمّل التجوال</button>
+  <button id="wGo" hidden></button>
+  <button id="cont" class="ghost">كمّل التجوال</button>
 </div></div>
 </div>
 
@@ -359,7 +369,7 @@ const WPN={
 };
 
 let RW=800,RH=390,rot=false,DPR=1,S=1,VW=500,VH=250;
-let time=0,last=0,shake=0,hs=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,ctxKey='',ugS=0;
+let time=0,last=0,shake=0,hs=0,paused=true,winT=0,flShown=-1,nearShrine=-1,nearD=-1,nearN=-1,nearB=-1,nearX=false,ctxKey='',ugS=0;
 const input={jx:0,jy:0,wx:0,wz:0,ku:false,kd:false,kl:false,kr:false,cl:false,cr:false,atkDown:false,hold:0,hv:false,camDown:false,block:false};
 const stats={lvl:1,vig:0,end:0,str:0,embers:0,seals:0,wpn:'shield',glaive:false,tod:1,q:0,intro:false,notes:[],unl:false,wl:{},own:{},sh:0,dsh:0,arrows:0,done:{},prog:0,keys:0,gk:null,boat:false,ended:0};
 const world={shrine:0,lit:[true],bossDead:false,minis:false,miniFilm:false,stain:null,locked:false,door:false,frags:[false,false],key:false,gate:false,brz:[],mgate:false,npc:{}};
@@ -791,10 +801,11 @@ function update(dt){
     if(L.length){dlg={n:{name:(boss&&boss.T.name||'').split('،')[0],id:'last'},lines:L,i:0,done:fin};paused=true;showDlg();}else fin();}
   let near=-1;if(P.state==='idle'&&!world.locked)for(let i=0;i<SHR.length;i++)if(Math.hypot(P.x-SHR[i].x,P.z-SHR[i].z)<58&&Math.abs(P.y-SHR[i].y)<30)near=i;
   const idle=P.state==='idle',nn=near<0&&idle?nearNPC():-1,nd=near<0&&nn<0&&idle?nearDoor():-1,nb=near<0&&nn<0&&nd<0&&idle?nearBrz():-1,
-    key=near>=0?'r':nn>=0?'n'+nn:nd>=0?'d'+nd+DOORS[nd].t:nb>=0?'b'+nb:'';
+    nx=near<0&&nn<0&&nd<0&&nb<0&&idle&&!world.locked&&nearExit(),
+    key=near>=0?'r':nn>=0?'n'+nn:nd>=0?'d'+nd+DOORS[nd].t:nb>=0?'b'+nb:nx?'x'+REG:'';
   if(key!==ctxKey){ctxKey=key;const b=$('bRest');b.classList.toggle('on',!!key);
-    if(key)b.textContent=near>=0?'استرح عند الموقد':nn>=0?'احچي ويا '+NPCS[nn].name.split('،')[0]:nd>=0?(DOORS[nd].t?'سدّ الباب':'افتح الباب'):'اشعل المشعل';}
-  nearShrine=near;nearD=nd;nearN=nn;nearB=nb;
+    if(key)b.textContent=near>=0?'استرح عند الموقد':nn>=0?'احچي ويا '+NPCS[nn].name.split('،')[0]:nd>=0?(DOORS[nd].t?'سدّ الباب':'افتح الباب'):nb>=0?'اشعل المشعل':'امشِ '+toName(nextReg(REG));}
+  nearShrine=near;nearD=nd;nearN=nn;nearB=nb;nearX=!!nx;
 }
 function markSeen(){
   const ci=Math.floor(P.x/C),cj=Math.floor(P.z/C),bit=P.y<-40?2:1,r=bit===2?1:2;
@@ -1110,7 +1121,7 @@ function drawItems(){for(let i=0;i<ITEMS.length;i++){const it=ITEMS[i];if(world.
   pop();}}
 function scene(sp){SHPASS=sp;   // everything solid; drawn once from the sun for shadows, once from the eye
   drawStatics();drawDoors();drawBrz();for(const n of NPCS)drawNPC(n);for(const q of shots){if(q.ar)drawArrow(q.x,q.y,q.z,q.vx,q.vy,q.vz);else sph(5.5,5.5,5.5,'#9a948a',q.x,q.y,q.z);}
-  for(const a of parrows){if(a.fire){sph(9,9,9,'#ff8a30',a.x,a.y,a.z,1);sph(5,5,5,'#ffe08a',a.x,a.y,a.z,1);}else drawArrow(a.x,a.y,a.z,a.vx,a.vy,a.vz);}drawItems();drawBoat();
+  for(const a of parrows){if(a.fire){sph(9,9,9,'#ff8a30',a.x,a.y,a.z,1);sph(5,5,5,'#ffe08a',a.x,a.y,a.z,1);}else drawArrow(a.x,a.y,a.z,a.vx,a.vy,a.vz);}drawItems();drawBoat();drawExit();
   for(const e of enemies)drawMob(e);
   drawHero();
 }
@@ -1255,9 +1266,10 @@ function goFull(){   // when opened straight in a phone browser: full screen, he
 function updateBtns(){$('bBlock').classList.toggle('on',stats.wpn==='shield');$('bCast').classList.toggle('on',!!(stats.spell&&stats.tabs&&stats.tabs[stats.spell]));$('bBow').classList.toggle('on',!!(stats.own&&stats.own.bow));$('arN').textContent=String(stats.arrows||0);}
 let winKey='';
 function showWin(){setTimeout(()=>regionMusic(true),1200);const d=REG==='duhok',nx=ORDER[regIdx(REG)+1],nn=nx?GOVM[nx].n:'';
-  if(REG!=='duhok'&&REG!=='muthanna'){$('wH').textContent='سقط '+GOVM[REG].boss.n.split('،')[0];$('wP').textContent=(winKey?'أخذت '+winKey+'. صار عندك '+(stats.keys||0)+' من 5. ':'')+(REG==='basra'?'عمو سلمان جهّز القارب القديم. افتح خريطة العراق من أي موقد وارجع ويا الماي لبغداد.':'الدرب لـ'+nn+' انفتح. افتح خريطة العراق من أي موقد.');updateBtns();$('win').classList.add('on');return;}
+  {const b=$('wGo'),ok=nx&&canGo(nx);b.hidden=!ok;if(ok)b.textContent=nx==='baghdad'&&REG==='basra'?'اركب القارب لبغداد':'امشِ '+toName(nx)+' هسه';}
+  if(REG!=='duhok'&&REG!=='muthanna'){$('wH').textContent='سقط '+GOVM[REG].boss.n.split('،')[0];$('wP').textContent=(winKey?'أخذت '+winKey+'. صار عندك '+(stats.keys||0)+' من 5. ':'')+(REG==='basra'?'عمو سلمان جهّز القارب القديم. اركب هسه، لو ارجعله بعدين من خريطة العراق بأي موقد.':'الدرب '+toName(nx)+' انفتح. امشِ هسه، لو اطلع من باب النار ورا الساحة، لو من خريطة العراق بأي موقد.');updateBtns();$('win').classList.add('on');return;}
   $('wH').textContent=d?'سقط إرّا':'سقط نمتار';
-  $('wP').textContent=d?'فارس العاصفة طاح، والعاصفة اللي چانت ماسكة الجبل خفّت، ودرب الجنوب انفتح. الدرب للموصل انفتح. افتح خريطة العراق من أي موقد.':'رسول العالم السفلي رجع للتراب. أخذت سلاحه: مطرد نمتار. الدرب للبصرة انفتح من خريطة العراق.';
+  $('wP').textContent=d?'فارس العاصفة طاح، والعاصفة اللي چانت ماسكة الجبل خفّت، ودرب الجنوب انفتح. الدرب للموصل انفتح. امشِ هسه، لو من خريطة العراق بأي موقد.':'رسول العالم السفلي رجع للتراب. أخذت سلاحه: مطرد نمتار. الدرب للبصرة انفتح: امشِ هسه، لو من خريطة العراق.';
   updateBtns();$('win').classList.add('on');}
 function setWpn(w){if(!WPN[w]||!ownW(w))return;stats.wpn=w;P.combo=0;save();updateBtns();renderShrine();snd('draw');}
 function rest(){
@@ -1267,7 +1279,7 @@ function rest(){
   const hint=REG==='muthanna'&&i===1;if(first)say(hint?'يگولون: اللي يدوّر على نمتار يمشي فوگ السطوح':'أُشعل الموقد','#f0b060',hint?4.5:2.2);
   paused=true;renderShrine();$('shrine').classList.add('on');
 }
-function ctxAct(){if(paused)return;if(nearShrine>=0)rest();else if(nearN>=0)talk(nearN);else if(nearD>=0)useDoor(nearD);else if(nearB>=0)lightBrz(nearB);}
+function ctxAct(){if(paused)return;if(nearShrine>=0)rest();else if(nearN>=0)talk(nearN);else if(nearD>=0)useDoor(nearD);else if(nearB>=0)lightBrz(nearB);else if(nearX)askTravel(nextReg(REG),'road');}
 function lvlUp(k){const c=cost();if(stats.embers<c)return;stats.embers-=c;stats[k]++;stats.lvl++;P.hp=maxHp();P.st=maxSt();save();snd('heal');renderShrine();}
 
 /* ================= map ================= */
@@ -1394,6 +1406,8 @@ $('go').addEventListener('click',begin);
 $('newg').addEventListener('click',()=>{wipe();loadRegion('duhok');applyWorld();updateBtns();respawn();begin();});
 $('rise').addEventListener('click',()=>{$('shrine').classList.remove('on');paused=false;});
 $('cont').addEventListener('click',()=>{$('win').classList.remove('on');paused=false;});
+$('wGo').addEventListener('click',()=>{$('win').classList.remove('on');const nx=nextReg(REG);if(nx)askTravel(nx,'win');});
+$('rGo').addEventListener('click',roadGo);$('rNo').addEventListener('click',roadCancel);
 document.querySelectorAll('#shrine [data-k]').forEach(b=>b.addEventListener('click',()=>lvlUp(b.getAttribute('data-k'))));
 document.querySelectorAll('#shrine [data-w]').forEach(b=>b.addEventListener('click',()=>setWpn(b.getAttribute('data-w'))));
 
@@ -1462,7 +1476,7 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
+window.__g={voice,voiceStop,setVoiceEnabled,get voiceEnabled(){return voiceEnabled;},toggleDiagnostics,diagnosticsSnapshot,setPaused(v){paused=v;},get SEC(){return SEC;},get ITEMS(){return ITEMS;},lightBrz,setTod(k){stats.tod=k;setTod();},cast(){act('cast');},get WTH(){return WTH;},get RC(){return REGC;},get AC(){return AC;},get SHRs(){return SHR;},get FR(){return FRAGS;},openIraq,drawMap,askTravel,roadGo,nearExit,exitPt,get nearX(){return nearX;},get PA(){return parrows;},get lock(){return lock;},get AX(){return [AX0,AX1,AZ0,AZ1,AY];},WPN,setTRL(v){TRL=v;},dbg(){return [TRAIL.length,time,CAP,SHPASS,JSON.stringify(TRAIL.slice(-2))];},cineAt(i,k){cine.i=i;cine.t=CINE[i].d*k;cineShot();},hv,get MT(){return MT;},get SHR(){return SHR;},P,input,stats,world,cam,act,toggleLock,floorAt,blockedPt,hgt,travel,talk,nextDlg,lightBrz,endCine,ctxAct,get B(){return B;},get REG(){return REG;},get cine(){return cine;},get cineShots(){return CINE.map(s=>s.t);},get cinePlan(){return CINE.map(s=>({region:s.reg||null,text:s.t}));},setEnvironment,get environment(){return environmentSnapshot();},get dlg(){return dlg;},get NPCS(){return NPCS;},get BRZ(){return BRZ;},get chunks(){return CHK.length;},get lock(){return lock;},get enemies(){return enemies;},get boss(){return boss;},get miniArena(){return MINI_ARENA;},start(){paused=false;},step(dt){update(dt);ambient(dt);},hurtE,ok:()=>glOK,nst:()=>ST.length,duhokDetails:()=>DUKHOK_DETAIL_COUNT};
 })();
 </script>
 </body>
