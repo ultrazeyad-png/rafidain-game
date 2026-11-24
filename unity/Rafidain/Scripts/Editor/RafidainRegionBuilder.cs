@@ -215,7 +215,7 @@ namespace Rafidain.EditorTools
                 { new Color(0.47f, 0.43f, 0.37f), new Color(0.60f, 0.56f, 0.49f) }, // road / cobbles
                 { new Color(0.24f, 0.21f, 0.17f), new Color(0.33f, 0.29f, 0.23f) }, // mud
             };
-            float[] tile = { 7f, 6f, 10f, 4f, 6f };
+            float[] tile = { 6f, 5f, 7f, 2.6f, 5f };
 
             for (int i = 0; i < layers.Length; i++)
             {
@@ -555,8 +555,8 @@ namespace Rafidain.EditorTools
             RenderSettings.fogColor = new Color(0.53f, 0.47f, 0.45f);
             RenderSettings.fogDensity = 0.0042f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.42f, 0.42f, 0.50f);
-            RenderSettings.ambientEquatorColor = new Color(0.45f, 0.36f, 0.30f);
+            RenderSettings.ambientSkyColor = new Color(0.50f, 0.50f, 0.58f);
+            RenderSettings.ambientEquatorColor = new Color(0.52f, 0.42f, 0.35f);
             RenderSettings.ambientGroundColor = new Color(0.12f, 0.10f, 0.09f);
             return sun;
         }
