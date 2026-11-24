@@ -354,7 +354,7 @@ namespace Rafidain.EditorTools
                 }
             }
             td.SetHeights(0, 0, h);
-            AssetDatabase.CreateAsset(td, $"{Gen}/ZakhoTerrain.asset");
+            AssetDatabase.CreateAsset(td, $"{Gen}/{R.id}_Terrain.asset");
             return td;
         }
 
@@ -423,16 +423,17 @@ namespace Rafidain.EditorTools
                     if (normal == null) normal = procNormal;
                 }
 
-                var layer = new TerrainLayer
-                {
-                    diffuseTexture = diffuse,
-                    normalMapTexture = normal,
-                    tileSize = new Vector2(tile[i], tile[i]),
-                    smoothness = i == 4 ? 0.35f : 0.05f
-                };
+                // update the shared layer in place so terrains built earlier keep their link
                 string path = $"{Gen}/Layer_{LayerNames[i]}.terrainlayer";
-                AssetDatabase.DeleteAsset(path);
-                AssetDatabase.CreateAsset(layer, path);
+                var layer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
+                bool isNew = layer == null;
+                if (isNew) layer = new TerrainLayer();
+                layer.diffuseTexture = diffuse;
+                layer.normalMapTexture = normal;
+                layer.tileSize = new Vector2(tile[i], tile[i]);
+                layer.smoothness = i == 4 ? 0.35f : 0.05f;
+                if (isNew) AssetDatabase.CreateAsset(layer, path);
+                else EditorUtility.SetDirty(layer);
                 layers[i] = layer;
             }
             td.terrainLayers = layers;
@@ -742,7 +743,7 @@ namespace Rafidain.EditorTools
                 sky.SetColor("_SkyTint", new Color(0.46f, 0.43f, 0.50f));
                 sky.SetColor("_GroundColor", new Color(0.35f, 0.32f, 0.28f));
                 sky.SetFloat("_Exposure", 1.0f);
-                AssetDatabase.CreateAsset(sky, $"{Gen}/ZakhoSky.mat");
+                AssetDatabase.CreateAsset(sky, $"{Gen}/{R.id}_Sky.mat");
                 RenderSettings.skybox = sky;
             }
             RenderSettings.sun = sun;

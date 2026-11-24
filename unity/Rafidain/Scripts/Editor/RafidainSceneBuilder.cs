@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -274,9 +275,19 @@ namespace Rafidain.EditorTools
         internal static void CreatePostVolume()
         {
             string path = GenFolder + "/RafidainPost.asset";
-            AssetDatabase.DeleteAsset(path);
-            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            AssetDatabase.CreateAsset(profile, path);
+            // Rebuild the profile in place so every scene that already uses it keeps its link
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(profile, path);
+            }
+            else
+            {
+                foreach (var old in profile.components.ToArray())
+                    if (old != null) Object.DestroyImmediate(old, true);
+                profile.components.Clear();
+            }
 
             var tone = profile.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
