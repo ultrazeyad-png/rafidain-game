@@ -34,6 +34,12 @@ namespace Rafidain
         public float recovery = 0.9f;
         public float lungeSpeed = 6f;
 
+        [Header("Boss moves")]
+        [Tooltip("Leaps through the air and slams down on the player from mid range.")]
+        public bool canLeap;
+        public float leapCooldown = 7f;
+        [Range(0f, 1f)] public float sweepChance = 0.35f;
+
         [Header("Boss phase 2")]
         [Range(0f, 1f)] public float phase2Threshold = 0.5f;
         public float phase2SpeedMultiplier = 1.35f;
@@ -50,6 +56,7 @@ namespace Rafidain
         PlayerStats player;
         Renderer[] renderers;
         Color[] baseColors;
+        float nextLeap;
 
         public bool IsDead => state == State.Dead;
         public float CurrentSpeed { get; private set; }
@@ -107,6 +114,12 @@ namespace Rafidain
                 case State.Chase:
                     if (Vector3.Distance(transform.position, homePosition) > leashRange) { GoHome(); break; }
                     Face(toPlayer);
+                    if (canLeap && dist > 6f && dist < 15f && Time.time > nextLeap)
+                    {
+                        nextLeap = Time.time + leapCooldown / speedMul;
+                        StartCoroutine(LeapRoutine());
+                        break;
+                    }
                     if (dist > attackRange) Move(transform.forward * moveSpeed * speedMul);
                     else StartCoroutine(AttackRoutine());
                     break;
@@ -149,11 +162,18 @@ namespace Rafidain
             float speedMul = phase2 ? phase2SpeedMultiplier : 1f;
             int hits = (isBoss && phase2) ? 2 : 1;
 
+            // Bosses sometimes do a wide, slow sweep instead of a straight cut
+            bool sweep = isBoss && Random.value < sweepChance;
+            float reachMul = sweep ? 1.35f : 1f;
+            float angle = sweep ? 170f : attackAngle;
+            float windMul = sweep ? 1.25f : 1f;
+            if (sweep) hits = 1;
+
             for (int h = 0; h < hits; h++)
             {
                 // Windup with red telegraph glow
                 OnAttackStart?.Invoke();
-                float w = windup / speedMul * (h > 0 ? 0.6f : 1f);
+                float w = windup * windMul / speedMul * (h > 0 ? 0.6f : 1f);
                 float t = 0f;
                 while (t < w)
                 {
@@ -176,7 +196,7 @@ namespace Rafidain
                     t += Time.deltaTime;
                     Move(transform.forward * lungeSpeed);
                     CurrentSpeed = 0f;
-                    if (!landed && player != null && InReach())
+                    if (!landed && player != null && InReach(reachMul, angle))
                         landed = player.TakeDamage(damage * (phase2 ? 1.2f : 1f), transform.position);
                     yield return null;
                 }
@@ -186,12 +206,68 @@ namespace Rafidain
             if (state == State.Attack) state = State.Chase;
         }
 
-        bool InReach()
+        bool InReach(float reachMul = 1f, float angle = -1f)
         {
             Vector3 to = player.transform.position - transform.position;
             to.y = 0f;
-            float scaledReach = attackReach * transform.lossyScale.x;
-            return to.magnitude <= scaledReach && Vector3.Angle(transform.forward, to) <= attackAngle;
+            float scaledReach = attackReach * reachMul * transform.lossyScale.x;
+            if (angle < 0f) angle = attackAngle;
+            return to.magnitude <= scaledReach && Vector3.Angle(transform.forward, to) <= angle;
+        }
+
+        IEnumerator LeapRoutine()
+        {
+            state = State.Attack;
+            OnAttackStart?.Invoke();
+
+            // crouch: long orange telegraph
+            float t = 0f;
+            float wind = 0.85f;
+            while (t < wind)
+            {
+                t += Time.deltaTime;
+                if (player != null)
+                {
+                    Vector3 to = player.transform.position - transform.position; to.y = 0f;
+                    Face(to, 1.5f);
+                }
+                SetTint(t / wind, new Color(1f, 0.55f, 0.1f));
+                yield return null;
+            }
+            SetTint(0f, Color.red);
+
+            // jump arc to where the player stands now
+            Vector3 start = transform.position;
+            Vector3 land = start;
+            if (player != null)
+            {
+                Vector3 p = player.transform.position;
+                Vector3 dir = p - start; dir.y = 0f;
+                float halfH = 1f * transform.lossyScale.y;
+                land = p - dir.normalized * 1.2f;
+                land.y = p.y - 1f + halfH + 0.05f;
+            }
+            if (cc != null) cc.enabled = false;
+            float dur = 0.6f;
+            t = 0f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / dur);
+                transform.position = Vector3.Lerp(start, land, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 5f;
+                yield return null;
+            }
+            transform.position = land;
+            if (cc != null) cc.enabled = true;
+            verticalVelocity = 0f;
+
+            // slam
+            if (player != null && Vector3.Distance(player.transform.position, transform.position) < 3.8f * transform.lossyScale.x)
+                player.TakeDamage(damage * 1.4f, transform.position);
+            if (HUD.Instance != null) HUD.Instance.Shake(0.35f);
+
+            yield return new WaitForSeconds(recovery * 1.3f);
+            if (state == State.Attack) state = State.Chase;
         }
 
         public bool TakeDamage(float amount, Vector3 sourcePosition)
@@ -206,7 +282,7 @@ namespace Rafidain
             if (isBoss && !phase2 && HealthRatio <= phase2Threshold)
             {
                 phase2 = true;
-                if (HUD.Instance != null) HUD.Instance.ShowMessage(displayName + " grows furious!", 2f);
+                if (HUD.Instance != null) HUD.Instance.ShowMessage(ArabicText.Fix(displayName + " يستشيط غضبا"), 2f);
             }
 
             if (health <= 0f) Die();
@@ -229,7 +305,7 @@ namespace Rafidain
                 if (HUD.Instance != null)
                 {
                     HUD.Instance.HideBoss();
-                    HUD.Instance.ShowMessage("GREAT ENEMY FELLED", 4f);
+                    HUD.Instance.ShowMessage(ArabicText.Fix("سقط عدو عظيم"), 4f);
                 }
                 if (GameManager.Instance != null) GameManager.Instance.SaveNow();
             }

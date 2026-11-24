@@ -172,7 +172,7 @@ namespace Rafidain.EditorTools
             brute.maxHealth = 160f; brute.damage = 30f; brute.windup = 1.0f; brute.moveSpeed = 2.2f; brute.emberReward = 150;
 
             // Boss: Guardian of Zakho (humanoid warrior lord, first of the five guardians)
-            var boss = MakeEnemy(enemies, "Guardian of Zakho", arena + new Vector3(0f, 1.6f, 6f), guardianMat, steelMat, 1.6f);
+            var boss = MakeEnemy(enemies, "حارس زاخو", arena + new Vector3(0f, 1.6f, 6f), guardianMat, steelMat, 1.6f);
             boss.isBoss = true;
             boss.bossId = "boss_zakho";
             boss.maxHealth = 650f;
@@ -185,6 +185,7 @@ namespace Rafidain.EditorTools
             boss.detectRange = 13f;
             boss.leashRange = 28f;
             boss.emberReward = 1500;
+            boss.canLeap = true;
             boss.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
             // ---------- Save scene ----------

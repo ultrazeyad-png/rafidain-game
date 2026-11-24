@@ -65,6 +65,7 @@ namespace Rafidain
 
             Health -= amount;
             OnDamaged?.Invoke();
+            if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.15f);
             if (controller != null) controller.ApplyHitStagger(sourcePosition);
 
             if (Health <= 0f)

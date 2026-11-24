@@ -51,7 +51,7 @@ namespace Rafidain
             if (Vector3.Distance(player.transform.position + Vector3.up * 0.6f, basePos) <= pickupRange)
             {
                 player.AddEmbers(amount);
-                if (HUD.Instance != null) HUD.Instance.ShowMessage("Embers recovered (+" + amount + ")", 2f);
+                if (HUD.Instance != null) HUD.Instance.ShowMessage("+" + amount + "  " + ArabicText.Fix("استعدت جمرك"), 2f);
                 if (GameManager.Instance != null) GameManager.Instance.OnLostEmbersRecovered(this);
                 Destroy(gameObject);
             }

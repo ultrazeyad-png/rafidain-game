@@ -637,7 +637,7 @@ namespace Rafidain.EditorTools
             float yaw = Mathf.Atan(slope) * Mathf.Rad2Deg;
             float deckY = RoadTarget(bestZ) + 0.6f;
 
-            var bridge = new GameObject("Khabur Bridge").transform;
+            var bridge = new GameObject("جسر الخابور").transform;
             bridge.SetParent(world);
             bridge.position = new Vector3(bx, 0f, bestZ);
             bridge.rotation = Quaternion.Euler(0f, yaw, 0f);
@@ -845,10 +845,10 @@ namespace Rafidain.EditorTools
             hud.player = gm.player;
 
             // Flames
-            var gate = RafidainSceneBuilder.MakeBonfire("zakho_gate", "Zakho - Southern Gate", OnRoad(td, 68f, 6f, 0f), ember, stone);
-            RafidainSceneBuilder.MakeBonfire("zakho_oldtown", "Zakho - Old Town", Ground(td, PlazaCenter.x - 6f, PlazaCenter.y - 6f, 0f), ember, stone);
-            RafidainSceneBuilder.MakeBonfire("zakho_bridge", "Khabur Bridge", OnRoad(td, BridgeZ - 52f, 6f, 0f), ember, stone);
-            RafidainSceneBuilder.MakeBonfire("zakho_ascent", "Guardian's Ascent", OnRoad(td, 835f, 6f, 0f), ember, stone);
+            var gate = RafidainSceneBuilder.MakeBonfire("zakho_gate", "زاخو - البوابة الجنوبية", OnRoad(td, 68f, 6f, 0f), ember, stone);
+            RafidainSceneBuilder.MakeBonfire("zakho_oldtown", "زاخو - المدينة القديمة", Ground(td, PlazaCenter.x - 6f, PlazaCenter.y - 6f, 0f), ember, stone);
+            RafidainSceneBuilder.MakeBonfire("zakho_bridge", "جسر الخابور", OnRoad(td, BridgeZ - 52f, 6f, 0f), ember, stone);
+            RafidainSceneBuilder.MakeBonfire("zakho_ascent", "صعود الحارس", OnRoad(td, 835f, 6f, 0f), ember, stone);
             gm.defaultBonfire = gate;
 
             // Enemies
@@ -876,7 +876,7 @@ namespace Rafidain.EditorTools
             brute2.maxHealth = 200f; brute2.damage = 32f; brute2.windup = 1.0f; brute2.moveSpeed = 2.3f; brute2.emberReward = 220;
 
             // Boss
-            var boss = RafidainSceneBuilder.MakeEnemy(enemies, "Guardian of Zakho",
+            var boss = RafidainSceneBuilder.MakeEnemy(enemies, "حارس زاخو",
                 new Vector3(ArenaCenter.x, ArenaHeight + 1.7f, ArenaCenter.y + 8f), guardian, steel, 1.6f);
             boss.isBoss = true;
             boss.bossId = "boss_zakho";
@@ -890,6 +890,7 @@ namespace Rafidain.EditorTools
             boss.detectRange = 15f;
             boss.leashRange = 32f;
             boss.emberReward = 2000;
+            boss.canLeap = true;
             boss.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
         }
 

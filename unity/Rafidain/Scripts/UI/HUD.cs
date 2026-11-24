@@ -24,7 +24,13 @@ namespace Rafidain
         readonly Text[] cardinals = new Text[8];
         static readonly string[] CardinalNames = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
 
+        static readonly string EmbersWord = ArabicText.Fix("جمر");
+        static readonly string FlaskWord = ArabicText.Fix("قارورة");
+        static readonly string LostWord = ArabicText.Fix("جمرك");
+
         EnemyAI boss;
+        RectTransform lockMarker;
+        ThirdPersonCamera camRig;
         string pendingPrompt;
         Coroutine messageCo;
         Transform cam;
@@ -39,12 +45,21 @@ namespace Rafidain
         void Start()
         {
             if (player == null) player = FindAnyObjectByType<PlayerStats>();
-            if (Camera.main != null) cam = Camera.main.transform;
+            if (Camera.main != null)
+            {
+                cam = Camera.main.transform;
+                camRig = Camera.main.GetComponent<ThirdPersonCamera>();
+            }
         }
 
         // ---------- public API ----------
 
         public void SetPrompt(string text) => pendingPrompt = text;
+
+        public void Shake(float amount)
+        {
+            if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(amount);
+        }
 
         public void ShowMessage(string text, float seconds)
         {
@@ -55,7 +70,7 @@ namespace Rafidain
         public void ShowBoss(EnemyAI e)
         {
             boss = e;
-            bossName.text = e.displayName;
+            bossName.text = ArabicText.Fix(e.displayName);
             bossRoot.SetActive(true);
         }
 
@@ -81,8 +96,8 @@ namespace Rafidain
             {
                 SetFill(hpFill, player.HealthRatio);
                 SetFill(stFill, player.StaminaRatio);
-                embersText.text = player.Embers.ToString("N0") + "  EMBERS";
-                flaskText.text = "FLASK  " + player.Flasks + " / " + player.maxFlasks + "   [R]";
+                embersText.text = player.Embers.ToString("N0") + "  " + EmbersWord;
+                flaskText.text = "[R]   " + player.Flasks + " / " + player.maxFlasks + "  " + FlaskWord;
             }
 
             if (boss != null)
@@ -92,6 +107,18 @@ namespace Rafidain
             }
 
             UpdateCompass();
+            UpdateLockMarker();
+        }
+
+        void UpdateLockMarker()
+        {
+            if (lockMarker == null) return;
+            var target = camRig != null ? camRig.LockTarget : null;
+            if (target == null || Camera.main == null) { lockMarker.gameObject.SetActive(false); return; }
+            Vector3 sp = Camera.main.WorldToScreenPoint(target.position + Vector3.up * 0.6f * target.lossyScale.y);
+            bool visible = sp.z > 0f;
+            lockMarker.gameObject.SetActive(visible);
+            if (visible) lockMarker.position = sp;
         }
 
         void LateUpdate()
@@ -123,7 +150,7 @@ namespace Rafidain
                 float angle = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
                 float delta = Mathf.Clamp(Mathf.DeltaAngle(yaw, angle), -90f, 90f);
                 lostMarker.enabled = true;
-                lostMarker.text = "EMBERS\n" + Mathf.RoundToInt(to.magnitude) + "m";
+                lostMarker.text = LostWord + "\n" + Mathf.RoundToInt(to.magnitude) + "m";
                 lostMarker.rectTransform.anchoredPosition = new Vector2(delta / 90f * halfWidth, -34f);
             }
             else lostMarker.enabled = false;
@@ -227,7 +254,15 @@ namespace Rafidain
             deathGroup.alpha = 0f;
             deathGroup.blocksRaycasts = false;
             deathText = Label(deathRt, "DeathText", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1600, 200), 96, TextAnchor.MiddleCenter, new Color(0.7f, 0.08f, 0.05f));
-            deathText.text = "YOU PERISHED";
+            deathText.text = ArabicText.Fix("هلكت");
+
+            // lock-on marker
+            lockMarker = Rect(root, "LockOn", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16, 16));
+            var lockImg = lockMarker.gameObject.AddComponent<Image>();
+            lockImg.color = new Color(1f, 0.85f, 0.55f, 0.95f);
+            lockImg.raycastTarget = false;
+            lockMarker.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            lockMarker.gameObject.SetActive(false);
         }
 
         static readonly Vector2 TopLeft = new Vector2(0, 1);
