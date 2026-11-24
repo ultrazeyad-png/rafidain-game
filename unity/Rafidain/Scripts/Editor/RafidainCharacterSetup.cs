@@ -234,10 +234,15 @@ namespace Rafidain.EditorTools
             var old = root.Find("FuratModel");
             var combat = furat.GetComponent<PlayerCombat>();
 
-            // keep the weapon safe before removing an old model
-            if (combat != null && combat.weaponPivot != null && old != null && combat.weaponPivot.IsChildOf(old))
+            // keep the weapon safe before removing an old model / procedural body
+            var procBody = root.Find("Body");
+            if (combat != null && combat.weaponPivot != null &&
+                ((old != null && combat.weaponPivot.IsChildOf(old)) || (procBody != null && combat.weaponPivot.IsChildOf(procBody))))
                 combat.weaponPivot.SetParent(root, true);
             if (old != null) Object.DestroyImmediate(old.gameObject);
+            if (procBody != null) Object.DestroyImmediate(procBody.gameObject);
+            var procRig = root.GetComponent<HumanoidRig>();
+            if (procRig != null) Object.DestroyImmediate(procRig);
 
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
@@ -360,8 +365,14 @@ namespace Rafidain.EditorTools
         static void PlaceEnemyModel(EnemyAI enemy, string modelPath, Avatar avatar, AnimatorController ctrl)
         {
             var root = enemy.transform;
+            var weaponPivot = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "WeaponPivot");
+            if (weaponPivot != null) weaponPivot.SetParent(root, true);
             var old = root.Find("EnemyModel");
             if (old != null) Object.DestroyImmediate(old.gameObject);
+            var procBody = root.Find("Body");
+            if (procBody != null) Object.DestroyImmediate(procBody.gameObject);
+            var procRig = root.GetComponent<HumanoidRig>();
+            if (procRig != null) Object.DestroyImmediate(procRig);
 
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
@@ -393,7 +404,7 @@ namespace Rafidain.EditorTools
             if (visor != null) visor.gameObject.SetActive(false);
 
             // the placeholder blade goes into the right hand
-            var pivot = root.Find("WeaponPivot");
+            var pivot = weaponPivot;
             var hand = model.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.EndsWith("RightHand"));
             if (pivot != null && hand != null)
             {

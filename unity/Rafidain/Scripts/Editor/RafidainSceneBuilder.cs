@@ -134,7 +134,7 @@ namespace Rafidain.EditorTools
             var combat = furat.AddComponent<PlayerCombat>();
             combat.weaponPivot = MakeWeapon(furat.transform, steelMat, 1.1f);
             // Hood / face direction marker
-            Prim(PrimitiveType.Cube, "Visor", furat.transform, new Vector3(0f, 0.55f, 0.38f), new Vector3(0.35f, 0.12f, 0.1f), steelMat, keepCollider: false);
+            BuildHumanoid(furat, 0);
 
             // ---------- Camera ----------
             var cam = Camera.main;
@@ -168,11 +168,11 @@ namespace Rafidain.EditorTools
             MakeEnemy(enemies, "Hollow Soldier", new Vector3(3f, 1.05f, 6f), hollowMat, steelMat, 1f);
             MakeEnemy(enemies, "Hollow Soldier", new Vector3(-3f, 1.05f, 13f), hollowMat, steelMat, 1f);
             MakeEnemy(enemies, "Hollow Soldier", new Vector3(2f, 1.05f, 22f), hollowMat, steelMat, 1f);
-            var brute = MakeEnemy(enemies, "Mountain Brute", new Vector3(-2f, 1.4f, 31f), hollowMat, steelMat, 1.3f);
+            var brute = MakeEnemy(enemies, "Mountain Brute", new Vector3(-2f, 1.4f, 31f), hollowMat, steelMat, 1.3f, 3);
             brute.maxHealth = 160f; brute.damage = 30f; brute.windup = 1.0f; brute.moveSpeed = 2.2f; brute.emberReward = 150;
 
             // Boss: Guardian of Zakho (humanoid warrior lord, first of the five guardians)
-            var boss = MakeEnemy(enemies, "حارس زاخو", arena + new Vector3(0f, 1.6f, 6f), guardianMat, steelMat, 1.6f);
+            var boss = MakeEnemy(enemies, "حارس زاخو", arena + new Vector3(0f, 1.6f, 6f), guardianMat, steelMat, 1.6f, 2);
             boss.isBoss = true;
             boss.bossId = "boss_zakho";
             boss.maxHealth = 650f;
@@ -216,7 +216,7 @@ namespace Rafidain.EditorTools
             return pivot;
         }
 
-        internal static EnemyAI MakeEnemy(Transform parent, string name, Vector3 pos, Material body, Material weapon, float scale)
+        internal static EnemyAI MakeEnemy(Transform parent, string name, Vector3 pos, Material body, Material weapon, float scale, int style = 1)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             go.name = name;
@@ -232,6 +232,7 @@ namespace Rafidain.EditorTools
             var pivot = MakeWeapon(go.transform, weapon, 1.2f);
             pivot.localRotation = Quaternion.Euler(30f, 0f, 0f);
             Prim(PrimitiveType.Cube, "Visor", go.transform, new Vector3(0f, 0.55f, 0.4f), new Vector3(0.35f, 0.1f, 0.1f), weapon, keepCollider: false);
+            BuildHumanoid(go, style);
             return ai;
         }
 
@@ -319,6 +320,144 @@ namespace Rafidain.EditorTools
             var vol = volGo.AddComponent<Volume>();
             vol.isGlobal = true;
             vol.sharedProfile = profile;
+        }
+
+        // ---------- procedural humanoid bodies ----------
+        // style: 0 = Furat (hooded hunter, long coat, cape, mask)
+        //        1 = hollow soldier (ragged, dented helmet)
+        //        2 = guardian lord (bronze armour, pauldrons, horned crown, long cape)
+        //        3 = brute (huge, bare-armed, crude helm)
+        internal static HumanoidRig BuildHumanoid(GameObject owner, int style)
+        {
+            Material coat, cloth, skin, dark, metal;
+            switch (style)
+            {
+                case 0:
+                    coat = Mat("Hunter_Coat", new Color(0.11f, 0.10f, 0.10f), 0.25f);
+                    cloth = Mat("Hunter_Cloth", new Color(0.20f, 0.17f, 0.14f), 0.15f);
+                    skin = Mat("Skin", new Color(0.55f, 0.41f, 0.32f), 0.3f);
+                    dark = Mat("Leather_Dark", new Color(0.06f, 0.05f, 0.045f), 0.35f);
+                    metal = Mat("Steel", new Color(0.72f, 0.72f, 0.74f), 0.85f, 1f);
+                    break;
+                case 2:
+                    coat = Mat("Guardian_Bronze", new Color(0.36f, 0.24f, 0.11f), 0.65f, 0.85f);
+                    cloth = Mat("Guardian_Cape", new Color(0.28f, 0.05f, 0.04f), 0.2f);
+                    skin = Mat("Guardian_Skin", new Color(0.30f, 0.24f, 0.20f), 0.3f);
+                    dark = Mat("Leather_Dark", new Color(0.06f, 0.05f, 0.045f), 0.35f);
+                    metal = Mat("Guardian_Bronze", new Color(0.36f, 0.24f, 0.11f), 0.65f, 0.85f);
+                    break;
+                case 3:
+                    coat = Mat("Brute_Hide", new Color(0.24f, 0.19f, 0.15f), 0.15f);
+                    cloth = Mat("Hollow_Rags", new Color(0.26f, 0.23f, 0.19f), 0.05f);
+                    skin = Mat("Hollow_Skin", new Color(0.45f, 0.42f, 0.36f), 0.25f);
+                    dark = Mat("Leather_Dark", new Color(0.06f, 0.05f, 0.045f), 0.35f);
+                    metal = Mat("Rusted_Iron", new Color(0.30f, 0.22f, 0.17f), 0.4f, 0.7f);
+                    break;
+                default:
+                    coat = Mat("Hollow_Rags", new Color(0.26f, 0.23f, 0.19f), 0.05f);
+                    cloth = Mat("Hollow_Cloth", new Color(0.20f, 0.18f, 0.15f), 0.05f);
+                    skin = Mat("Hollow_Skin", new Color(0.45f, 0.42f, 0.36f), 0.25f);
+                    dark = Mat("Leather_Dark", new Color(0.06f, 0.05f, 0.045f), 0.35f);
+                    metal = Mat("Rusted_Iron", new Color(0.30f, 0.22f, 0.17f), 0.4f, 0.7f);
+                    break;
+            }
+
+            var root = owner.transform;
+            var capsule = owner.GetComponent<MeshRenderer>();
+            if (capsule != null) capsule.enabled = false;
+            var visor = root.Find("Visor");
+            if (visor != null) Object.DestroyImmediate(visor.gameObject);
+
+            float bulk = style == 3 ? 1.3f : style == 2 ? 1.12f : 1f;
+            var body = new GameObject("Body").transform;
+            body.SetParent(root, false);
+
+            // legs
+            Transform Leg(float x)
+            {
+                var pivot = new GameObject(x < 0 ? "LegL" : "LegR").transform;
+                pivot.SetParent(body, false);
+                pivot.localPosition = new Vector3(x * bulk, -0.08f, 0f);
+                Prim(PrimitiveType.Capsule, "Leg", pivot, new Vector3(0f, -0.44f, 0f), new Vector3(0.19f * bulk, 0.44f, 0.19f * bulk), cloth, keepCollider: false);
+                Prim(PrimitiveType.Cube, "Boot", pivot, new Vector3(0f, -0.86f, 0.04f), new Vector3(0.17f * bulk, 0.15f, 0.3f), dark, keepCollider: false);
+                return pivot;
+            }
+            var legL = Leg(-0.12f);
+            var legR = Leg(0.12f);
+
+            // torso, belt, coat skirt
+            Prim(PrimitiveType.Capsule, "Torso", body, new Vector3(0f, 0.33f, 0f), new Vector3(0.46f * bulk, 0.36f, 0.30f * bulk), coat, keepCollider: false);
+            Prim(PrimitiveType.Cylinder, "Belt", body, new Vector3(0f, 0.02f, 0f), new Vector3(0.47f * bulk, 0.035f, 0.33f * bulk), dark, keepCollider: false);
+            if (style == 0 || style == 2)
+                Prim(PrimitiveType.Cylinder, "CoatSkirt", body, new Vector3(0f, -0.28f, 0f), new Vector3(0.5f * bulk, 0.3f, 0.38f * bulk), style == 0 ? coat : cloth, keepCollider: false);
+            else
+                Prim(PrimitiveType.Cylinder, "Rags", body, new Vector3(0f, -0.16f, 0f), new Vector3(0.48f * bulk, 0.16f, 0.36f * bulk), cloth, keepCollider: false);
+
+            // arms
+            Transform Arm(float x)
+            {
+                var pivot = new GameObject(x < 0 ? "ArmL" : "ArmR").transform;
+                pivot.SetParent(body, false);
+                pivot.localPosition = new Vector3(x * bulk, 0.6f, 0f);
+                Prim(PrimitiveType.Capsule, "Arm", pivot, new Vector3(0f, -0.32f, 0f), new Vector3(0.13f * bulk, 0.33f, 0.13f * bulk), style == 3 ? skin : coat, keepCollider: false);
+                Prim(PrimitiveType.Sphere, "Hand", pivot, new Vector3(0f, -0.66f, 0f), Vector3.one * 0.11f * bulk, style == 0 ? dark : skin, keepCollider: false);
+                if (style == 2)
+                    Prim(PrimitiveType.Sphere, "Pauldron", pivot, new Vector3(0f, 0.02f, 0f), new Vector3(0.34f, 0.24f, 0.34f), metal, keepCollider: false);
+                return pivot;
+            }
+            var armL = Arm(-0.29f);
+            var armR = Arm(0.29f);
+
+            // head
+            Prim(PrimitiveType.Sphere, "Head", body, new Vector3(0f, 0.88f, 0.02f), Vector3.one * 0.23f, skin, keepCollider: false);
+            switch (style)
+            {
+                case 0: // hood + cloth mask like a Yharnam hunter
+                    Prim(PrimitiveType.Sphere, "Hood", body, new Vector3(0f, 0.91f, -0.03f), new Vector3(0.31f, 0.33f, 0.33f), coat, keepCollider: false);
+                    Prim(PrimitiveType.Cube, "Mask", body, new Vector3(0f, 0.84f, 0.12f), new Vector3(0.2f, 0.1f, 0.06f), dark, keepCollider: false);
+                    Prim(PrimitiveType.Cube, "Scarf", body, new Vector3(0f, 0.7f, 0.05f), new Vector3(0.36f, 0.1f, 0.3f), cloth, keepCollider: false);
+                    break;
+                case 2: // horned crown helm
+                    Prim(PrimitiveType.Sphere, "Helm", body, new Vector3(0f, 0.92f, 0f), new Vector3(0.28f, 0.27f, 0.28f), metal, keepCollider: false);
+                    Prim(PrimitiveType.Cylinder, "Crown", body, new Vector3(0f, 1.05f, 0f), new Vector3(0.26f, 0.05f, 0.26f), metal, keepCollider: false);
+                    for (int s = -1; s <= 1; s += 2)
+                    {
+                        var horn = Prim(PrimitiveType.Capsule, "Horn", body, new Vector3(s * 0.17f, 1.08f, 0f), new Vector3(0.05f, 0.16f, 0.05f), dark, keepCollider: false);
+                        horn.transform.localRotation = Quaternion.Euler(0f, 0f, -s * 35f);
+                    }
+                    break;
+                default: // crude dented helmet
+                    Prim(PrimitiveType.Sphere, "Helm", body, new Vector3(0f, 0.93f, 0f), new Vector3(0.26f, 0.19f, 0.26f), metal, keepCollider: false);
+                    break;
+            }
+
+            // cape
+            Transform capePivot = null;
+            if (style != 3)
+            {
+                capePivot = new GameObject("CapePivot").transform;
+                capePivot.SetParent(body, false);
+                capePivot.localPosition = new Vector3(0f, 0.64f, -0.17f * bulk);
+                float len = style == 1 ? 0.6f : 1.05f;
+                Prim(PrimitiveType.Cube, "Cape", capePivot, new Vector3(0f, -len * 0.5f, 0f), new Vector3(0.5f * bulk, len, 0.03f), style == 0 ? coat : cloth, keepCollider: false);
+            }
+
+            // weapon into the right hand
+            var weapon = root.Find("WeaponPivot");
+            if (weapon != null)
+            {
+                weapon.SetParent(armR, false);
+                weapon.localPosition = new Vector3(0f, -0.66f, 0.05f);
+                weapon.localRotation = Quaternion.identity;
+            }
+
+            var rig = owner.GetComponent<HumanoidRig>();
+            if (rig == null) rig = owner.AddComponent<HumanoidRig>();
+            rig.body = body;
+            rig.legL = legL; rig.legR = legR;
+            rig.armL = armL; rig.armR = armR;
+            rig.cape = capePivot;
+            return rig;
         }
 
         // ---------- particles ----------

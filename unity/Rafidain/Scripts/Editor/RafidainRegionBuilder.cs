@@ -981,7 +981,7 @@ namespace Rafidain.EditorTools
             furat.AddComponent<PlayerController>();
             var combat = furat.AddComponent<PlayerCombat>();
             combat.weaponPivot = RafidainSceneBuilder.MakeWeapon(furat.transform, steel, 1.1f);
-            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Visor", furat.transform, new Vector3(0f, 0.55f, 0.38f), new Vector3(0.35f, 0.12f, 0.1f), steel, keepCollider: false);
+            RafidainSceneBuilder.BuildHumanoid(furat, 0);
 
             // Camera
             var cam = Camera.main;
@@ -1028,14 +1028,14 @@ namespace Rafidain.EditorTools
             }
 
             // Bridge guards
-            var brute = RafidainSceneBuilder.MakeEnemy(enemies, "Bridge Brute", OnRoad(td, BridgeZ + 50f, 0f, 1.4f), hollow, steel, 1.35f);
+            var brute = RafidainSceneBuilder.MakeEnemy(enemies, "Bridge Brute", OnRoad(td, BridgeZ + 50f, 0f, 1.4f), hollow, steel, 1.35f, 3);
             brute.maxHealth = 180f; brute.damage = 30f; brute.windup = 1.0f; brute.moveSpeed = 2.3f; brute.emberReward = 180;
-            var brute2 = RafidainSceneBuilder.MakeEnemy(enemies, "Mountain Brute", OnRoad(td, 815f, -3f, 1.4f), hollow, steel, 1.35f);
+            var brute2 = RafidainSceneBuilder.MakeEnemy(enemies, "Mountain Brute", OnRoad(td, 815f, -3f, 1.4f), hollow, steel, 1.35f, 3);
             brute2.maxHealth = 200f; brute2.damage = 32f; brute2.windup = 1.0f; brute2.moveSpeed = 2.3f; brute2.emberReward = 220;
 
             // Boss
             var boss = RafidainSceneBuilder.MakeEnemy(enemies, "حارس زاخو",
-                new Vector3(ArenaCenter.x, ArenaHeight + 1.7f, ArenaCenter.y + 8f), guardian, steel, 1.6f);
+                new Vector3(ArenaCenter.x, ArenaHeight + 1.7f, ArenaCenter.y + 8f), guardian, steel, 1.6f, 2);
             boss.isBoss = true;
             boss.bossId = "boss_zakho";
             boss.maxHealth = 700f;
