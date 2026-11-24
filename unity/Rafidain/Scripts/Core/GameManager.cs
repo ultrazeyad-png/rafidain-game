@@ -99,6 +99,14 @@ namespace Rafidain
             respawning = false;
         }
 
+        /// <summary>Fast travel from the map: arrive at the flame and rest there.</summary>
+        public void FastTravel(Bonfire b)
+        {
+            if (b == null || player == null || player.IsDead) return;
+            TeleportToBonfire(b);
+            b.Rest();
+        }
+
         public void ResetAllEnemies()
         {
             foreach (var e in FindObjectsByType<EnemyAI>(FindObjectsInactive.Include))

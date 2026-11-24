@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 namespace Rafidain
 {
-    public enum GameAction { Attack = 0, HeavyAttack = 1, Dodge = 2, LockOn = 3, Interact = 4, Heal = 5 }
+    public enum GameAction { Attack = 0, HeavyAttack = 1, Dodge = 2, LockOn = 3, Interact = 4, Heal = 5, Map = 6 }
 
     /// <summary>
     /// One place that reads keyboard/mouse, gamepad and on-screen touch controls.
@@ -30,7 +30,7 @@ namespace Rafidain
         public bool BlockHeld { get; private set; }
         public bool PausePressed { get; private set; }
 
-        const int ActionCount = 6;
+        const int ActionCount = 7;
         readonly float[] lastPress = new float[ActionCount];
 
         Vector2 mobileMove;
@@ -87,6 +87,7 @@ namespace Rafidain
                 if (kb.rKey.wasPressedThisFrame) Press(GameAction.Heal);
                 if (kb.qKey.wasPressedThisFrame) Press(GameAction.LockOn);
                 if (kb.fKey.wasPressedThisFrame) Press(GameAction.HeavyAttack);
+                if (kb.mKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame) Press(GameAction.Map);
                 if (kb.escapeKey.wasPressedThisFrame) PausePressed = true;
             }
 
@@ -120,6 +121,7 @@ namespace Rafidain
                 if (pad.buttonNorth.wasPressedThisFrame) Press(GameAction.Interact);
                 if (pad.buttonWest.wasPressedThisFrame) Press(GameAction.Heal);
                 if (pad.startButton.wasPressedThisFrame) PausePressed = true;
+                if (pad.selectButton.wasPressedThisFrame) Press(GameAction.Map);
             }
 #else
             move.x = Input.GetAxisRaw("Horizontal");
@@ -134,6 +136,7 @@ namespace Rafidain
             if (Input.GetMouseButtonDown(0)) Press(GameAction.Attack);
             block |= Input.GetMouseButton(1);
             if (Input.GetKeyDown(KeyCode.F)) Press(GameAction.HeavyAttack);
+            if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyDown(KeyCode.Tab)) Press(GameAction.Map);
             if (Input.GetKeyDown(KeyCode.Escape)) PausePressed = true;
 #endif
 

@@ -35,6 +35,9 @@ namespace Rafidain.EditorTools
             public string riverFlameId;
             public string bossName, bossId;
             public string nextScene, nextLabel, prevScene, prevLabel;
+            public bool pieceAtLake;
+            public string[] riddleTown, riddleWild;
+            public string sageTown, sageWild;
             public string ScenePath => $"Assets/Rafidain/Scenes/{sceneName}.unity";
         }
 
@@ -46,6 +49,20 @@ namespace Rafidain.EditorTools
             flameNames = new[] { "زاخو - البوابة الجنوبية", "زاخو - المدينة القديمة", "جسر الخابور", "صعود الحارس" },
             bossName = "حارس زاخو", bossId = "boss_zakho",
             nextScene = "Duhok_Region", nextLabel = "الطريق الى دهوك",
+            sageTown = "شيخ عند البوابة",
+            riddleTown = new[]
+            {
+                "المدينة القديمة لا تنام...\nلكن ازقتها البعيدة نسيت اسماءها",
+                "ابتعد عن الطريق الكبير\nحيث يتقاطع زقاقان ولا يمر احد",
+                "هناك ينتظر نصف الطريق\nلوح من طين ما زال دافئا",
+            },
+            sageWild = "امرأة عند المنارة",
+            riddleWild = new[]
+            {
+                "الشرق يحرس سره بالصخور",
+                "اصعد حيث يشرب البلوط من الحجر\nوتنام الريح فوق الوادي",
+                "لا تتبع الطريق...\nفالطرق لا تصل الى ما يستحق",
+            },
         };
 
         static readonly RegionDef Duhok = new RegionDef
@@ -56,6 +73,21 @@ namespace Rafidain.EditorTools
             flameNames = new[] { "دهوك - مدخل الوادي", "دهوك - السوق القديم", "ضفاف السد", "قلعة الجبل" },
             bossName = "حارس دهوك", bossId = "boss_duhok",
             prevScene = "Zakho_Region", prevLabel = "العودة الى زاخو",
+            pieceAtLake = true,
+            sageTown = "راع عند المدخل",
+            riddleTown = new[]
+            {
+                "في السوق القديم يبيعون كل شيء\nالا الطريق",
+                "اذهب الى حيث تنتهي الفوانيس\nعند زاوية لا يمر بها التجار",
+                "هناك لوح من طين\nيعرف ما لا نعرفه",
+            },
+            sageWild = "صياد عند السوق",
+            riddleWild = new[]
+            {
+                "الماء الذي حبسه الناس لا ينسى",
+                "امش على ضفة البحيرة\nحيث تنظر الجبال الى وجهها",
+                "بين الحجارة المبللة...\nينتظرك نصف الخريطة",
+            },
         };
 
         static RegionDef R = Zakho;
@@ -173,6 +205,7 @@ namespace Rafidain.EditorTools
 
                 RafidainSceneBuilder.CreatePostVolume();
                 PlaceGates(terrainData, stone);
+                PlaceStory(terrainData, stone);
 
                 EditorSceneManager.SaveScene(scene, ScenePath);
                 RafidainSceneBuilder.AddSceneToBuild(ScenePath, firstScene);
@@ -1158,6 +1191,179 @@ namespace Rafidain.EditorTools
             gate.label = label;
             gate.requiredBossId = requiredBoss;
         }
+
+        // =====================================================================
+        // Story: map pieces, riddle givers, painted map, region info
+        // =====================================================================
+
+        static void PlaceStory(TerrainData td, Material stone)
+        {
+            var glow = RafidainSceneBuilder.Mat("LanternGlow", new Color(1f, 0.7f, 0.35f), 0.3f);
+            var clay = RafidainSceneBuilder.Mat("ClayTablet", new Color(0.62f, 0.45f, 0.28f), 0.2f);
+            clay.EnableKeyword("_EMISSION");
+            clay.SetColor("_EmissionColor", new Color(1f, 0.6f, 0.25f) * 1.6f);
+            var wood = RafidainSceneBuilder.Mat("DarkWood", new Color(0.22f, 0.14f, 0.08f), 0.2f);
+
+            // --- piece 1: a quiet crossing in the old town, far from the main road
+            Vector2 origin = TownCenter - new Vector2(TownRadius, TownRadius);
+            int cells = Mathf.CeilToInt(TownRadius * 2f / BlockSize);
+            Vector2 townSpot = TownCenter;
+            float best = -1f;
+            for (int i = 0; i <= cells; i++)
+            {
+                for (int j = 0; j <= cells; j++)
+                {
+                    var p = origin + new Vector2(i * BlockSize + StreetWidth * 0.5f, j * BlockSize + StreetWidth * 0.5f);
+                    if (Vector2.Distance(p, TownCenter) > TownRadius - 15f) continue;
+                    float away = Mathf.Abs(p.x - RoadX(p.y));
+                    if (away > best) { best = away; townSpot = p; }
+                }
+            }
+
+            // --- piece 2: high on the eastern slopes, or on the dam lake shore
+            Vector2 wildSpot = new Vector2(780f, 520f);
+            if (R.pieceAtLake && R.lake)
+            {
+                for (int k = 0; k < 64; k++)
+                {
+                    float a = k / 64f * Mathf.PI * 2f;
+                    var p = R.lakeCenter + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (R.lakeRadius + 22f);
+                    float h = td.GetInterpolatedHeight(p.x / Size, p.y / Size);
+                    if (h > WaterLevel + 1.5f && h < WaterLevel + 12f) { wildSpot = p; break; }
+                }
+            }
+            else
+            {
+                float bestH = 0f;
+                for (int k = 0; k < 3000; k++)
+                {
+                    float x = Random.Range(640f, 900f), z = Random.Range(380f, 820f);
+                    float h = td.GetInterpolatedHeight(x / Size, z / Size);
+                    float st = td.GetSteepness(x / Size, z / Size);
+                    if (st > 24f || h > 110f || h < 45f) continue;
+                    if (!IsFreeGround(x, z, 4f)) continue;
+                    if (h > bestH) { bestH = h; wildSpot = new Vector2(x, z); }
+                }
+            }
+
+            var pieces = new[]
+            {
+                new MapPieceInfo { id = R.id + "_map_1", center = new Vector2(512f, 300f), radius = 380f, seed = R.seed % 97 },
+                new MapPieceInfo { id = R.id + "_map_2", center = new Vector2(512f, 760f), radius = 380f, seed = R.seed % 89 + 40 },
+            };
+            MakePiece(td, pieces[0].id, townSpot, clay);
+            MakePiece(td, pieces[1].id, wildSpot, clay);
+
+            // --- riddle givers
+            Vector3 gateFlame = OnRoad(td, 68f, 6f, 0f);
+            MakeSage(td, R.sageTown, R.riddleTown, new Vector2(gateFlame.x + 6f, gateFlame.z + 9f), wood, glow);
+            MakeSage(td, R.sageWild, R.riddleWild, PlazaCenter + new Vector2(6f, -9f), wood, glow);
+
+            // --- painted map + region info
+            var info = new GameObject("_Region").AddComponent<RegionInfo>();
+            info.regionId = R.id;
+            info.regionName = R.name;
+            info.worldSize = Size;
+            info.pieces = pieces;
+            info.mapTexture = PaintMap(td);
+
+            var sys = GameObject.Find("_Game");
+            if (sys != null && sys.GetComponent<WorldMapUI>() == null) sys.AddComponent<WorldMapUI>();
+        }
+
+        static void MakePiece(TerrainData td, string id, Vector2 at, Material clay)
+        {
+            var root = new GameObject("Map Piece " + id);
+            root.transform.position = Ground(td, at.x, at.y, 0f);
+            var vis = new GameObject("Tablet").transform;
+            vis.SetParent(root.transform, false);
+            vis.localPosition = new Vector3(0f, 1.1f, 0f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Clay", vis, Vector3.zero, new Vector3(0.45f, 0.6f, 0.07f), clay, keepCollider: false);
+            var l = new GameObject("Glow").AddComponent<Light>();
+            l.transform.SetParent(root.transform, false);
+            l.transform.localPosition = new Vector3(0f, 1.3f, 0f);
+            l.type = LightType.Point;
+            l.color = new Color(1f, 0.6f, 0.3f);
+            l.range = 6f;
+            l.intensity = 2.5f;
+            RafidainSceneBuilder.MakeEmbers(root.transform, new Vector3(0f, 0.6f, 0f), 10f);
+            root.AddComponent<MapPiece>().pieceId = id;
+        }
+
+        static void MakeSage(TerrainData td, string speaker, string[] lines, Vector2 at, Material wood, Material glow)
+        {
+            var npc = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            npc.name = "Sage - " + speaker;
+            npc.transform.position = Ground(td, at.x, at.y, 1.0f);
+            RafidainSceneBuilder.BuildHumanoid(npc, 1);
+            var helm = npc.transform.Find("Body/Helm");
+            if (helm != null) Object.DestroyImmediate(helm.gameObject);
+            var robe = RafidainSceneBuilder.Mat("Sage_Robe", new Color(0.30f, 0.26f, 0.20f), 0.05f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Keffiyeh", npc.transform.Find("Body"), new Vector3(0f, 0.92f, -0.02f), new Vector3(0.3f, 0.3f, 0.32f), robe, keepCollider: false);
+            var sage = npc.AddComponent<RiddleNPC>();
+            sage.speaker = speaker;
+            sage.lines = lines;
+            MakeLantern(npc.transform.parent, Ground(td, at.x + 1.6f, at.y, 0f), wood, glow);
+        }
+
+        static Texture2D PaintMap(TerrainData td)
+        {
+            const int S = 512;
+            string path = $"{Gen}/{R.id}_map.png";
+            var tex = new Texture2D(S, S, TextureFormat.RGB24, false);
+            Vector3 light = new Vector3(-0.5f, 0.8f, 0.4f).normalized;
+            Color sand = new Color(0.70f, 0.60f, 0.44f), green = new Color(0.47f, 0.48f, 0.30f);
+            Color rock = new Color(0.55f, 0.50f, 0.44f), snow = new Color(0.82f, 0.79f, 0.72f);
+            Color water = new Color(0.22f, 0.32f, 0.38f), road = new Color(0.33f, 0.25f, 0.17f), town = new Color(0.78f, 0.70f, 0.55f);
+            Color ink = new Color(0.62f, 0.12f, 0.08f);
+            Vector2 townOrigin = TownCenter - new Vector2(TownRadius, TownRadius);
+
+            for (int y = 0; y < S; y++)
+            {
+                float v = (y + 0.5f) / S, z = v * Size;
+                for (int x = 0; x < S; x++)
+                {
+                    float u = (x + 0.5f) / S, wx = u * Size;
+                    float h = td.GetInterpolatedHeight(u, v);
+                    Vector3 n = td.GetInterpolatedNormal(u, v);
+                    float shade = Mathf.Clamp01(Vector3.Dot(n, light)) * 0.7f + 0.45f;
+
+                    Color c = h < 40f ? Color.Lerp(green, sand, Mathf.InverseLerp(14f, 40f, h))
+                            : h < 110f ? Color.Lerp(sand, rock, Mathf.InverseLerp(40f, 110f, h))
+                            : Color.Lerp(rock, snow, Mathf.InverseLerp(110f, 200f, h));
+                    c *= shade;
+
+                    if (h < WaterLevel + 0.4f) c = water * (0.85f + 0.15f * shade);
+                    if (z > 25f && z < 970f && Mathf.Abs(wx - RoadX(z)) < 4.5f && Mathf.Abs(z - RiverZ(wx)) > 30f) c = road;
+
+                    float dTown = Vector2.Distance(new Vector2(wx, z), TownCenter);
+                    if (dTown < TownRadius)
+                    {
+                        float lx = Mathf.Repeat(wx - townOrigin.x, BlockSize), lz = Mathf.Repeat(z - townOrigin.y, BlockSize);
+                        c = (lx < StreetWidth || lz < StreetWidth) ? road * 1.2f : town * shade;
+                    }
+                    if (Mathf.Abs(Vector2.Distance(new Vector2(wx, z), ArenaCenter) - 17f) < 2.5f) c = ink;
+
+                    // old paper tint
+                    c = Color.Lerp(c, new Color(0.74f, 0.64f, 0.47f), 0.22f);
+                    tex.SetPixel(x, y, c);
+                }
+            }
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp != null)
+            {
+                imp.textureType = TextureImporterType.Default;
+                imp.mipmapEnabled = false;
+                imp.wrapMode = TextureWrapMode.Clamp;
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
 
         // =====================================================================
         // Noise helpers

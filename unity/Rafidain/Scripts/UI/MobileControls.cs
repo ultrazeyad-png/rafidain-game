@@ -83,6 +83,10 @@ namespace Rafidain
             Button(root, "LOCK", GameAction.LockOn, new Vector2(-110, 620), 110, new Color(0.3f, 0.3f, 0.3f, 0.5f));
             var sprint = Button(root, "RUN", GameAction.Dodge, new Vector2(400, 470), 120, new Color(0.25f, 0.4f, 0.25f, 0.5f), leftSide: true);
             sprint.holdToSprint = true;
+            var mapBtn = Button(root, "MAP", GameAction.Map, new Vector2(-200, 0), 90, new Color(0.35f, 0.28f, 0.18f, 0.55f));
+            var mrt = mapBtn.GetComponent<RectTransform>();
+            mrt.anchorMin = mrt.anchorMax = new Vector2(1, 1);
+            mrt.anchoredPosition = new Vector2(-190, -70);
             var block = Button(root, "BLOCK", GameAction.Dodge, new Vector2(-600, 260), 120, new Color(0.45f, 0.35f, 0.15f, 0.5f));
             block.holdToBlock = true;
         }

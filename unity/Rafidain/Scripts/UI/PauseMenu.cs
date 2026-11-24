@@ -30,7 +30,7 @@ namespace Rafidain
         void Update()
         {
             var input = PlayerInputReader.Instance;
-            if (input != null && input.PausePressed) SetPaused(!IsPaused);
+            if (input != null && input.PausePressed && !WorldMapUI.IsOpen) SetPaused(!IsPaused);
         }
 
         public void SetPaused(bool paused)
