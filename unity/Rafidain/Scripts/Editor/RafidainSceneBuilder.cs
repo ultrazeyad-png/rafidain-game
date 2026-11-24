@@ -156,6 +156,7 @@ namespace Rafidain.EditorTools
             var hud = sys.AddComponent<HUD>();
             sys.AddComponent<MobileControls>();
             sys.AddComponent<IntroSequence>();
+            sys.AddComponent<PauseMenu>();
             gm.player = furat.GetComponent<PlayerStats>();
             hud.player = gm.player;
 
@@ -408,6 +409,19 @@ namespace Rafidain.EditorTools
             }
             var armL = Arm(-0.29f);
             var armR = Arm(0.29f);
+
+            // Furat's bronze shield with a lamassu boss, on the left forearm
+            if (style == 0)
+            {
+                var bronze = Mat("Shield_Bronze", new Color(0.45f, 0.30f, 0.14f), 0.7f, 0.9f);
+                var shield = new GameObject("Shield").transform;
+                shield.SetParent(armL, false);
+                shield.localPosition = new Vector3(-0.06f, -0.45f, 0.05f);
+                shield.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                Prim(PrimitiveType.Cylinder, "Disc", shield, Vector3.zero, new Vector3(0.62f, 0.025f, 0.62f), bronze, keepCollider: false);
+                Prim(PrimitiveType.Cylinder, "Rim", shield, Vector3.zero, new Vector3(0.66f, 0.018f, 0.66f), dark, keepCollider: false);
+                Prim(PrimitiveType.Sphere, "Boss", shield, new Vector3(0f, -0.03f, 0f), new Vector3(0.16f, 0.06f, 0.16f), bronze, keepCollider: false);
+            }
 
             // head
             Prim(PrimitiveType.Sphere, "Head", body, new Vector3(0f, 0.88f, 0.02f), Vector3.one * 0.23f, skin, keepCollider: false);

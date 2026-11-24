@@ -83,6 +83,8 @@ namespace Rafidain
             Button(root, "LOCK", GameAction.LockOn, new Vector2(-110, 620), 110, new Color(0.3f, 0.3f, 0.3f, 0.5f));
             var sprint = Button(root, "RUN", GameAction.Dodge, new Vector2(400, 470), 120, new Color(0.25f, 0.4f, 0.25f, 0.5f), leftSide: true);
             sprint.holdToSprint = true;
+            var block = Button(root, "BLOCK", GameAction.Dodge, new Vector2(-600, 260), 120, new Color(0.45f, 0.35f, 0.15f, 0.5f));
+            block.holdToBlock = true;
         }
 
         MobileButton Button(Transform root, string label, GameAction action, Vector2 pos, float size, Color color, bool leftSide = false)

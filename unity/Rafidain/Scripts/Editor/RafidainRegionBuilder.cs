@@ -1000,6 +1000,7 @@ namespace Rafidain.EditorTools
             var hud = sys.AddComponent<HUD>();
             sys.AddComponent<MobileControls>();
             sys.AddComponent<IntroSequence>();
+            sys.AddComponent<PauseMenu>();
             gm.player = furat.GetComponent<PlayerStats>();
             hud.player = gm.player;
 

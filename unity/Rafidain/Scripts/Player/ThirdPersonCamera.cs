@@ -50,8 +50,6 @@ namespace Rafidain
 
             if (input != null)
             {
-                if (input.PausePressed && !Application.isMobilePlatform)
-                    SetCursorLocked(Cursor.lockState != CursorLockMode.Locked);
                 if (input.Consume(GameAction.LockOn)) ToggleLock();
             }
 

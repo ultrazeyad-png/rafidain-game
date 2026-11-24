@@ -7,12 +7,14 @@ namespace Rafidain
     {
         public GameAction action;
         public bool holdToSprint;
+        public bool holdToBlock;
 
         public void OnPointerDown(PointerEventData e)
         {
             var input = PlayerInputReader.Instance;
             if (input == null) return;
             if (holdToSprint) input.SetMobileSprint(true);
+            else if (holdToBlock) input.SetMobileBlock(true);
             else input.Press(action);
             transform.localScale = Vector3.one * 0.92f;
         }
@@ -21,6 +23,7 @@ namespace Rafidain
         {
             var input = PlayerInputReader.Instance;
             if (input != null && holdToSprint) input.SetMobileSprint(false);
+            if (input != null && holdToBlock) input.SetMobileBlock(false);
             transform.localScale = Vector3.one;
         }
     }
