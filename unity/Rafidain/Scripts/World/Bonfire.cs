@@ -34,7 +34,7 @@ namespace Rafidain
             if (player == null || player.IsDead) return;
             if (Vector3.Distance(player.transform.position, transform.position) > interactRange) return;
 
-            if (HUD.Instance != null) HUD.Instance.SetPrompt(IsDiscovered ? "[E] Rest at the flame" : "[E] Kindle the flame");
+            if (HUD.Instance != null) HUD.Instance.SetPrompt(ArabicText.Fix(IsDiscovered ? "استرح عند الشعلة" : "أشعل الشعلة") + "   [E]");
             var input = PlayerInputReader.Instance;
             if (input != null && input.Consume(GameAction.Interact)) Rest();
         }
@@ -49,7 +49,7 @@ namespace Rafidain
                 GameManager.Instance.ResetAllEnemies();
             }
             if (HUD.Instance != null)
-                HUD.Instance.ShowMessage(firstTime ? "FLAME KINDLED\n" + displayName : "Rested: " + displayName, 2.5f);
+                HUD.Instance.ShowMessage(ArabicText.Fix((firstTime ? "اشتعلت الشعلة" : "استرحت") + "\n" + displayName), 2.5f);
         }
     }
 }

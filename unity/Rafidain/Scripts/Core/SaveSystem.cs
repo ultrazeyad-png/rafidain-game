@@ -8,6 +8,7 @@ namespace Rafidain
     public class SaveData
     {
         public int embers;
+        public bool introSeen;
         public string lastBonfireId = "";
         public List<string> discoveredBonfires = new List<string>();
         public List<string> defeatedBosses = new List<string>();

@@ -16,6 +16,13 @@ namespace Rafidain
         public float lockOnRange = 18f;
 
         public Transform LockTarget { get; private set; }
+        public static ThirdPersonCamera Instance { get; private set; }
+
+        float shake;
+
+        public void Shake(float amount) => shake = Mathf.Max(shake, amount);
+
+        void Awake() => Instance = this;
 
         EnemyAI lockEnemy;
         float yaw;
@@ -84,7 +91,13 @@ namespace Rafidain
             }
 
             currentDistance = wanted < currentDistance ? wanted : Mathf.Lerp(currentDistance, wanted, 1f - Mathf.Exp(-5f * dt));
-            transform.SetPositionAndRotation(pivot + dir * currentDistance, rot);
+            Vector3 shakeOffset = Vector3.zero;
+            if (shake > 0f)
+            {
+                shakeOffset = Random.insideUnitSphere * shake * 0.4f;
+                shake = Mathf.MoveTowards(shake, 0f, dt * 1.6f);
+            }
+            transform.SetPositionAndRotation(pivot + dir * currentDistance + shakeOffset, rot);
         }
 
         void ToggleLock()
