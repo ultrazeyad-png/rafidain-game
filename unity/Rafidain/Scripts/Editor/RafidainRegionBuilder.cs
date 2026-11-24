@@ -38,6 +38,10 @@ namespace Rafidain.EditorTools
             public bool pieceAtLake;
             public string[] riddleTown, riddleWild;
             public string sageTown, sageWild;
+            public int tier;                 // difficulty step along the road to Baghdad
+            public string landmark = "";     // nineveh | citadel | fire | malwiya | underworld
+            public float townRaise;          // Erbil: the town sits on its citadel mound
+            public bool finalRegion;
             public string ScenePath => $"Assets/Rafidain/Scenes/{sceneName}.unity";
         }
 
@@ -73,6 +77,8 @@ namespace Rafidain.EditorTools
             flameNames = new[] { "دهوك - مدخل الوادي", "دهوك - السوق القديم", "ضفاف السد", "قلعة الجبل" },
             bossName = "حارس دهوك", bossId = "boss_duhok",
             prevScene = "Zakho_Region", prevLabel = "العودة الى زاخو",
+            nextScene = "Mosul_Region", nextLabel = "الطريق الى الموصل",
+            tier = 1,
             pieceAtLake = true,
             sageTown = "راع عند المدخل",
             riddleTown = new[]
@@ -89,6 +95,82 @@ namespace Rafidain.EditorTools
                 "بين الحجارة المبللة...\nينتظرك نصف الخريطة",
             },
         };
+
+        static readonly RegionDef Mosul = new RegionDef
+        {
+            id = "mosul", name = "الموصل", sceneName = "Mosul_Region", terrainName = "Nineveh Terrain", townName = "Old Mosul",
+            seed = 3121, noiseX = 5200f, noiseZ = 900f, roadPhase = 3.1f, mountains = 0.55f,
+            river = true, tier = 2, landmark = "nineveh",
+            flameNames = new[] { "الموصل - باب سنجار", "الموصل القديمة", "جسر دجلة", "اطلال نينوى" },
+            bossName = "حارس نينوى", bossId = "boss_mosul",
+            prevScene = "Duhok_Region", prevLabel = "العودة الى دهوك",
+            nextScene = "Erbil_Region", nextLabel = "الطريق الى اربيل",
+            sageTown = "حكواتي الموصل",
+            riddleTown = new[] { "الازقة تتذكر من مر بها", "حيث يضيع الطريق الكبير\nويبقى زقاق لا اسم له", "هناك الطين الذي يعرف الطريق" },
+            sageWild = "حارس الاطلال",
+            riddleWild = new[] { "الثيران المجنحة ما زالت تحرس الشرق", "اترك النهر خلفك واصعد\nحيث الحجر اقدم من الملوك", "تحت السماء العالية... نصف الخريطة" },
+        };
+
+        static readonly RegionDef Erbil = new RegionDef
+        {
+            id = "erbil", name = "اربيل", sceneName = "Erbil_Region", terrainName = "Erbil Terrain", townName = "Erbil Citadel",
+            seed = 4409, noiseX = 800f, noiseZ = 6100f, roadPhase = 4.4f, mountains = 0.7f,
+            river = false, tier = 3, landmark = "citadel", townRaise = 16f,
+            flameNames = new[] { "اربيل - السهل", "قلعة اربيل", "سوق القيصرية", "تل الحارس" },
+            bossName = "حارس القلعة", bossId = "boss_erbil",
+            prevScene = "Mosul_Region", prevLabel = "العودة الى الموصل",
+            nextScene = "Kirkuk_Region", nextLabel = "الطريق الى كركوك",
+            sageTown = "بائع في القيصرية",
+            riddleTown = new[] { "القلعة لم تسقط منذ سبعة الاف عام", "لكن في ركنها البعيد\nحجر نسيه الحراس", "اصعد التل... وابحث حيث لا يصل الضوء" },
+            sageWild = "راعي السهل",
+            riddleWild = new[] { "السهل واسع ولا يخفي شيئا", "الا ما خبأته الريح شرقا\nبين صخور لا يسكنها احد", "هناك... حيث تنتهي الحقول" },
+        };
+
+        static readonly RegionDef Kirkuk = new RegionDef
+        {
+            id = "kirkuk", name = "كركوك", sceneName = "Kirkuk_Region", terrainName = "Kirkuk Terrain", townName = "Kirkuk Town",
+            seed = 5077, noiseX = 7300f, noiseZ = 4400f, roadPhase = 5.2f, mountains = 0.6f,
+            river = false, tier = 4, landmark = "fire",
+            flameNames = new[] { "كركوك - الطريق", "كركوك القديمة", "بابا كركر", "سفح النار" },
+            bossName = "حارس النار الازلية", bossId = "boss_kirkuk",
+            prevScene = "Erbil_Region", prevLabel = "العودة الى اربيل",
+            nextScene = "Samarra_Region", nextLabel = "الطريق الى سامراء",
+            sageTown = "عجوز عند الموقد",
+            riddleTown = new[] { "النار هنا لا تنطفئ منذ زمن الانبياء", "لكن البرد يسكن الازقة البعيدة", "ابحث هناك... بعيدا عن الدخان" },
+            sageWild = "حداد كركوك",
+            riddleWild = new[] { "الارض تتنفس نارا", "امش بين اللهب ولا تقف", "عند اطراف الحقل المحترق\nينتظر لوح من طين" },
+        };
+
+        static readonly RegionDef Samarra = new RegionDef
+        {
+            id = "samarra", name = "سامراء", sceneName = "Samarra_Region", terrainName = "Samarra Terrain", townName = "Samarra",
+            seed = 6151, noiseX = 2600f, noiseZ = 8800f, roadPhase = 0.7f, mountains = 0.45f,
+            river = true, tier = 5, landmark = "malwiya",
+            flameNames = new[] { "سامراء - البوابة", "سامراء القديمة", "ضفة دجلة", "ظل الملوية" },
+            bossName = "حارس الملوية", bossId = "boss_samarra",
+            prevScene = "Kirkuk_Region", prevLabel = "العودة الى كركوك",
+            nextScene = "Baghdad_Region", nextLabel = "الطريق الى بغداد",
+            sageTown = "حارس المئذنة",
+            riddleTown = new[] { "الملوية تدور حول نفسها\nكما يدور الحائر حول سؤاله", "اصعدها... وانظر الى المدينة", "الزقاق الذي تراه وحيدا\nهو الذي تبحث عنه" },
+            sageWild = "صياد على دجلة",
+            riddleWild = new[] { "دجلة تعرف اسمك يا فرات", "اعبر الجسر ولا تلتفت", "في البرية بعد الماء\nنصف الطريق الى بغداد" },
+        };
+
+        static readonly RegionDef Baghdad = new RegionDef
+        {
+            id = "baghdad", name = "بغداد", sceneName = "Baghdad_Region", terrainName = "Baghdad Terrain", townName = "Old Baghdad",
+            seed = 7777, noiseX = 9100f, noiseZ = 2300f, roadPhase = 2.4f, mountains = 0.4f,
+            river = true, tier = 6, landmark = "underworld", finalRegion = true,
+            flameNames = new[] { "بغداد - باب المعظم", "بغداد القديمة", "جسر الشهداء", "باب العالم السفلي" },
+            bossName = "ادابا", bossId = "boss_adapa",
+            prevScene = "Samarra_Region", prevLabel = "العودة الى سامراء",
+            sageTown = "شاعر في شارع المتنبي",
+            riddleTown = new[] { "بغداد تحفظ كل الحكايات", "الا حكاية دجلة... كتبتها انت", "ابحث في الزقاق الذي لا يقرأه احد" },
+            sageWild = "ملاح على دجلة",
+            riddleWild = new[] { "تحت المدينة باب\nوالباب يعرف خمسة مفاتيح", "اعبر النهر شرقا", "حيث ينتهي العشب\nيبدا الطريق الاخير" },
+        };
+
+        static readonly RegionDef[] AllRegions = { Zakho, Duhok, Mosul, Erbil, Kirkuk, Samarra, Baghdad };
 
         static RegionDef R = Zakho;
         static string ScenePath => R.ScenePath;
@@ -110,7 +192,7 @@ namespace Rafidain.EditorTools
         static float RiverZ(float x) => R.river ? 620f + 35f * Mathf.Sin(x * 0.009f) + 12f * Mathf.Sin(x * 0.031f) : -5000f;
 
         static Vector2 TownCenter => new Vector2(RoadX(330f), 330f);
-        static float TownHeight => RoadTarget(330f);
+        static float TownHeight => RoadTarget(330f) + R.townRaise;
         static Vector2 ArenaCenter => new Vector2(RoadX(905f), 905f);
         static float ArenaHeight => RoadTarget(905f) + 4f;
 
@@ -120,10 +202,37 @@ namespace Rafidain.EditorTools
         [MenuItem("Rafidain/Build Duhok Region (Governorate 2)")]
         public static void BuildDuhok() => BuildRegion(Duhok, firstScene: false);
 
+        [MenuItem("Rafidain/Governorates/3 Mosul (Nineveh)")]
+        public static void BuildMosul() => BuildRegion(Mosul, false);
+        [MenuItem("Rafidain/Governorates/4 Erbil (Citadel)")]
+        public static void BuildErbil() => BuildRegion(Erbil, false);
+        [MenuItem("Rafidain/Governorates/5 Kirkuk (Eternal Fire)")]
+        public static void BuildKirkuk() => BuildRegion(Kirkuk, false);
+        [MenuItem("Rafidain/Governorates/6 Samarra (Malwiya)")]
+        public static void BuildSamarra() => BuildRegion(Samarra, false);
+        [MenuItem("Rafidain/Governorates/7 Baghdad (Underworld Gate)")]
+        public static void BuildBaghdad() => BuildRegion(Baghdad, false);
+
+        [MenuItem("Rafidain/Build ALL Governorates (Zakho to Baghdad)")]
+        public static void BuildAll()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            quiet = true;
+            try
+            {
+                // Zakho last so it ends up open and first in the build list
+                for (int i = AllRegions.Length - 1; i >= 0; i--) BuildRegion(AllRegions[i], AllRegions[i] == Zakho);
+            }
+            finally { quiet = false; }
+            EditorUtility.DisplayDialog("Rafidain", "All 7 governorates are built, from Zakho to Baghdad.\n\nZakho is open: press Play.", "OK");
+        }
+
+        static bool quiet;
+
         static void BuildRegion(RegionDef def, bool firstScene)
         {
             R = def;
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (!quiet && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             RafidainURPSetup.EnsureURP();
             RafidainURPSetup.TuneForOpenWorld();
             RafidainSceneBuilder.EnsureFolder(Gen);
@@ -195,6 +304,7 @@ namespace Rafidain.EditorTools
                 BuildTown(world, terrainData, mud1, mud2, limestone, roofMat, stone, wood, tile, glow, windowMat);
                 if (R.river) BuildBridge(world, stone);
                 BuildArena(world, stone, glow);
+                BuildLandmark(world, terrainData, stone, mud1, limestone, glow, ember);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Planting oak forest and rocks…", 0.75f);
                 ScatterNature(world, terrainData, bark, leaves, rockMat);
@@ -216,6 +326,7 @@ namespace Rafidain.EditorTools
                 EditorUtility.ClearProgressBar();
             }
 
+            if (quiet) return;
             EditorUtility.DisplayDialog("Rafidain",
                 R.sceneName + " is ready (1 km x 1 km).\n\nStart at the southern gate, follow the road north through the town and climb to the Guardian's arena. Beyond the arena, a fog gate leads to the next governorate.\n\nPress Play.",
                 "OK");
@@ -1127,7 +1238,7 @@ namespace Rafidain.EditorTools
                 new Vector3(ArenaCenter.x, ArenaHeight + 1.7f, ArenaCenter.y + 8f), guardian, steel, 1.6f, 2);
             boss.isBoss = true;
             boss.bossId = R.bossId;
-            boss.maxHealth = R == Zakho ? 700f : 900f;
+            boss.maxHealth = 700f + 260f * R.tier;
             boss.damage = 34f;
             boss.windup = 0.9f;
             boss.recovery = 1.1f;
@@ -1139,6 +1250,222 @@ namespace Rafidain.EditorTools
             boss.emberReward = 2000;
             boss.canLeap = true;
             boss.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            if (R.finalRegion)
+            {
+                boss.maxHealth = 3200f;
+                boss.damage = 46f;
+                boss.moveSpeed = 3.8f;
+                boss.leapCooldown = 5f;
+                boss.transform.localScale = Vector3.one * 1.9f;
+            }
+
+            // each governorate on the road to Baghdad is harder
+            float hp = 1f + 0.25f * R.tier, dmg = 1f + 0.15f * R.tier;
+            foreach (var e in enemies.GetComponentsInChildren<EnemyAI>(true))
+            {
+                if (e.isBoss) { e.damage *= dmg; continue; }
+                e.maxHealth *= hp;
+                e.damage *= dmg;
+                e.emberReward = Mathf.RoundToInt(e.emberReward * (1f + 0.5f * R.tier));
+            }
+        }
+
+        // =====================================================================
+        // Landmarks of each governorate
+        // =====================================================================
+
+        static void BuildLandmark(Transform world, TerrainData td, Material stone, Material mud, Material lime, Material glow, Material ember)
+        {
+            var root = new GameObject("Landmark - " + R.landmark).transform;
+            root.SetParent(world);
+            switch (R.landmark)
+            {
+                case "nineveh": BuildNineveh(root, td, stone, mud); break;
+                case "citadel": BuildCitadelWalls(root, td, mud, lime); break;
+                case "fire": BuildEternalFire(root, td, ember); break;
+                case "malwiya": BuildMalwiya(root, td, mud); break;
+                case "underworld": BuildZiggurat(root, mud, stone); break;
+            }
+        }
+
+        static void MakeLamassu(Transform parent, Vector3 pos, float side, Material stone)
+        {
+            var st = new GameObject("Lamassu").transform;
+            st.SetParent(parent);
+            st.position = pos;
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Plinth", st, new Vector3(0f, 0.75f, 0f), new Vector3(3.4f, 1.5f, 6.4f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Body", st, new Vector3(0f, 3.4f, 0f), new Vector3(2.6f, 3.8f, 5.6f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Wing", st, new Vector3(side * 1.4f, 4.4f, 0.4f), new Vector3(0.4f, 3.4f, 4.6f), stone, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Head", st, new Vector3(0f, 6.1f, -2.3f), new Vector3(1.6f, 1.9f, 1.6f), stone, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Beard", st, new Vector3(0f, 5.0f, -2.85f), new Vector3(1.2f, 1.3f, 0.5f), stone, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Crown", st, new Vector3(0f, 7.4f, -2.3f), new Vector3(1.5f, 0.6f, 1.5f), stone, keepCollider: false);
+        }
+
+        // Mosul: the Nergal-style gate of Nineveh with winged bulls and broken mud-brick walls
+        static void BuildNineveh(Transform root, TerrainData td, Material stone, Material mud)
+        {
+            float gz = 540f;
+            Vector3 c = OnRoad(td, gz, 0f, 0f);
+            MakeLamassu(root, c + new Vector3(-6.5f, 0f, 0f), -1f, stone);
+            MakeLamassu(root, c + new Vector3(6.5f, 0f, 0f), 1f, stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "GateTowerL", root, c + new Vector3(-11f, 6f, 1f), new Vector3(5f, 12f, 6f), mud);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "GateTowerR", root, c + new Vector3(11f, 6f, 1f), new Vector3(5f, 12f, 6f), mud);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int k = 0; k < 9; k++)
+                {
+                    if (Random.value < 0.25f) continue; // breaches in the wall
+                    float x = c.x + side * (16f + k * 9f);
+                    float h = Random.Range(3f, 8f);
+                    var g = Ground(td, x, gz, 0f);
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "NinevehWall", root, new Vector3(x, g.y + h * 0.5f - 0.5f, gz + 1f), new Vector3(9f, h, 3.5f), mud).isStatic = true;
+                }
+            }
+            // scattered ruins on the eastern hill
+            for (int k = 0; k < 14; k++)
+            {
+                float x = Random.Range(640f, 820f), z = Random.Range(420f, 560f);
+                if (!IsFreeGround(x, z, 2f)) continue;
+                var g = Ground(td, x, z, 0f);
+                float h = Random.Range(1.5f, 5f);
+                var w = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Ruin", root, g + Vector3.up * (h * 0.5f - 0.4f), new Vector3(Random.Range(3f, 8f), h, 2f), mud);
+                w.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 180f), 0f);
+                w.isStatic = true;
+            }
+        }
+
+        // Erbil: the walls of the citadel ringing the mound
+        static void BuildCitadelWalls(Transform root, TerrainData td, Material mud, Material lime)
+        {
+            const int Segments = 52;
+            float r = TownRadius + 6f;
+            for (int i = 0; i < Segments; i++)
+            {
+                float a = i / (float)Segments * Mathf.PI * 2f;
+                Vector2 p = TownCenter + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
+                if (Mathf.Abs(p.x - RoadX(p.y)) < 13f) continue; // the gate where the road climbs in
+                float len = 2f * Mathf.PI * r / Segments + 0.6f;
+                var seg = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "CitadelWall", root,
+                    new Vector3(p.x, TownHeight + 4f, p.y), new Vector3(len, 11f, 3f), mud);
+                seg.transform.rotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f);
+                seg.isStatic = true;
+                if (i % 6 == 0)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "CitadelTower", root,
+                        new Vector3(p.x, TownHeight + 5.5f, p.y), new Vector3(6f, 7.5f, 6f), lime).isStatic = true;
+            }
+        }
+
+        // Kirkuk: Baba Gurgur, ground that has burned since before the prophets
+        static void BuildEternalFire(Transform root, TerrainData td, Material ember)
+        {
+            int placed = 0, tries = 0;
+            while (placed < 34 && tries < 3000)
+            {
+                tries++;
+                float z = Random.Range(430f, 780f);
+                float x = RoadX(z) + Random.Range(18f, 150f) * (Random.value < 0.5f ? -1f : 1f);
+                if (!IsFreeGround(x, z, 1f)) continue;
+                var g = Ground(td, x, z, 0f);
+                if (g.y > 60f) continue;
+                var vent = new GameObject("Eternal Fire").transform;
+                vent.SetParent(root);
+                vent.position = g;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Burning Ground", vent, new Vector3(0f, 0.03f, 0f), new Vector3(3.4f, 0.03f, 3.4f), ember, keepCollider: false);
+                if (placed % 3 == 0)
+                {
+                    var l = new GameObject("Firelight").AddComponent<Light>();
+                    l.transform.SetParent(vent, false);
+                    l.transform.localPosition = new Vector3(0f, 1.5f, 0f);
+                    l.type = LightType.Point;
+                    l.color = new Color(1f, 0.45f, 0.12f);
+                    l.range = 11f;
+                    l.intensity = 3.5f;
+                }
+                var em = RafidainSceneBuilder.MakeEmbers(vent, new Vector3(0f, 0.1f, 0f), 28f);
+                var shape = em.shape; shape.radius = 1.3f;
+                vent.gameObject.AddComponent<FireHazard>().radius = 1.6f;
+                placed++;
+            }
+        }
+
+        // Samarra: the spiral minaret, climbable by its outer ramp
+        static void BuildMalwiya(Transform root, TerrainData td, Material mud)
+        {
+            Vector2 c2 = TownCenter + new Vector2(TownRadius + 48f, 10f);
+            float g = td.GetInterpolatedHeight(c2.x / Size, c2.y / Size);
+            Vector3 c = new Vector3(c2.x, g, c2.y);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Base", root, c + new Vector3(0f, -2f, 0f), new Vector3(38f, 10f, 38f), mud).isStatic = true;
+            float baseY = g + 3f;
+            const int Tiers = 5;
+            const float TierH = 5.5f;
+            for (int i = 0; i < Tiers; i++)
+            {
+                float r = 15f - i * 2.2f;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Tier", root,
+                    new Vector3(c.x, baseY + i * TierH + TierH * 0.5f, c.z), new Vector3(r * 2f, TierH * 0.5f, r * 2f), mud).isStatic = true;
+            }
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Pavilion", root,
+                new Vector3(c.x, baseY + Tiers * TierH + 1.5f, c.z), new Vector3(5f, 1.5f, 5f), mud).isStatic = true;
+
+            const int Steps = 180;
+            float total = Tiers * TierH;
+            for (int k = 0; k < Steps; k++)
+            {
+                float t = k / (float)Steps;
+                float y = baseY + t * total;
+                int tier = Mathf.Min(Tiers - 1, Mathf.FloorToInt(t * Tiers));
+                float rr = 15f - tier * 2.2f + 1.3f;
+                float a = t * Mathf.PI * 2f * Tiers;
+                Vector3 p = new Vector3(c.x + Mathf.Cos(a) * rr, y, c.z + Mathf.Sin(a) * rr);
+                Vector3 tangent = new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a));
+                var step = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Ramp", root, p, new Vector3(2.6f, 0.4f, 2.4f), mud);
+                step.transform.rotation = Quaternion.LookRotation(tangent);
+                step.isStatic = true;
+            }
+        }
+
+        // Baghdad: a ziggurat rising behind the underworld gate
+        static void BuildZiggurat(Transform root, Material mud, Material stone)
+        {
+            Vector3 c = new Vector3(ArenaCenter.x, ArenaHeight, ArenaCenter.y + 40f);
+            float[] w = { 34f, 24f, 14f };
+            float y = 0f;
+            for (int i = 0; i < w.Length; i++)
+            {
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "ZigguratTier", root, c + new Vector3(0f, y + 3.5f, 0f), new Vector3(w[i], 7f, w[i]), i == 2 ? stone : mud).isStatic = true;
+                y += 7f;
+            }
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Stair", root, c + new Vector3(0f, 6f, -w[0] * 0.5f - 4f), new Vector3(6f, 1f, 14f), stone)
+                .transform.rotation = Quaternion.Euler(-35f, 0f, 0f);
+        }
+
+        static void MakeUnderworldDoor(Material stone, Material glow)
+        {
+            EnemyAI boss = null;
+            foreach (var e in Object.FindObjectsByType<EnemyAI>(FindObjectsInactive.Include)) if (e.isBoss) boss = e;
+
+            var root = new GameObject("Underworld Gate").transform;
+            root.position = new Vector3(ArenaCenter.x, ArenaHeight, ArenaCenter.y - 10f);
+            var door = new GameObject("Door").transform;
+            door.SetParent(root, false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Slab", door, new Vector3(0f, 6f, 0f), new Vector3(9f, 12f, 1.6f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Seal", door, new Vector3(0f, 6.5f, -0.85f), new Vector3(3.2f, 0.08f, 3.2f), glow, keepCollider: false)
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            for (int i = 0; i < 5; i++)
+            {
+                float a = i / 5f * Mathf.PI * 2f;
+                RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "KeyHole", door, new Vector3(Mathf.Cos(a) * 2.5f, 6.5f + Mathf.Sin(a) * 2.5f, -0.85f), Vector3.one * 0.45f, glow, keepCollider: false);
+            }
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "FrameL", root, new Vector3(-5.5f, 7f, 0f), new Vector3(2f, 14f, 2.4f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "FrameR", root, new Vector3(5.5f, 7f, 0f), new Vector3(2f, 14f, 2.4f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "FrameTop", root, new Vector3(0f, 14.5f, 0f), new Vector3(13f, 2f, 2.6f), stone);
+
+            var ud = root.gameObject.AddComponent<UnderworldDoor>();
+            ud.door = door;
+            ud.boss = boss != null ? boss.gameObject : null;
+
+            var sys = GameObject.Find("_Game");
+            if (sys != null && sys.GetComponent<EndingSequence>() == null) sys.AddComponent<EndingSequence>();
         }
 
         static void PlaceGates(TerrainData td, Material stone)
@@ -1153,6 +1480,8 @@ namespace Rafidain.EditorTools
                 Vector3 p = OnRoad(td, 32f, 0f, 0f);
                 MakeFogGate("Fog Gate - back", p, stone, R.prevScene, R.prevLabel, "");
             }
+            if (R.finalRegion)
+                MakeUnderworldDoor(stone, RafidainSceneBuilder.Mat("LanternGlow", new Color(1f, 0.7f, 0.35f), 0.3f));
         }
 
         static void MakeFogGate(string name, Vector3 pos, Material stone, string scene, string label, string requiredBoss)
