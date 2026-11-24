@@ -13,6 +13,8 @@ namespace Rafidain
         public Transform legL, legR, armL, armR, cape;
         public float strideAngle = 34f;
         public float cyclesPerMeter = 0.33f;
+        [Tooltip("Lies on the ground (used by the opening scene: Furat asleep by the flame).")]
+        public bool lyingDown;
 
         PlayerController pc;
         PlayerCombat combat;
@@ -54,7 +56,7 @@ namespace Rafidain
             if (body == null) return;
             float dt = Time.deltaTime;
             float speed = pc != null ? pc.CurrentSpeed : ai != null ? ai.CurrentSpeed : 0f;
-            bool dead = (stats != null && stats.IsDead) || (ai != null && ai.IsDead);
+            bool dead = lyingDown || (stats != null && stats.IsDead) || (ai != null && ai.IsDead);
 
             phase += speed * cyclesPerMeter * Mathf.PI * 2f * dt;
             float amt = Mathf.Clamp01(speed / 4.5f);

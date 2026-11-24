@@ -155,6 +155,7 @@ namespace Rafidain.EditorTools
             var gm = sys.AddComponent<GameManager>();
             var hud = sys.AddComponent<HUD>();
             sys.AddComponent<MobileControls>();
+            sys.AddComponent<IntroSequence>();
             gm.player = furat.GetComponent<PlayerStats>();
             hud.player = gm.player;
 
