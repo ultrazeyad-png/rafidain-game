@@ -99,6 +99,7 @@ namespace Rafidain.EditorTools
                 var guardianMat = RafidainSceneBuilder.Mat("Guardian", new Color(0.32f, 0.24f, 0.14f), 0.55f, 0.6f);
                 var steel = RafidainSceneBuilder.Mat("Steel", new Color(0.72f, 0.72f, 0.74f), 0.85f, 1f);
                 var wood = RafidainSceneBuilder.Mat("DarkWood", new Color(0.22f, 0.14f, 0.08f), 0.2f);
+                var windowMat = RafidainSceneBuilder.Mat("WindowDark", new Color(0.05f, 0.045f, 0.04f), 0.6f);
                 var tile = RafidainSceneBuilder.Mat("TurquoiseTile", new Color(0.08f, 0.42f, 0.48f), 0.75f);
                 var palmBark = RafidainSceneBuilder.Mat("PalmBark", new Color(0.36f, 0.27f, 0.18f), 0.05f);
                 var palmLeaf = RafidainSceneBuilder.Mat("PalmLeaf", new Color(0.25f, 0.33f, 0.14f), 0.1f);
@@ -116,7 +117,7 @@ namespace Rafidain.EditorTools
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Building Zakho old town…", 0.6f);
                 var world = new GameObject("World").transform;
-                BuildTown(world, terrainData, mud1, mud2, limestone, roofMat, stone, wood, tile, glow);
+                BuildTown(world, terrainData, mud1, mud2, limestone, roofMat, stone, wood, tile, glow, windowMat);
                 BuildBridge(world, stone);
                 BuildArena(world, stone, glow);
 
@@ -219,7 +220,12 @@ namespace Rafidain.EditorTools
             for (int i = 0; i < layers.Length; i++)
             {
                 FindImported(LayerNames[i], out var diffuse, out var normal);
-                if (diffuse == null) diffuse = ProceduralTexture(LayerNames[i], palette[i, 0], palette[i, 1], i == 3 ? 0.08f : 0.03f, i == 2 ? 0.25f : 0.12f);
+                if (diffuse == null)
+                {
+                    int kind = i == 2 ? 1 : i == 3 ? 2 : 0;
+                    diffuse = ProceduralTexture(LayerNames[i], palette[i, 0], palette[i, 1], i == 3 ? 0.08f : 0.03f, i == 2 ? 0.18f : 0.1f, kind, out var procNormal);
+                    if (normal == null) normal = procNormal;
+                }
 
                 var layer = new TerrainLayer
                 {
@@ -401,34 +407,113 @@ namespace Rafidain.EditorTools
             }
         }
 
-        static Texture2D ProceduralTexture(string name, Color a, Color b, float freq, float speckle)
+        // Procedural ground material: albedo + matching normal map from one tileable height field.
+        // kind: 0 soft ground, 1 cracked rock, 2 cobblestones
+        static Texture2D ProceduralTexture(string name, Color a, Color b, float freq, float speckle, int kind, out Texture2D normal)
         {
-            string path = $"{Gen}/{name}_proc.png";
+            string path = $"{Gen}/{name}_albedo.png";
+            string npath = $"{Gen}/{name}_normal.png";
             var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (existing != null) return existing;
+            normal = AssetDatabase.LoadAssetAtPath<Texture2D>(npath);
+            if (existing != null && normal != null) return existing;
 
             const int S = 512;
-            var tex = new Texture2D(S, S, TextureFormat.RGB24, false);
+            var h = HeightField(name, S, freq, kind);
             var rng = new System.Random(name.GetHashCode());
+
+            var tex = new Texture2D(S, S, TextureFormat.RGB24, false);
+            var ntex = new Texture2D(S, S, TextureFormat.RGB24, false);
+            float strength = kind == 0 ? 2.5f : 5f;
+            for (int y = 0; y < S; y++)
+            {
+                for (int x = 0; x < S; x++)
+                {
+                    float hv = h[x, y];
+                    float sp = 1f - speckle * (float)rng.NextDouble();
+                    var c = Color.Lerp(a, b, hv) * sp;
+                    if (kind == 2 && hv < 0.25f) c *= 0.55f;        // dark grout between stones
+                    if (kind == 1 && hv < 0.18f) c *= 0.7f;         // deep cracks
+                    tex.SetPixel(x, y, c);
+
+                    float dx = (h[(x + 1) % S, y] - h[(x - 1 + S) % S, y]) * strength;
+                    float dy = (h[x, (y + 1) % S] - h[x, (y - 1 + S) % S]) * strength;
+                    Vector3 n = new Vector3(-dx, -dy, 1f).normalized;
+                    ntex.SetPixel(x, y, new Color(n.x * 0.5f + 0.5f, n.y * 0.5f + 0.5f, n.z * 0.5f + 0.5f));
+                }
+            }
+            tex.Apply();
+            ntex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            File.WriteAllBytes(npath, ntex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            Object.DestroyImmediate(ntex);
+            AssetDatabase.ImportAsset(path);
+            AssetDatabase.ImportAsset(npath);
+            var imp = AssetImporter.GetAtPath(npath) as TextureImporter;
+            if (imp != null)
+            {
+                imp.textureType = TextureImporterType.NormalMap;
+                imp.SaveAndReimport();
+            }
+            normal = AssetDatabase.LoadAssetAtPath<Texture2D>(npath);
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        static float[,] HeightField(string name, int S, float freq, int kind)
+        {
+            var h = new float[S, S];
+            // Worley points for cobblestones (tileable grid)
+            const int Cells = 8;
+            var pts = new Vector2[Cells, Cells];
+            var rng = new System.Random(name.GetHashCode() ^ 0x5bd1);
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                    pts[i, j] = new Vector2((i + 0.15f + 0.7f * (float)rng.NextDouble()) * S / Cells, (j + 0.15f + 0.7f * (float)rng.NextDouble()) * S / Cells);
+
             for (int y = 0; y < S; y++)
             {
                 for (int x = 0; x < S; x++)
                 {
                     float u = x / (float)S, v = y / (float)S;
-                    // tileable noise: blend four offset samples
                     float n = TexNoise(x, y, freq) * (1 - u) * (1 - v)
                             + TexNoise(x - S, y, freq) * u * (1 - v)
                             + TexNoise(x, y - S, freq) * (1 - u) * v
                             + TexNoise(x - S, y - S, freq) * u * v;
-                    float s = 1f - speckle * (float)rng.NextDouble();
-                    tex.SetPixel(x, y, Color.Lerp(a, b, n) * s);
+
+                    if (kind == 1)
+                    {
+                        float r = TexNoise(x * 1.7f, y * 1.7f, freq * 2.5f) * (1 - u) * (1 - v)
+                                + TexNoise((x - S) * 1.7f, y * 1.7f, freq * 2.5f) * u * (1 - v)
+                                + TexNoise(x * 1.7f, (y - S) * 1.7f, freq * 2.5f) * (1 - u) * v
+                                + TexNoise((x - S) * 1.7f, (y - S) * 1.7f, freq * 2.5f) * u * v;
+                        float crack = Mathf.Abs(r - 0.5f) * 2f; // 0 on the crack line
+                        n = Mathf.Lerp(n, n * 0.3f, 1f - Mathf.Clamp01(crack * 6f));
+                    }
+                    else if (kind == 2)
+                    {
+                        int ci = x * Cells / S, cj = y * Cells / S;
+                        float f1 = float.MaxValue, f2 = float.MaxValue;
+                        for (int di = -1; di <= 1; di++)
+                        {
+                            for (int dj = -1; dj <= 1; dj++)
+                            {
+                                int ii = (ci + di + Cells) % Cells, jj = (cj + dj + Cells) % Cells;
+                                // unwrap the neighbour point position across the tile edge
+                                Vector2 p;
+                                p.x = pts[ii, jj].x + (ci + di < 0 ? -S : ci + di >= Cells ? S : 0);
+                                p.y = pts[ii, jj].y + (cj + dj < 0 ? -S : cj + dj >= Cells ? S : 0);
+                                float d = Vector2.Distance(new Vector2(x, y), p);
+                                if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
+                            }
+                        }
+                        float edge = Mathf.Clamp01((f2 - f1) / 10f);         // 0 at the gap between stones
+                        float dome = 1f - Mathf.Clamp01(f1 / (S / Cells * 0.75f)); // rounded stone tops
+                        n = Mathf.Clamp01(edge * 0.6f + dome * 0.3f + n * 0.25f);
+                    }
+                    h[x, y] = n;
                 }
             }
-            tex.Apply();
-            File.WriteAllBytes(path, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.ImportAsset(path);
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            return h;
         }
 
         static float TexNoise(float x, float y, float f)
@@ -481,7 +566,7 @@ namespace Rafidain.EditorTools
         // =====================================================================
 
         static void BuildTown(Transform world, TerrainData td, Material mudA, Material mudB, Material lime, Material roof, Material stone,
-            Material wood, Material tile, Material glow)
+            Material wood, Material tile, Material glow, Material windowMat)
         {
             var town = new GameObject("Zakho Old Town").transform;
             town.SetParent(world);
@@ -541,6 +626,44 @@ namespace Rafidain.EditorTools
                             var door = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Door", town,
                                 new Vector3(lc.x, TownHeight + 1.1f, lc.y - d * 0.5f - 0.02f), new Vector3(1.3f, 2.3f, 0.1f), roof, keepCollider: false);
                             door.isStatic = true;
+
+                            // arched top over the door
+                            var arch = RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "DoorArch", town,
+                                new Vector3(lc.x, TownHeight + 2.25f, lc.y - d * 0.5f - 0.03f), new Vector3(1.3f, 0.05f, 1.3f), roof, keepCollider: false);
+                            arch.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                            arch.isStatic = true;
+
+                            // stone plinth band at the base
+                            var plinth = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Plinth", town,
+                                new Vector3(lc.x, TownHeight + 0.15f, lc.y), new Vector3(w + 0.25f, 0.9f, d + 0.25f), stone, keepCollider: false);
+                            plinth.isStatic = true;
+
+                            // windows on all four sides; some glow warm from inside (people live here)
+                            for (int f = 0; f < floors; f++)
+                            {
+                                float wy = TownHeight + 1.9f + f * 3.4f;
+                                for (int side = 0; side < 4; side++)
+                                {
+                                    bool alongX = side < 2;
+                                    float face = (side % 2 == 0 ? -1f : 1f);
+                                    float span = alongX ? w : d;
+                                    int count = span > 11f ? 3 : 2;
+                                    for (int k = 0; k < count; k++)
+                                    {
+                                        float off = (k - (count - 1) * 0.5f) * (span / (count + 0.5f));
+                                        if (f == 0 && side == 0 && Mathf.Abs(off) < 1.6f) continue; // the door
+                                        if (Random.value < 0.2f) continue;
+                                        var wm = Random.value < 0.14f ? glow : windowMat;
+                                        Vector3 wp = alongX
+                                            ? new Vector3(lc.x + off, wy, lc.y + face * (d * 0.5f + 0.03f))
+                                            : new Vector3(lc.x + face * (w * 0.5f + 0.03f), wy, lc.y + off);
+                                        Vector3 ws = alongX ? new Vector3(0.85f, 1.25f, 0.06f) : new Vector3(0.06f, 1.25f, 0.85f);
+                                        var win = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Window", town, wp, ws, wm, keepCollider: false);
+                                        win.isStatic = true;
+                                    }
+                                }
+                            }
+
                             // shanasheel: wooden bay window on the upper floor (Baghdadi / Mosuli houses)
                             if (floors >= 2 && Random.value < 0.6f)
                             {
@@ -726,8 +849,16 @@ namespace Rafidain.EditorTools
                 tree.position = new Vector3(x, h - 0.3f, z);
                 tree.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
                 RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Trunk", tree, new Vector3(0f, 2.5f * s, 0f), new Vector3(0.5f * s, 2.5f * s, 0.5f * s), bark);
-                RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Canopy", tree, new Vector3(0f, 6f * s, 0f), new Vector3(6f * s, 4.5f * s, 6f * s), leaves, keepCollider: false);
-                RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Canopy2", tree, new Vector3(1.2f * s, 7.2f * s, 0.8f * s), new Vector3(4f * s, 3.2f * s, 4f * s), leaves, keepCollider: false);
+                var limb = RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Branch", tree, new Vector3(0.6f * s, 4.6f * s, 0f), new Vector3(0.25f * s, 1.3f * s, 0.25f * s), bark, keepCollider: false);
+                limb.transform.localRotation = Quaternion.Euler(0f, 0f, -35f);
+                int blobs = Random.Range(3, 6);
+                for (int bI = 0; bI < blobs; bI++)
+                {
+                    var off = new Vector3(Random.Range(-1.8f, 1.8f), Random.Range(5.2f, 7.6f), Random.Range(-1.8f, 1.8f)) * s;
+                    float cs = Random.Range(3.2f, 5.6f) * s;
+                    MeshObj("Canopy", tree, ProceduralMeshes.Canopy(Random.Range(0, 6)), leaves, off,
+                        new Vector3(cs, cs * Random.Range(0.7f, 0.9f), cs), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), false);
+                }
                 placed++;
             }
 
@@ -740,11 +871,25 @@ namespace Rafidain.EditorTools
                 float x = Random.Range(10f, Size - 10f), z = Random.Range(10f, Size - 10f);
                 if (!IsFreeGround(x, z, 10f)) continue;
                 float h = td.GetInterpolatedHeight(x / Size, z / Size);
-                float s = Random.Range(1.5f, h > 60f ? 9f : 4f);
-                var r = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Rock", rocks,
-                    new Vector3(x, h + s * 0.15f, z), new Vector3(s, s * Random.Range(0.5f, 1.1f), s * Random.Range(0.7f, 1.3f)), rock);
-                r.transform.rotation = Random.rotation;
+                float s = Random.Range(1.5f, h > 60f ? 10f : 4.5f);
+                var r = MeshObj("Rock", rocks, ProceduralMeshes.Rock(Random.Range(0, 10)), rock,
+                    new Vector3(x, h + s * 0.05f, z), new Vector3(s, s * Random.Range(0.7f, 1.2f), s),
+                    Quaternion.Euler(Random.Range(-8f, 8f), Random.Range(0f, 360f), Random.Range(-8f, 8f)), true);
                 r.isStatic = true;
+                // small stones around big ones
+                if (s > 3f)
+                {
+                    for (int k = 0; k < 3; k++)
+                    {
+                        Vector2 d2 = Random.insideUnitCircle * s * 0.9f;
+                        float px = x + d2.x, pz = z + d2.y;
+                        float ph = td.GetInterpolatedHeight(px / Size, pz / Size);
+                        float ss = Random.Range(0.4f, 1.2f);
+                        var st = MeshObj("Stone", rocks, ProceduralMeshes.Rock(Random.Range(0, 10)), rock,
+                            new Vector3(px, ph, pz), Vector3.one * ss, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), false);
+                        st.isStatic = true;
+                    }
+                }
                 placed++;
             }
         }
@@ -788,6 +933,19 @@ namespace Rafidain.EditorTools
                 }
                 placed++;
             }
+        }
+
+        static GameObject MeshObj(string name, Transform parent, Mesh mesh, Material mat, Vector3 localPos, Vector3 scale, Quaternion rot, bool collider)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = rot;
+            go.transform.localScale = scale;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            if (collider) go.AddComponent<MeshCollider>().sharedMesh = mesh;
+            return go;
         }
 
         static bool IsFreeGround(float x, float z, float margin)
