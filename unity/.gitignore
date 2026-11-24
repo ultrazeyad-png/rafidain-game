@@ -1,0 +1,7 @@
+# Files Unity makes on the local computer: never committed
+*.meta
+Rafidain/Generated/
+Rafidain/Scenes/
+Rafidain/Settings/
+Rafidain/ImportedTextures/
+Rafidain/Characters/
