@@ -23,6 +23,16 @@ namespace Rafidain
         {
             Instance = this;
             SaveSystem.Load();
+
+            // continue in the governorate the player was last in
+            string saved = SaveSystem.Data.currentScene;
+            string here = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (!string.IsNullOrEmpty(saved) && saved != here && Application.CanStreamedLevelBeLoaded(saved))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(saved);
+                return;
+            }
+            SaveSystem.Data.currentScene = here;
         }
 
         void Start()

@@ -22,7 +22,44 @@ namespace Rafidain.EditorTools
     {
         const string Gen = "Assets/Rafidain/Generated/Zakho";
         const string ImportRoot = "Assets/Rafidain/ImportedTextures";
-        const string ScenePath = "Assets/Rafidain/Scenes/Zakho_Region.unity";
+        // ---------- regions (governorates) ----------
+        class RegionDef
+        {
+            public string id, name, sceneName, terrainName, townName;
+            public int seed;
+            public float noiseX, noiseZ, roadPhase, mountains = 1f;
+            public bool river, lake;
+            public Vector2 lakeCenter;
+            public float lakeRadius;
+            public string[] flameNames;     // gate, town, river/lake, ascent
+            public string riverFlameId;
+            public string bossName, bossId;
+            public string nextScene, nextLabel, prevScene, prevLabel;
+            public string ScenePath => $"Assets/Rafidain/Scenes/{sceneName}.unity";
+        }
+
+        static readonly RegionDef Zakho = new RegionDef
+        {
+            id = "zakho", name = "زاخو", sceneName = "Zakho_Region", terrainName = "Zakho Terrain", townName = "Zakho Old Town",
+            seed = 1985, noiseX = 0f, noiseZ = 0f, roadPhase = 0f, mountains = 1f,
+            river = true, lake = false,
+            flameNames = new[] { "زاخو - البوابة الجنوبية", "زاخو - المدينة القديمة", "جسر الخابور", "صعود الحارس" },
+            bossName = "حارس زاخو", bossId = "boss_zakho",
+            nextScene = "Duhok_Region", nextLabel = "الطريق الى دهوك",
+        };
+
+        static readonly RegionDef Duhok = new RegionDef
+        {
+            id = "duhok", name = "دهوك", sceneName = "Duhok_Region", terrainName = "Duhok Terrain", townName = "Duhok Town",
+            seed = 2047, noiseX = 3100f, noiseZ = 1700f, roadPhase = 1.9f, mountains = 1.15f,
+            river = false, lake = true, lakeCenter = new Vector2(250f, 620f), lakeRadius = 115f,
+            flameNames = new[] { "دهوك - مدخل الوادي", "دهوك - السوق القديم", "ضفاف السد", "قلعة الجبل" },
+            bossName = "حارس دهوك", bossId = "boss_duhok",
+            prevScene = "Zakho_Region", prevLabel = "العودة الى زاخو",
+        };
+
+        static RegionDef R = Zakho;
+        static string ScenePath => R.ScenePath;
 
         const float Size = 1024f;
         const float MaxH = 260f;
@@ -36,9 +73,9 @@ namespace Rafidain.EditorTools
 
         static readonly string[] LayerNames = { "Grass", "Dirt", "Rock", "Road", "Mud" };
 
-        static float RoadX(float z) => 512f + 70f * Mathf.Sin(z * 0.006f) + 25f * Mathf.Sin(z * 0.017f);
+        static float RoadX(float z) => 512f + 70f * Mathf.Sin(z * 0.006f + R.roadPhase) + 25f * Mathf.Sin(z * 0.017f + R.roadPhase * 2f);
         static float RoadTarget(float z) => 22f + 5f * Mathf.Sin(z * 0.004f);
-        static float RiverZ(float x) => 620f + 35f * Mathf.Sin(x * 0.009f) + 12f * Mathf.Sin(x * 0.031f);
+        static float RiverZ(float x) => R.river ? 620f + 35f * Mathf.Sin(x * 0.009f) + 12f * Mathf.Sin(x * 0.031f) : -5000f;
 
         static Vector2 TownCenter => new Vector2(RoadX(330f), 330f);
         static float TownHeight => RoadTarget(330f);
@@ -46,8 +83,14 @@ namespace Rafidain.EditorTools
         static float ArenaHeight => RoadTarget(905f) + 4f;
 
         [MenuItem("Rafidain/Build Zakho Region (Big Map)")]
-        public static void Build()
+        public static void Build() => BuildRegion(Zakho, firstScene: true);
+
+        [MenuItem("Rafidain/Build Duhok Region (Governorate 2)")]
+        public static void BuildDuhok() => BuildRegion(Duhok, firstScene: false);
+
+        static void BuildRegion(RegionDef def, bool firstScene)
         {
+            R = def;
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             RafidainURPSetup.EnsureURP();
             RafidainURPSetup.TuneForOpenWorld();
@@ -56,14 +99,14 @@ namespace Rafidain.EditorTools
             foreach (var n in LayerNames) RafidainSceneBuilder.EnsureFolder($"{ImportRoot}/{n}");
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-            Random.InitState(1985);
+            Random.InitState(R.seed);
 
             try
             {
                 EditorUtility.DisplayProgressBar("Rafidain", "Shaping terrain…", 0.1f);
                 var terrainData = BuildTerrainData();
                 var terrainGo = Terrain.CreateTerrainGameObject(terrainData);
-                terrainGo.name = "Zakho Terrain";
+                terrainGo.name = R.terrainName;
                 var terrain = terrainGo.GetComponent<Terrain>();
                 terrain.heightmapPixelError = 3f;
                 terrain.basemapDistance = 500f;
@@ -74,7 +117,7 @@ namespace Rafidain.EditorTools
                 if (terrainShader != null)
                 {
                     var tm = new Material(terrainShader);
-                    AssetDatabase.CreateAsset(tm, $"{Gen}/TerrainMat.mat");
+                    AssetDatabase.CreateAsset(tm, $"{Gen}/TerrainMat_{R.id}.mat");
                     terrain.materialTemplate = tm;
                 }
 
@@ -118,20 +161,21 @@ namespace Rafidain.EditorTools
                 EditorUtility.DisplayProgressBar("Rafidain", "Building Zakho old town…", 0.6f);
                 var world = new GameObject("World").transform;
                 BuildTown(world, terrainData, mud1, mud2, limestone, roofMat, stone, wood, tile, glow, windowMat);
-                BuildBridge(world, stone);
+                if (R.river) BuildBridge(world, stone);
                 BuildArena(world, stone, glow);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Planting oak forest and rocks…", 0.75f);
                 ScatterNature(world, terrainData, bark, leaves, rockMat);
-                ScatterPalms(world, terrainData, palmBark, palmLeaf);
+                if (R.river) ScatterPalms(world, terrainData, palmBark, palmLeaf);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Placing Furat, enemies and flames…", 0.9f);
                 PlaceGameplay(terrainData, sun, furatMat, hollowMat, guardianMat, steel, ember, stone);
 
                 RafidainSceneBuilder.CreatePostVolume();
+                PlaceGates(terrainData, stone);
 
                 EditorSceneManager.SaveScene(scene, ScenePath);
-                RafidainSceneBuilder.AddSceneToBuild(ScenePath);
+                RafidainSceneBuilder.AddSceneToBuild(ScenePath, firstScene);
                 AssetDatabase.SaveAssets();
             }
             finally
@@ -140,7 +184,7 @@ namespace Rafidain.EditorTools
             }
 
             EditorUtility.DisplayDialog("Rafidain",
-                "Zakho region is ready (1 km x 1 km).\n\nStart at the southern gate, follow the road north through the old town, cross the Khabur bridge, and climb to the Guardian's arena.\n\nPress Play.",
+                R.sceneName + " is ready (1 km x 1 km).\n\nStart at the southern gate, follow the road north through the town and climb to the Guardian's arena. Beyond the arena, a fog gate leads to the next governorate.\n\nPress Play.",
                 "OK");
         }
 
@@ -172,14 +216,22 @@ namespace Rafidain.EditorTools
 
         static float HeightAt(float x, float z)
         {
-            float baseH = 20f + (Fbm(x, z, 4, 0.004f) - 0.5f) * 18f;
+            float nx = x + R.noiseX, nz = z + R.noiseZ;
+            float baseH = 20f + (Fbm(nx, nz, 4, 0.004f) - 0.5f) * 18f;
 
             float dEdge = Mathf.Min(Mathf.Min(x, Size - x), Mathf.Min(z, Size - z));
             float m = Smooth(230f, 10f, dEdge);
-            float mountains = m * (90f + Ridged(x, z, 5, 0.006f) * 150f);
+            float mountains = m * (90f + Ridged(nx, nz, 5, 0.006f) * 150f) * R.mountains;
 
-            float hills = Mathf.Max(0f, Fbm(x + 500f, z + 500f, 3, 0.008f) - 0.55f) * 120f;
+            float hills = Mathf.Max(0f, Fbm(nx + 500f, nz + 500f, 3, 0.008f) - 0.55f) * 120f;
             float h = baseH + mountains + hills;
+
+            // dam lake (Duhok)
+            if (R.lake)
+            {
+                float dLake = Vector2.Distance(new Vector2(x, z), R.lakeCenter);
+                h = Mathf.Lerp(h, WaterLevel - 6f, Smooth(R.lakeRadius + 35f, R.lakeRadius, dLake));
+            }
 
             // Khabur river channel
             float dRiver = Mathf.Abs(z - RiverZ(x));
@@ -568,7 +620,7 @@ namespace Rafidain.EditorTools
         static void BuildTown(Transform world, TerrainData td, Material mudA, Material mudB, Material lime, Material roof, Material stone,
             Material wood, Material tile, Material glow, Material windowMat)
         {
-            var town = new GameObject("Zakho Old Town").transform;
+            var town = new GameObject(R.townName).transform;
             town.SetParent(world);
             Vector2 origin = TownCenter - new Vector2(TownRadius, TownRadius);
             int cells = Mathf.CeilToInt(TownRadius * 2f / BlockSize);
@@ -953,6 +1005,7 @@ namespace Rafidain.EditorTools
             if (z > 20f && z < 975f && Mathf.Abs(x - RoadX(z)) < 12f + margin) return false;
             if (Vector2.Distance(new Vector2(x, z), TownCenter) < TownRadius + margin) return false;
             if (Mathf.Abs(z - RiverZ(x)) < 26f + margin * 0.5f) return false;
+            if (R.lake && Vector2.Distance(new Vector2(x, z), R.lakeCenter) < R.lakeRadius + 10f + margin * 0.5f) return false;
             if (Vector2.Distance(new Vector2(x, z), ArenaCenter) < 60f) return false;
             return true;
         }
@@ -1005,10 +1058,11 @@ namespace Rafidain.EditorTools
             hud.player = gm.player;
 
             // Flames
-            var gate = RafidainSceneBuilder.MakeBonfire("zakho_gate", "زاخو - البوابة الجنوبية", OnRoad(td, 68f, 6f, 0f), ember, stone);
-            RafidainSceneBuilder.MakeBonfire("zakho_oldtown", "زاخو - المدينة القديمة", Ground(td, PlazaCenter.x - 6f, PlazaCenter.y - 6f, 0f), ember, stone);
-            RafidainSceneBuilder.MakeBonfire("zakho_bridge", "جسر الخابور", OnRoad(td, BridgeZ - 52f, 6f, 0f), ember, stone);
-            RafidainSceneBuilder.MakeBonfire("zakho_ascent", "صعود الحارس", OnRoad(td, 835f, 6f, 0f), ember, stone);
+            if (!R.river) BridgeZ = 600f;
+            var gate = RafidainSceneBuilder.MakeBonfire(R.id + "_gate", R.flameNames[0], OnRoad(td, 68f, 6f, 0f), ember, stone);
+            RafidainSceneBuilder.MakeBonfire(R.id + "_oldtown", R.flameNames[1], Ground(td, PlazaCenter.x - 6f, PlazaCenter.y - 6f, 0f), ember, stone);
+            RafidainSceneBuilder.MakeBonfire(R.id + "_water", R.flameNames[2], OnRoad(td, BridgeZ - 52f, 6f, 0f), ember, stone);
+            RafidainSceneBuilder.MakeBonfire(R.id + "_ascent", R.flameNames[3], OnRoad(td, 835f, 6f, 0f), ember, stone);
             gm.defaultBonfire = gate;
 
             // Enemies
@@ -1036,11 +1090,11 @@ namespace Rafidain.EditorTools
             brute2.maxHealth = 200f; brute2.damage = 32f; brute2.windup = 1.0f; brute2.moveSpeed = 2.3f; brute2.emberReward = 220;
 
             // Boss
-            var boss = RafidainSceneBuilder.MakeEnemy(enemies, "حارس زاخو",
+            var boss = RafidainSceneBuilder.MakeEnemy(enemies, R.bossName,
                 new Vector3(ArenaCenter.x, ArenaHeight + 1.7f, ArenaCenter.y + 8f), guardian, steel, 1.6f, 2);
             boss.isBoss = true;
-            boss.bossId = "boss_zakho";
-            boss.maxHealth = 700f;
+            boss.bossId = R.bossId;
+            boss.maxHealth = R == Zakho ? 700f : 900f;
             boss.damage = 34f;
             boss.windup = 0.9f;
             boss.recovery = 1.1f;
@@ -1052,6 +1106,57 @@ namespace Rafidain.EditorTools
             boss.emberReward = 2000;
             boss.canLeap = true;
             boss.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+
+        static void PlaceGates(TerrainData td, Material stone)
+        {
+            if (!string.IsNullOrEmpty(R.nextScene))
+            {
+                Vector3 p = new Vector3(ArenaCenter.x, ArenaHeight, ArenaCenter.y + 26f);
+                MakeFogGate("Fog Gate - next", p, stone, R.nextScene, R.nextLabel, R.bossId);
+            }
+            if (!string.IsNullOrEmpty(R.prevScene))
+            {
+                Vector3 p = OnRoad(td, 32f, 0f, 0f);
+                MakeFogGate("Fog Gate - back", p, stone, R.prevScene, R.prevLabel, "");
+            }
+        }
+
+        static void MakeFogGate(string name, Vector3 pos, Material stone, string scene, string label, string requiredBoss)
+        {
+            var root = new GameObject(name).transform;
+            root.position = pos;
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "PillarL", root, new Vector3(-4.5f, 4f, 0f), new Vector3(1.8f, 8f, 1.8f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "PillarR", root, new Vector3(4.5f, 4f, 0f), new Vector3(1.8f, 8f, 1.8f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Lintel", root, new Vector3(0f, 8.6f, 0f), new Vector3(11f, 1.4f, 2f), stone);
+
+            var fogMat = AssetDatabase.LoadAssetAtPath<Material>($"{Gen}/FogWall.mat");
+            if (fogMat == null)
+            {
+                var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                fogMat = new Material(sh);
+                fogMat.SetFloat("_Surface", 1f);
+                fogMat.SetFloat("_Blend", 2f);
+                fogMat.SetOverrideTag("RenderType", "Transparent");
+                fogMat.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+                fogMat.SetFloat("_DstBlend", (float)BlendMode.One);
+                fogMat.SetFloat("_ZWrite", 0f);
+                fogMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                fogMat.renderQueue = 3000;
+                var c = new Color(0.95f, 0.85f, 0.65f, 0.28f);
+                if (fogMat.HasProperty("_BaseColor")) fogMat.SetColor("_BaseColor", c);
+                fogMat.color = c;
+                AssetDatabase.CreateAsset(fogMat, $"{Gen}/FogWall.mat");
+            }
+            var fog = RafidainSceneBuilder.Prim(PrimitiveType.Quad, "FogWall", root, new Vector3(0f, 3.9f, 0f), new Vector3(7.2f, 7.8f, 1f), fogMat, keepCollider: false);
+            var fogBack = RafidainSceneBuilder.Prim(PrimitiveType.Quad, "FogWallBack", root, new Vector3(0f, 3.9f, 0f), new Vector3(7.2f, 7.8f, 1f), fogMat, keepCollider: false);
+            fogBack.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            RafidainSceneBuilder.MakeEmbers(root, new Vector3(0f, 0.2f, 0f), 30f);
+
+            var gate = root.gameObject.AddComponent<RegionGate>();
+            gate.targetScene = scene;
+            gate.label = label;
+            gate.requiredBossId = requiredBoss;
         }
 
         // =====================================================================

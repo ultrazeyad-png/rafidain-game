@@ -619,11 +619,12 @@ namespace Rafidain.EditorTools
             AssetDatabase.CreateFolder(parent, leaf);
         }
 
-        internal static void AddSceneToBuild(string path)
+        internal static void AddSceneToBuild(string path, bool first = true)
         {
             var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
             scenes.RemoveAll(s => s.path == path);
-            scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+            if (first) scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+            else scenes.Add(new EditorBuildSettingsScene(path, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }
     }
