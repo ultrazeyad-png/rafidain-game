@@ -257,6 +257,8 @@ namespace Rafidain.EditorTools
             spawn.SetParent(root.transform, false);
             spawn.localPosition = new Vector3(0f, 1.05f, -1.8f);
 
+            MakeEmbers(root.transform, new Vector3(0f, 0.35f, 0f), 22f);
+
             var b = root.AddComponent<Bonfire>();
             b.bonfireId = id;
             b.displayName = display;
@@ -276,22 +278,30 @@ namespace Rafidain.EditorTools
             tone.mode.Override(TonemappingMode.ACES);
 
             var bloom = profile.Add<Bloom>(true);
-            bloom.intensity.Override(0.7f);
+            bloom.intensity.Override(0.9f);
             bloom.threshold.Override(1.0f);
             bloom.scatter.Override(0.65f);
 
             var color = profile.Add<ColorAdjustments>(true);
             color.postExposure.Override(0.15f);
-            color.contrast.Override(14f);
-            color.saturation.Override(-14f);
+            color.contrast.Override(18f);
+            color.saturation.Override(-18f);
             color.colorFilter.Override(new Color(1f, 0.96f, 0.9f));
 
             var vignette = profile.Add<Vignette>(true);
-            vignette.intensity.Override(0.32f);
+            vignette.intensity.Override(0.38f);
             vignette.smoothness.Override(0.45f);
 
             var white = profile.Add<WhiteBalance>(true);
             white.temperature.Override(8f);
+
+            // cool shadows, warm highlights: the classic dark-fantasy split tone
+            var smh = profile.Add<ShadowsMidtonesHighlights>(true);
+            smh.shadows.Override(new Vector4(0.92f, 0.97f, 1.08f, -0.04f));
+            smh.highlights.Override(new Vector4(1.06f, 1.0f, 0.92f, 0.02f));
+
+            var ca = profile.Add<ChromaticAberration>(true);
+            ca.intensity.Override(0.06f);
 
             var grain = profile.Add<FilmGrain>(true);
             grain.intensity.Override(0.12f);
@@ -308,6 +318,111 @@ namespace Rafidain.EditorTools
             var vol = volGo.AddComponent<Volume>();
             vol.isGlobal = true;
             vol.sharedProfile = profile;
+        }
+
+        // ---------- particles ----------
+
+        internal static Material ParticleMat(string name, bool additive)
+        {
+            string path = $"{GenFolder}/{name}.mat";
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null) return existing;
+
+            var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (sh == null) sh = Shader.Find("Particles/Standard Unlit");
+            var m = new Material(sh);
+            var tex = AssetDatabase.GetBuiltinExtraResource<Texture2D>("Default-Particle.psd");
+            if (tex != null)
+            {
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+                m.mainTexture = tex;
+            }
+            m.SetFloat("_Surface", 1f);
+            m.SetFloat("_Blend", additive ? 2f : 0f);
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", additive ? (float)BlendMode.One : (float)BlendMode.OneMinusSrcAlpha);
+            m.SetFloat("_ZWrite", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = 3000;
+            AssetDatabase.CreateAsset(m, path);
+            return m;
+        }
+
+        /// <summary>Rising glowing embers (bonfires, braziers, lanterns).</summary>
+        internal static ParticleSystem MakeEmbers(Transform parent, Vector3 localPos, float rate)
+        {
+            var go = new GameObject("Embers");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            var ps = go.AddComponent<ParticleSystem>();
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 1.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.07f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.55f, 0.15f), new Color(1f, 0.8f, 0.35f));
+            main.gravityModifier = -0.12f;
+            main.maxParticles = 200;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            var em = ps.emission;
+            em.rateOverTime = rate;
+
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 15f;
+            shape.radius = 0.35f;
+
+            var noise = ps.noise;
+            noise.enabled = true;
+            noise.strength = 0.4f;
+            noise.frequency = 0.6f;
+
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 0.3f, 0.1f), 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+
+            go.GetComponent<ParticleSystemRenderer>().sharedMaterial = ParticleMat("EmberParticle", true);
+            return ps;
+        }
+
+        /// <summary>Ash and dust drifting in the air around the camera (Bloodborne mood).</summary>
+        internal static ParticleSystem MakeAsh(Transform cam)
+        {
+            var go = new GameObject("Ash In The Air");
+            go.transform.SetParent(cam, false);
+            go.transform.localPosition = new Vector3(0f, 0f, 8f);
+            var ps = go.AddComponent<ParticleSystem>();
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(6f, 10f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.25f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.015f, 0.045f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.85f, 0.82f, 0.78f, 0.55f), new Color(0.6f, 0.55f, 0.5f, 0.35f));
+            main.gravityModifier = 0.01f;
+            main.maxParticles = 600;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            var em = ps.emission;
+            em.rateOverTime = 60f;
+
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(36f, 14f, 36f);
+
+            var noise = ps.noise;
+            noise.enabled = true;
+            noise.strength = 0.25f;
+            noise.frequency = 0.2f;
+
+            go.GetComponent<ParticleSystemRenderer>().sharedMaterial = ParticleMat("AshParticle", false);
+            return ps;
         }
 
         internal static GameObject Prim(PrimitiveType type, string name, Transform parent, Vector3 localPos, Vector3 scale, Material mat, bool keepCollider = true)

@@ -52,6 +52,12 @@ namespace Rafidain
         Color[] baseColors;
 
         public bool IsDead => state == State.Dead;
+        public float CurrentSpeed { get; private set; }
+
+        public event System.Action OnAttackStart;
+        public event System.Action OnHitTaken;
+        public event System.Action OnDied;
+        public event System.Action OnReset;
         public float HealthRatio => maxHealth > 0 ? health / maxHealth : 0f;
         public bool IsPhase2 => phase2;
 
@@ -79,6 +85,7 @@ namespace Rafidain
         void Update()
         {
             if (state == State.Dead) return;
+            CurrentSpeed = 0f;
             ApplyGravity();
 
             if (player == null || player.IsDead)
@@ -145,6 +152,7 @@ namespace Rafidain
             for (int h = 0; h < hits; h++)
             {
                 // Windup with red telegraph glow
+                OnAttackStart?.Invoke();
                 float w = windup / speedMul * (h > 0 ? 0.6f : 1f);
                 float t = 0f;
                 while (t < w)
@@ -167,6 +175,7 @@ namespace Rafidain
                 {
                     t += Time.deltaTime;
                     Move(transform.forward * lungeSpeed);
+                    CurrentSpeed = 0f;
                     if (!landed && player != null && InReach())
                         landed = player.TakeDamage(damage * (phase2 ? 1.2f : 1f), transform.position);
                     yield return null;
@@ -190,6 +199,7 @@ namespace Rafidain
             if (state == State.Dead) return false;
             health -= amount;
             StartCoroutine(HitFlash());
+            OnHitTaken?.Invoke();
 
             if (state == State.Idle || state == State.Return) Engage();
 
@@ -208,6 +218,8 @@ namespace Rafidain
             StopAllCoroutines();
             state = State.Dead;
             health = 0f;
+            CurrentSpeed = 0f;
+            OnDied?.Invoke();
             if (player != null) player.AddEmbers(emberReward);
 
             if (isBoss)
@@ -228,6 +240,7 @@ namespace Rafidain
         IEnumerator DeathRoutine()
         {
             if (cc != null) cc.enabled = false;
+            if (GetComponent<EnemyAnimator>() != null) yield return new WaitForSeconds(2.2f); // let the death animation play
             float t = 0f;
             Vector3 start = transform.position;
             while (t < 1.2f)
@@ -253,6 +266,7 @@ namespace Rafidain
             verticalVelocity = 0f;
             state = State.Idle;
             SetTint(0f, Color.red);
+            OnReset?.Invoke();
         }
 
         IEnumerator HitFlash()
@@ -277,6 +291,7 @@ namespace Rafidain
         void Move(Vector3 velocity)
         {
             if (cc != null && cc.enabled) cc.Move(velocity * Time.deltaTime);
+            CurrentSpeed = new Vector3(velocity.x, 0f, velocity.z).magnitude;
         }
 
         void ApplyGravity()

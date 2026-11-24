@@ -51,7 +51,7 @@ namespace Rafidain.EditorTools
             try
             {
                 EditorUtility.DisplayProgressBar("Rafidain", "Rigging Furat as Humanoid…", 0.1f);
-                var avatar = PrepareModel(modelPath);
+                var avatar = PrepareModel(modelPath, Root);
                 if (avatar == null || !avatar.isHuman)
                 {
                     Dialog("The character could not be rigged as Humanoid.\nDownload it from Mixamo as 'FBX for Unity' with skin.");
@@ -59,7 +59,7 @@ namespace Rafidain.EditorTools
                 }
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Importing animations…", 0.4f);
-                var clips = PrepareAnimations(avatar);
+                var clips = PrepareAnimations(avatar, AnimFolder);
                 if (!clips.ContainsKey("idle"))
                 {
                     Dialog("At least an Idle animation is needed in:\n" + AnimFolder);
@@ -67,7 +67,7 @@ namespace Rafidain.EditorTools
                 }
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Building the Animator…", 0.7f);
-                var controller = BuildController(clips);
+                var controller = BuildController(clips, ControllerPath);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Putting Furat in the world…", 0.9f);
                 PlaceModel(furat, modelPath, avatar, controller);
@@ -82,7 +82,7 @@ namespace Rafidain.EditorTools
 
         // ------------------------------------------------------------------
 
-        static Avatar PrepareModel(string modelPath)
+        static Avatar PrepareModel(string modelPath, string Root)
         {
             var mi = (ModelImporter)AssetImporter.GetAtPath(modelPath);
             if (mi.animationType != ModelImporterAnimationType.Human)
@@ -103,10 +103,10 @@ namespace Rafidain.EditorTools
             return AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<Avatar>().FirstOrDefault();
         }
 
-        static Dictionary<string, AnimationClip> PrepareAnimations(Avatar avatar)
+        static Dictionary<string, AnimationClip> PrepareAnimations(Avatar avatar, string animFolder)
         {
             var clips = new Dictionary<string, AnimationClip>();
-            foreach (var raw in Directory.GetFiles(AnimFolder, "*.fbx", SearchOption.AllDirectories))
+            foreach (var raw in Directory.GetFiles(animFolder, "*.fbx", SearchOption.AllDirectories))
             {
                 string path = raw.Replace('\\', '/');
                 string key = Classify(Path.GetFileNameWithoutExtension(path));
@@ -158,10 +158,10 @@ namespace Rafidain.EditorTools
             return null;
         }
 
-        static AnimatorController BuildController(Dictionary<string, AnimationClip> clips)
+        static AnimatorController BuildController(Dictionary<string, AnimationClip> clips, string controllerPath, float attackSeconds = 0.62f, float heavySeconds = 1.3f)
         {
-            AssetDatabase.DeleteAsset(ControllerPath);
-            var ctrl = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
+            AssetDatabase.DeleteAsset(controllerPath);
+            var ctrl = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
             ctrl.AddParameter("Speed", AnimatorControllerParameterType.Float);
             foreach (var t in new[] { "Attack", "Heavy", "Dodge", "Hit", "Heal" })
                 ctrl.AddParameter(t, AnimatorControllerParameterType.Trigger);
@@ -181,8 +181,8 @@ namespace Rafidain.EditorTools
             sm.defaultState = loco;
 
             // One-shot actions, each fitted to the gameplay timing
-            AddAction(sm, loco, clips, "attack", "Attack", 0.62f);
-            AddAction(sm, loco, clips, "heavy", "Heavy", 1.3f);
+            AddAction(sm, loco, clips, "attack", "Attack", attackSeconds);
+            AddAction(sm, loco, clips, "heavy", "Heavy", heavySeconds);
             AddAction(sm, loco, clips, "roll", "Dodge", 0.55f);
             AddAction(sm, loco, clips, "hit", "Hit", 0.4f);
             AddAction(sm, loco, clips, "heal", "Heal", 1.0f);
@@ -289,6 +289,122 @@ namespace Rafidain.EditorTools
 
             EditorSceneManager.MarkSceneDirty(furat.gameObject.scene);
             EditorSceneManager.SaveScene(furat.gameObject.scene);
+        }
+
+        // ==================================================================
+        // Enemies
+        // ==================================================================
+
+        const string EnemyRoot = "Assets/Rafidain/Characters/Enemies";
+        static readonly string[] EnemyTypes = { "Hollow", "Brute", "Guardian" };
+
+        [MenuItem("Rafidain/Setup Enemy Characters (Mixamo)")]
+        public static void SetupEnemies()
+        {
+            foreach (var t in EnemyTypes)
+            {
+                RafidainSceneBuilder.EnsureFolder($"{EnemyRoot}/{t}/Model");
+                RafidainSceneBuilder.EnsureFolder($"{EnemyRoot}/{t}/Animations");
+            }
+            AssetDatabase.Refresh();
+
+            var enemies = Object.FindObjectsByType<EnemyAI>(FindObjectsInactive.Include);
+            if (enemies.Length == 0) { Dialog("Open the game scene first."); return; }
+
+            var ready = new Dictionary<string, (string model, Avatar avatar, AnimatorController ctrl)>();
+            try
+            {
+                for (int i = 0; i < EnemyTypes.Length; i++)
+                {
+                    string type = EnemyTypes[i];
+                    string root = $"{EnemyRoot}/{type}";
+                    EditorUtility.DisplayProgressBar("Rafidain", $"Preparing {type}…", (i + 0.5f) / EnemyTypes.Length);
+                    string model = FindFbx(root + "/Model");
+                    if (model == null) continue;
+                    var avatar = PrepareModel(model, root);
+                    if (avatar == null || !avatar.isHuman) continue;
+                    var clips = PrepareAnimations(avatar, root + "/Animations");
+                    if (!clips.ContainsKey("idle")) continue;
+                    float attack = type == "Guardian" ? 1.05f : type == "Brute" ? 1.15f : 0.85f;
+                    var ctrl = BuildController(clips, $"{root}/{type}Animator.controller", attack, attack * 1.5f);
+                    ready[type] = (model, avatar, ctrl);
+                }
+
+                int count = 0;
+                foreach (var e in enemies)
+                {
+                    string type = e.isBoss ? "Guardian" : e.displayName.ToLowerInvariant().Contains("brute") ? "Brute" : "Hollow";
+                    if (!ready.ContainsKey(type)) type = ready.ContainsKey("Hollow") ? "Hollow" : null;
+                    if (type == null) continue;
+                    var r = ready[type];
+                    PlaceEnemyModel(e, r.model, r.avatar, r.ctrl);
+                    count++;
+                }
+
+                if (count > 0)
+                {
+                    var scene = enemies[0].gameObject.scene;
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+                Dialog(count > 0
+                    ? $"{count} enemies now have real models.\n\nTypes ready: {string.Join(", ", ready.Keys)}"
+                    : "No enemy models found.\n\nPut FBX files in:\n" + EnemyRoot + "/Hollow/Model (and /Animations)\nBrute and Guardian are optional.");
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
+        static void PlaceEnemyModel(EnemyAI enemy, string modelPath, Avatar avatar, AnimatorController ctrl)
+        {
+            var root = enemy.transform;
+            var old = root.Find("EnemyModel");
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+            model.name = "EnemyModel";
+            model.transform.localPosition = new Vector3(0f, -1f, 0f);
+            model.transform.localRotation = Quaternion.identity;
+            model.transform.localScale = Vector3.one;
+
+            // fit to the capsule (local height 2 = 1.85 m body), the enemy's own scale does the rest
+            var renderers = model.GetComponentsInChildren<Renderer>();
+            if (renderers.Length > 0)
+            {
+                var b = renderers[0].bounds;
+                foreach (var rr in renderers) b.Encapsulate(rr.bounds);
+                float worldTarget = 1.85f * root.lossyScale.y;
+                if (b.size.y > 0.01f) model.transform.localScale = Vector3.one * (worldTarget / b.size.y);
+            }
+
+            var anim = model.GetComponent<Animator>();
+            if (anim == null) anim = model.AddComponent<Animator>();
+            anim.avatar = avatar;
+            anim.runtimeAnimatorController = ctrl;
+            anim.applyRootMotion = false;
+            anim.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+
+            var capsule = root.GetComponent<MeshRenderer>();
+            if (capsule != null) capsule.enabled = false;
+            var visor = root.Find("Visor");
+            if (visor != null) visor.gameObject.SetActive(false);
+
+            // the placeholder blade goes into the right hand
+            var pivot = root.Find("WeaponPivot");
+            var hand = model.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.EndsWith("RightHand"));
+            if (pivot != null && hand != null)
+            {
+                pivot.SetParent(hand, true);
+                pivot.position = hand.position;
+                pivot.rotation = hand.rotation;
+            }
+
+            var ea = enemy.GetComponent<EnemyAnimator>();
+            if (ea == null) ea = enemy.gameObject.AddComponent<EnemyAnimator>();
+            ea.animator = anim;
         }
 
         static string FindFbx(string folder)

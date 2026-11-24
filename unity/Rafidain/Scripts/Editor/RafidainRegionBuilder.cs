@@ -68,6 +68,8 @@ namespace Rafidain.EditorTools
                 terrain.heightmapPixelError = 3f;
                 terrain.basemapDistance = 500f;
                 terrain.drawInstanced = true;
+                terrain.detailObjectDistance = 110f;
+                terrain.detailObjectDensity = 1f;
                 var terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
                 if (terrainShader != null)
                 {
@@ -96,6 +98,13 @@ namespace Rafidain.EditorTools
                 var hollowMat = RafidainSceneBuilder.Mat("Hollow", new Color(0.33f, 0.29f, 0.26f), 0.1f);
                 var guardianMat = RafidainSceneBuilder.Mat("Guardian", new Color(0.32f, 0.24f, 0.14f), 0.55f, 0.6f);
                 var steel = RafidainSceneBuilder.Mat("Steel", new Color(0.72f, 0.72f, 0.74f), 0.85f, 1f);
+                var wood = RafidainSceneBuilder.Mat("DarkWood", new Color(0.22f, 0.14f, 0.08f), 0.2f);
+                var tile = RafidainSceneBuilder.Mat("TurquoiseTile", new Color(0.08f, 0.42f, 0.48f), 0.75f);
+                var palmBark = RafidainSceneBuilder.Mat("PalmBark", new Color(0.36f, 0.27f, 0.18f), 0.05f);
+                var palmLeaf = RafidainSceneBuilder.Mat("PalmLeaf", new Color(0.25f, 0.33f, 0.14f), 0.1f);
+                var glow = RafidainSceneBuilder.Mat("LanternGlow", new Color(1f, 0.7f, 0.35f), 0.3f);
+                glow.EnableKeyword("_EMISSION");
+                glow.SetColor("_EmissionColor", new Color(1f, 0.6f, 0.25f) * 4f);
                 var ember = RafidainSceneBuilder.Mat("Ember", new Color(1f, 0.45f, 0.1f), 0.5f);
                 ember.EnableKeyword("_EMISSION");
                 ember.SetColor("_EmissionColor", new Color(1f, 0.45f, 0.1f) * 5f);
@@ -107,12 +116,13 @@ namespace Rafidain.EditorTools
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Building Zakho old town…", 0.6f);
                 var world = new GameObject("World").transform;
-                BuildTown(world, terrainData, mud1, mud2, limestone, roofMat, stone);
+                BuildTown(world, terrainData, mud1, mud2, limestone, roofMat, stone, wood, tile, glow);
                 BuildBridge(world, stone);
-                BuildArena(world, stone);
+                BuildArena(world, stone, glow);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Planting oak forest and rocks…", 0.75f);
                 ScatterNature(world, terrainData, bark, leaves, rockMat);
+                ScatterPalms(world, terrainData, palmBark, palmLeaf);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Placing Furat, enemies and flames…", 0.9f);
                 PlaceGameplay(terrainData, sun, furatMat, hollowMat, guardianMat, steel, ember, stone);
@@ -270,7 +280,97 @@ namespace Rafidain.EditorTools
                 }
             }
             td.SetAlphamaps(0, 0, maps);
+            PaintGrass(td, maps);
             EditorUtility.SetDirty(td);
+        }
+
+        // Wild grass tufts on grassy ground (terrain details, wave in the wind)
+        static void PaintGrass(TerrainData td, float[,,] maps)
+        {
+            var grassTex = GrassBladeTexture();
+            if (grassTex == null) return;
+
+            var proto = new DetailPrototype
+            {
+                prototypeTexture = grassTex,
+                renderMode = DetailRenderMode.GrassBillboard,
+                usePrototypeMesh = false,
+                minWidth = 0.6f, maxWidth = 1.3f,
+                minHeight = 0.35f, maxHeight = 0.9f,
+                healthyColor = new Color(0.55f, 0.62f, 0.32f),
+                dryColor = new Color(0.72f, 0.66f, 0.40f),
+                noiseSpread = 0.3f
+            };
+            td.detailPrototypes = new[] { proto };
+            const int DetailRes = 1024;
+            td.SetDetailResolution(DetailRes, 16);
+            td.wavingGrassStrength = 0.35f;
+            td.wavingGrassSpeed = 0.4f;
+            td.wavingGrassAmount = 0.35f;
+            td.wavingGrassTint = new Color(0.75f, 0.75f, 0.6f);
+
+            var layer = new int[DetailRes, DetailRes];
+            var rng = new System.Random(7);
+            for (int y = 0; y < DetailRes; y++)
+            {
+                int ay = Mathf.Min(AlphaRes - 1, y * AlphaRes / DetailRes);
+                for (int x = 0; x < DetailRes; x++)
+                {
+                    int ax = Mathf.Min(AlphaRes - 1, x * AlphaRes / DetailRes);
+                    float grass = maps[ay, ax, 0] + maps[ay, ax, 1] * 0.3f;
+                    if (grass < 0.35f) continue;
+                    double r = rng.NextDouble();
+                    layer[y, x] = r < grass * 0.85f ? 1 + (int)(grass * 3f) : 0;
+                }
+            }
+            td.SetDetailLayer(0, 0, 0, layer);
+        }
+
+        static Texture2D GrassBladeTexture()
+        {
+            string path = $"{Gen}/GrassBlades.png";
+            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (existing != null) return existing;
+
+            const int W = 128, H = 128;
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false);
+            var clear = new Color(0.4f, 0.45f, 0.25f, 0f);
+            for (int y = 0; y < H; y++) for (int x = 0; x < W; x++) tex.SetPixel(x, y, clear);
+
+            var rng = new System.Random(11);
+            for (int b = 0; b < 16; b++)
+            {
+                float baseX = 10 + (float)rng.NextDouble() * (W - 20);
+                float height = H * (0.55f + (float)rng.NextDouble() * 0.45f);
+                float lean = ((float)rng.NextDouble() - 0.5f) * 30f;
+                float width = 2.5f + (float)rng.NextDouble() * 2.5f;
+                var col = Color.Lerp(new Color(0.32f, 0.42f, 0.16f), new Color(0.58f, 0.60f, 0.30f), (float)rng.NextDouble());
+                for (int y = 0; y < (int)height; y++)
+                {
+                    float t = y / height;
+                    float cx = baseX + lean * t * t;
+                    float w = width * (1f - t);
+                    for (int x = Mathf.FloorToInt(cx - w); x <= Mathf.CeilToInt(cx + w); x++)
+                    {
+                        if (x < 0 || x >= W) continue;
+                        var c = col * (0.7f + 0.3f * t);
+                        c.a = 1f;
+                        tex.SetPixel(x, y, c);
+                    }
+                }
+            }
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp != null)
+            {
+                imp.alphaIsTransparency = true;
+                imp.wrapMode = TextureWrapMode.Clamp;
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         static void FindImported(string layer, out Texture2D diffuse, out Texture2D normal)
@@ -345,32 +445,34 @@ namespace Rafidain.EditorTools
         {
             var sun = Object.FindAnyObjectByType<Light>();
             sun.name = "Sun";
-            sun.color = new Color(1f, 0.82f, 0.62f);
-            sun.intensity = 2.0f;
+            // low golden-hour sun: long shadows, dark-fantasy mood
+            sun.color = new Color(1f, 0.64f, 0.40f);
+            sun.intensity = 1.75f;
             sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.Euler(18f, -30f, 0f);
+            sun.shadowStrength = 0.9f;
+            sun.transform.rotation = Quaternion.Euler(10f, -35f, 0f);
 
             var skyShader = Shader.Find("Skybox/Procedural");
             if (skyShader != null)
             {
                 var sky = new Material(skyShader);
                 sky.SetFloat("_SunSize", 0.035f);
-                sky.SetFloat("_AtmosphereThickness", 1.15f);
-                sky.SetColor("_SkyTint", new Color(0.52f, 0.53f, 0.58f));
+                sky.SetFloat("_AtmosphereThickness", 1.55f);
+                sky.SetColor("_SkyTint", new Color(0.46f, 0.43f, 0.50f));
                 sky.SetColor("_GroundColor", new Color(0.35f, 0.32f, 0.28f));
-                sky.SetFloat("_Exposure", 1.15f);
+                sky.SetFloat("_Exposure", 1.0f);
                 AssetDatabase.CreateAsset(sky, $"{Gen}/ZakhoSky.mat");
                 RenderSettings.skybox = sky;
             }
             RenderSettings.sun = sun;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
-            RenderSettings.fogColor = new Color(0.68f, 0.66f, 0.62f);
-            RenderSettings.fogDensity = 0.0028f;
+            RenderSettings.fogColor = new Color(0.53f, 0.47f, 0.45f);
+            RenderSettings.fogDensity = 0.0042f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.55f, 0.58f, 0.64f);
-            RenderSettings.ambientEquatorColor = new Color(0.46f, 0.41f, 0.35f);
-            RenderSettings.ambientGroundColor = new Color(0.17f, 0.14f, 0.11f);
+            RenderSettings.ambientSkyColor = new Color(0.42f, 0.42f, 0.50f);
+            RenderSettings.ambientEquatorColor = new Color(0.45f, 0.36f, 0.30f);
+            RenderSettings.ambientGroundColor = new Color(0.12f, 0.10f, 0.09f);
             return sun;
         }
 
@@ -378,7 +480,8 @@ namespace Rafidain.EditorTools
         // Old town, bridge, arena
         // =====================================================================
 
-        static void BuildTown(Transform world, TerrainData td, Material mudA, Material mudB, Material lime, Material roof, Material stone)
+        static void BuildTown(Transform world, TerrainData td, Material mudA, Material mudB, Material lime, Material roof, Material stone,
+            Material wood, Material tile, Material glow)
         {
             var town = new GameObject("Zakho Old Town").transform;
             town.SetParent(world);
@@ -438,6 +541,17 @@ namespace Rafidain.EditorTools
                             var door = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Door", town,
                                 new Vector3(lc.x, TownHeight + 1.1f, lc.y - d * 0.5f - 0.02f), new Vector3(1.3f, 2.3f, 0.1f), roof, keepCollider: false);
                             door.isStatic = true;
+                            // shanasheel: wooden bay window on the upper floor (Baghdadi / Mosuli houses)
+                            if (floors >= 2 && Random.value < 0.6f)
+                            {
+                                var sh = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Shanasheel", town,
+                                    new Vector3(lc.x + Random.Range(-w * 0.2f, w * 0.2f), TownHeight + 4.6f, lc.y - d * 0.5f - 0.55f),
+                                    new Vector3(w * 0.45f, 2.3f, 1.1f), wood, keepCollider: false);
+                                sh.isStatic = true;
+                                var shRoof = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "ShanasheelCap", town,
+                                    sh.transform.position + Vector3.up * 1.25f, new Vector3(w * 0.5f, 0.2f, 1.4f), roof, keepCollider: false);
+                                shRoof.isStatic = true;
+                            }
                         }
                     }
                 }
@@ -451,7 +565,58 @@ namespace Rafidain.EditorTools
                 new Vector3(plaza.x + 8f, TownHeight + 24f, plaza.y + 8f), new Vector3(4.6f, 0.4f, 4.6f), stone, keepCollider: false);
             RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "MinaretTop", town,
                 new Vector3(plaza.x + 8f, TownHeight + 29f, plaza.y + 8f), new Vector3(2.6f, 3.4f, 2.6f), lime, keepCollider: false);
+            // mosque with turquoise dome beside the minaret
+            var mosque = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Mosque", town,
+                new Vector3(plaza.x - 5f, TownHeight + 3.5f, plaza.y + 7f), new Vector3(14f, 7f, 14f), lime);
+            mosque.isStatic = true;
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "DomeDrum", town,
+                new Vector3(plaza.x - 5f, TownHeight + 7.5f, plaza.y + 7f), new Vector3(10f, 0.6f, 10f), lime, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Dome", town,
+                new Vector3(plaza.x - 5f, TownHeight + 8f, plaza.y + 7f), new Vector3(10f, 9f, 10f), tile, keepCollider: false);
+
+            // street lanterns at crossings
+            for (int i = 0; i <= cells; i++)
+            {
+                for (int j = 0; j <= cells; j++)
+                {
+                    if ((i + j) % 2 != 0) continue;
+                    var p = origin + new Vector2(i * BlockSize + StreetWidth * 0.5f, j * BlockSize + StreetWidth * 0.5f);
+                    if (Vector2.Distance(p, TownCenter) > TownRadius - 10f) continue;
+                    MakeLantern(town, new Vector3(p.x + 3.5f, TownHeight, p.y + 3.5f), wood, glow);
+                }
+            }
+
+            // town gate on the southern road
+            float gz = TownCenter.y - TownRadius - 6f;
+            float gx = RoadX(gz);
+            float gy = RoadTarget(gz);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "GatePillarL", town, new Vector3(gx - 7f, gy + 4.5f, gz), new Vector3(2.6f, 9f, 2.6f), lime);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "GatePillarR", town, new Vector3(gx + 7f, gy + 4.5f, gz), new Vector3(2.6f, 9f, 2.6f), lime);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "GateLintel", town, new Vector3(gx, gy + 9.8f, gz), new Vector3(17f, 2.2f, 2.8f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "GateCrown", town, new Vector3(gx, gy + 11.4f, gz), new Vector3(6f, 1.2f, 2.2f), tile, keepCollider: false);
+            MakeLantern(town, new Vector3(gx - 5f, gy, gz - 2.5f), wood, glow);
+            MakeLantern(town, new Vector3(gx + 5f, gy, gz - 2.5f), wood, glow);
+
             PlazaCenter = plaza;
+        }
+
+        static void MakeLantern(Transform parent, Vector3 basePos, Material wood, Material glow)
+        {
+            var root = new GameObject("Lantern").transform;
+            root.SetParent(parent);
+            root.position = basePos;
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Pole", root, new Vector3(0f, 1.6f, 0f), new Vector3(0.14f, 1.6f, 0.14f), wood);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Lamp", root, new Vector3(0f, 3.4f, 0f), new Vector3(0.42f, 0.6f, 0.42f), glow, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "LampCap", root, new Vector3(0f, 3.78f, 0f), new Vector3(0.6f, 0.12f, 0.6f), wood, keepCollider: false);
+            var lightGo = new GameObject("LanternLight");
+            lightGo.transform.SetParent(root, false);
+            lightGo.transform.localPosition = new Vector3(0f, 3.3f, 0f);
+            var l = lightGo.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = new Color(1f, 0.62f, 0.32f);
+            l.range = 10f;
+            l.intensity = 2.6f;
+            l.shadows = LightShadows.None;
         }
 
         static Vector2 PlazaCenter;
@@ -484,7 +649,7 @@ namespace Rafidain.EditorTools
             arch.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
         }
 
-        static void BuildArena(Transform world, Material stone)
+        static void BuildArena(Transform world, Material stone, Material glow)
         {
             var arena = new GameObject("Guardian Arena").transform;
             arena.SetParent(world);
@@ -497,6 +662,43 @@ namespace Rafidain.EditorTools
                 float h = (i % 3 == 0) ? Random.Range(2f, 5f) : 10f;
                 RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Column", arena,
                     c + new Vector3(Mathf.Cos(a) * 17f, h * 0.5f, Mathf.Sin(a) * 17f), new Vector3(1.6f, h * 0.5f, 1.6f), stone);
+            }
+
+            // braziers lighting the duel
+            for (int i = 0; i < 4; i++)
+            {
+                float a = (i + 0.5f) / 4f * Mathf.PI * 2f;
+                var bp = c + new Vector3(Mathf.Cos(a) * 12f, 0f, Mathf.Sin(a) * 12f);
+                var br = new GameObject("Brazier").transform;
+                br.SetParent(arena);
+                br.position = bp;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Stand", br, new Vector3(0f, 0.6f, 0f), new Vector3(0.5f, 0.6f, 0.5f), stone);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Bowl", br, new Vector3(0f, 1.3f, 0f), new Vector3(1.4f, 0.15f, 1.4f), stone, keepCollider: false);
+                RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Fire", br, new Vector3(0f, 1.45f, 0f), new Vector3(0.9f, 0.4f, 0.9f), glow, keepCollider: false);
+                var fl = new GameObject("FireLight");
+                fl.transform.SetParent(br, false);
+                fl.transform.localPosition = new Vector3(0f, 2f, 0f);
+                var l = fl.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.color = new Color(1f, 0.5f, 0.2f);
+                l.range = 14f;
+                l.intensity = 3.5f;
+                l.shadows = i == 0 ? LightShadows.Soft : LightShadows.None;
+                RafidainSceneBuilder.MakeEmbers(br, new Vector3(0f, 1.5f, 0f), 18f);
+            }
+
+            // two Assyrian guardian statues (winged-bull style) at the entrance
+            for (int s = -1; s <= 1; s += 2)
+            {
+                var st = new GameObject("Guardian Statue").transform;
+                st.SetParent(arena);
+                st.position = c + new Vector3(s * 6f, 0f, -21f);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Plinth", st, new Vector3(0f, 0.75f, 0f), new Vector3(3.4f, 1.5f, 6.4f), stone);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Body", st, new Vector3(0f, 3.4f, 0f), new Vector3(2.6f, 3.8f, 5.6f), stone);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Wing", st, new Vector3(s * 1.4f, 4.4f, 0.4f), new Vector3(0.4f, 3.4f, 4.6f), stone, keepCollider: false);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Head", st, new Vector3(0f, 6.1f, -2.3f), new Vector3(1.6f, 1.9f, 1.6f), stone, keepCollider: false);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Beard", st, new Vector3(0f, 5.0f, -2.85f), new Vector3(1.2f, 1.3f, 0.5f), stone, keepCollider: false);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Crown", st, new Vector3(0f, 7.4f, -2.3f), new Vector3(1.5f, 0.6f, 1.5f), stone, keepCollider: false);
             }
         }
 
@@ -547,6 +749,47 @@ namespace Rafidain.EditorTools
             }
         }
 
+        static void ScatterPalms(Transform world, TerrainData td, Material bark, Material leaf)
+        {
+            var grove = new GameObject("Palm Groves (Khabur banks)").transform;
+            grove.SetParent(world);
+            int placed = 0, tries = 0;
+            while (placed < 80 && tries < 8000)
+            {
+                tries++;
+                float x = Random.Range(30f, Size - 30f);
+                float dRiver = Random.Range(30f, 75f) * (Random.value < 0.5f ? -1f : 1f);
+                float z = RiverZ(x) + dRiver;
+                float h = td.GetInterpolatedHeight(x / Size, z / Size);
+                if (h < WaterLevel + 1f || h > 50f) continue;
+                if (Mathf.Abs(x - RoadX(z)) < 16f) continue;
+
+                var palm = new GameObject("Palm").transform;
+                palm.SetParent(grove);
+                palm.position = new Vector3(x, h - 0.2f, z);
+                palm.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+
+                int segs = Random.Range(6, 9);
+                float lean = Random.Range(0.05f, 0.25f);
+                Vector3 top = Vector3.zero;
+                for (int i = 0; i < segs; i++)
+                {
+                    var seg = RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Trunk", palm,
+                        new Vector3(lean * i * i * 0.12f, 0.75f + i * 1.45f, 0f), new Vector3(0.42f - i * 0.015f, 0.75f, 0.42f - i * 0.015f), bark, keepCollider: i == 0);
+                    top = seg.transform.localPosition + Vector3.up * 0.8f;
+                }
+                for (int f = 0; f < 10; f++)
+                {
+                    var pivot = new GameObject("Frond").transform;
+                    pivot.SetParent(palm, false);
+                    pivot.localPosition = top;
+                    pivot.localRotation = Quaternion.Euler(Random.Range(18f, 40f), f * 36f + Random.Range(-8f, 8f), 0f);
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Leaf", pivot, new Vector3(0f, 0f, 2.2f), new Vector3(0.7f, 0.06f, 4.4f), leaf, keepCollider: false);
+                }
+                placed++;
+            }
+        }
+
         static bool IsFreeGround(float x, float z, float margin)
         {
             if (z > 20f && z < 975f && Mathf.Abs(x - RoadX(z)) < 12f + margin) return false;
@@ -590,6 +833,7 @@ namespace Rafidain.EditorTools
             rig.target = furat.transform;
             cam.transform.position = furat.transform.position + new Vector3(0f, 2f, -4f);
             cam.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+            RafidainSceneBuilder.MakeAsh(cam.transform);
 
             // Systems
             var sys = new GameObject("_Game");

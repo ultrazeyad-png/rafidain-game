@@ -75,3 +75,47 @@ Rafidain ← Delete Save File
 3. حط كل خامة بمجلدها داخل المشروع:
    `Assets/Rafidain/ImportedTextures/Grass` و `Dirt` و `Rock` و `Road` و `Mud`
 4. أعد البناء: **Rafidain ← Build Zakho Region (Big Map)**، والخامات تنحط بالأرض لوحدها.
+
+
+---
+
+## الشخصيات الواقعية (Mixamo)
+
+موقع **mixamo.com** مجاني من Adobe. سجّل دخول بحساب Adobe (مجاني).
+
+### فرات
+1. من تبويب **Characters** اختار محارب ثقيل (مثلاً بدرع أو عباءة). حاول يكون مظهره قريب لمحارب قديم.
+2. اضغط **Download** ← Format: **FBX for Unity (.fbx)** ← Pose: **T-pose** ← **Download**.
+3. حطه بـ: `Assets/Rafidain/Characters/Furat/Model/`
+
+### الأنميشن (نفس الشخصية محددة)
+من تبويب **Animations** ابحث عن كل وحدة، واضغط **Download** ← **FBX for Unity** ← **Without Skin**.
+وإذا أكو خيار **In Place**، أشّر عليه.
+
+| ابحث عن | خلي اسم الملف يحتوي |
+|---|---|
+| Sword Idle | `idle` |
+| Sword Walk | `walk` |
+| Sword Run | `run` |
+| Sprint | `sprint` |
+| Stand To Roll / Sword Roll | `roll` |
+| Sword Slash | `slash` |
+| Great Sword Slash / Heavy | `heavy` |
+| Sword Impact / Hit Reaction | `hit` |
+| Sword Death / Dying | `death` |
+| Drinking | `drink` |
+
+حطهن كلهن بـ: `Assets/Rafidain/Characters/Furat/Animations/`
+
+بعدين افتح مشهد **Zakho_Region** ← **Rafidain ← Setup Furat Character (Mixamo)** ← **Play**.
+
+### الأعداء
+نفس الطريقة، بس المجلدات:
+- `Assets/Rafidain/Characters/Enemies/Hollow/Model` و `/Animations`: الجنود (شخصية شاحبة أو زومبي).
+- `Assets/Rafidain/Characters/Enemies/Brute/...`: الوحوش الكبار (اختياري).
+- `Assets/Rafidain/Characters/Enemies/Guardian/...`: حارس زاخو (محارب مدرّع ضخم، اختياري).
+
+الأنميشن اللي يحتاجوهن: idle و walk و run و slash و hit و death.
+بعدين: **Rafidain ← Setup Enemy Characters (Mixamo)**.
+
+> ملاحظة: مجلد `Characters` ما يترفع للريبو، لأن ملفاتك تبقى عندك. وكل ما تسوي Pull، إعدادك يبقى مثل ما هو.
