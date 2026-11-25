@@ -1480,6 +1480,15 @@ namespace Rafidain.EditorTools
             boss.emberReward = 2000;
             boss.canLeap = true;
             boss.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            switch (R.id)
+            {
+                case "duhok": boss.special = EnemyAI.BossMove.Wave; break;
+                case "mosul": boss.special = EnemyAI.BossMove.WingGust; break;
+                case "erbil": boss.special = EnemyAI.BossMove.ShieldCharge; break;
+                case "kirkuk": boss.special = EnemyAI.BossMove.FireTrail; break;
+                case "samarra": boss.special = EnemyAI.BossMove.Spin; break;
+                case "baghdad": boss.special = EnemyAI.BossMove.ShadowStep; boss.specialCooldown = 6f; break;
+            }
             if (R.finalRegion)
             {
                 boss.maxHealth = 3200f;

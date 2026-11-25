@@ -80,6 +80,18 @@ namespace Rafidain
             Get().Emit(point, count, new Color(0.65f, 0.58f, 0.48f, 0.6f), 0.6f);
         }
 
+        /// <summary>A ring of particles on the ground (boss shockwaves).</summary>
+        public static void Ring(Vector3 center, float radius, Color color, int count = 48)
+        {
+            var fx = Get();
+            for (int i = 0; i < count; i++)
+            {
+                float a = i / (float)count * Mathf.PI * 2f;
+                var p = center + new Vector3(Mathf.Cos(a), 0.2f, Mathf.Sin(a)) * radius;
+                fx.Emit(p, 1, color, 0.35f);
+            }
+        }
+
         void Emit(Vector3 point, int count, Color color, float speedMul = 1f)
         {
             var p = new ParticleSystem.EmitParams

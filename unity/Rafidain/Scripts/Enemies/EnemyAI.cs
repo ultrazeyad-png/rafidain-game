@@ -45,6 +45,15 @@ namespace Rafidain
         [Range(0f, 1f)] public float phase2Threshold = 0.5f;
         public float phase2SpeedMultiplier = 1.35f;
 
+        public enum BossMove { None, Wave, WingGust, ShieldCharge, FireTrail, Spin, ShadowStep }
+
+        [Header("Signature boss move")]
+        public BossMove special = BossMove.None;
+        public float specialCooldown = 9f;
+        float nextSpecial = 5f;
+        float fireTrailUntil;
+        float nextFirePatch;
+
         [Header("Ranged (archers)")]
         public bool ranged;
         public float preferredRange = 13f;
@@ -179,6 +188,17 @@ namespace Rafidain
                 case State.Chase:
                     if (Vector3.Distance(transform.position, homePosition) > leashRange) { GoHome(); break; }
                     Face(toPlayer);
+                    if (special != BossMove.None && dist < 10f && Time.time > nextSpecial)
+                    {
+                        nextSpecial = Time.time + specialCooldown / speedMul;
+                        StartCoroutine(SpecialRoutine());
+                        break;
+                    }
+                    if (special == BossMove.FireTrail && Time.time < fireTrailUntil && Time.time > nextFirePatch)
+                    {
+                        nextFirePatch = Time.time + 0.35f;
+                        DropFire(transform.position - transform.forward * 1.2f);
+                    }
                     if (canLeap && dist > 6f && dist < 15f && Time.time > nextLeap)
                     {
                         nextLeap = Time.time + leapCooldown / speedMul;
@@ -287,6 +307,129 @@ namespace Rafidain
             float scaledReach = attackReach * reachMul * transform.lossyScale.x;
             if (angle < 0f) angle = attackAngle;
             return to.magnitude <= scaledReach && Vector3.Angle(transform.forward, to) <= angle;
+        }
+
+        // ---------------------------------------------------------------- signature moves
+
+        IEnumerator SpecialRoutine()
+        {
+            state = State.Attack;
+            OnAttackStart?.Invoke();
+            Color tell = special == BossMove.Wave ? new Color(0.3f, 0.6f, 1f)
+                       : special == BossMove.FireTrail ? new Color(1f, 0.4f, 0.05f)
+                       : special == BossMove.ShadowStep ? new Color(0.2f, 0.1f, 0.35f)
+                       : new Color(1f, 0.9f, 0.5f);
+            float wind = 1.0f, t = 0f;
+            while (t < wind)
+            {
+                t += Time.deltaTime;
+                SetTint(t / wind, tell);
+                if (player != null) { Vector3 to = player.transform.position - transform.position; to.y = 0f; Face(to, 1.5f); }
+                yield return null;
+            }
+            SetTint(0f, Color.red);
+            float s = transform.lossyScale.x;
+
+            switch (special)
+            {
+                case BossMove.Wave: // Duhok: a ring of floodwater rolls outward — roll through it
+                {
+                    bool hitDone = false;
+                    for (t = 0f; t < 0.9f; t += Time.deltaTime)
+                    {
+                        float r = Mathf.Lerp(0.5f, 10f, t / 0.9f);
+                        HitFX.Ring(transform.position + Vector3.down * 0.9f * s, r, new Color(0.45f, 0.7f, 1f, 0.8f), 24);
+                        if (!hitDone && player != null)
+                        {
+                            float d = Vector3.Distance(Flat(player.transform.position), Flat(transform.position));
+                            if (Mathf.Abs(d - r) < 0.9f) hitDone = player.TakeDamage(damage * 1.1f, transform.position);
+                        }
+                        yield return null;
+                    }
+                    break;
+                }
+                case BossMove.WingGust: // Mosul: the stone wings beat — a cone that hurls Furat back
+                {
+                    HitFX.Dust(transform.position + transform.forward * 3f, 60);
+                    if (player != null)
+                    {
+                        Vector3 to = player.transform.position - transform.position; to.y = 0f;
+                        if (to.magnitude < 9f && Vector3.Angle(transform.forward, to) < 50f && player.TakeDamage(damage * 0.6f, transform.position))
+                        {
+                            var pc = player.GetComponent<PlayerController>();
+                            if (pc != null) pc.ApplyHitStagger(transform.position, 0.7f, 10f);
+                        }
+                    }
+                    if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.4f);
+                    break;
+                }
+                case BossMove.ShieldCharge: // Erbil: the citadel charges like a battering ram
+                {
+                    bool hitDone = false;
+                    for (t = 0f; t < 0.55f; t += Time.deltaTime)
+                    {
+                        Move(transform.forward * 16f);
+                        if (!hitDone && player != null && Vector3.Distance(player.transform.position, transform.position) < 2.2f * s)
+                            hitDone = player.TakeDamage(damage * 1.3f, transform.position);
+                        yield return null;
+                    }
+                    HitFX.Dust(transform.position, 30);
+                    break;
+                }
+                case BossMove.FireTrail: // Kirkuk: the ground burns wherever he walks for a while
+                    fireTrailUntil = Time.time + 5f;
+                    HitFX.Ring(transform.position + Vector3.down * 0.9f * s, 2.5f, new Color(1f, 0.45f, 0.1f), 40);
+                    DropFire(transform.position);
+                    break;
+                case BossMove.Spin: // Samarra: whirls like the spiral minaret — get out of reach
+                {
+                    float nextTick = 0f;
+                    for (t = 0f; t < 1.8f; t += Time.deltaTime)
+                    {
+                        transform.Rotate(0f, 900f * Time.deltaTime, 0f);
+                        if (player != null) Move((player.transform.position - transform.position).normalized * 2.5f);
+                        if (t > nextTick && player != null && Vector3.Distance(Flat(player.transform.position), Flat(transform.position)) < 3.6f * s * 0.7f)
+                        {
+                            nextTick = t + 0.4f;
+                            player.TakeDamage(damage * 0.45f, transform.position);
+                        }
+                        yield return null;
+                    }
+                    break;
+                }
+                case BossMove.ShadowStep: // Adapa: dissolves into smoke and strikes from behind
+                {
+                    if (player == null) break;
+                    HitFX.Ring(transform.position, 1.5f, new Color(0.15f, 0.05f, 0.25f), 40);
+                    if (cc != null) cc.enabled = false;
+                    Vector3 behind = player.transform.position - player.transform.forward * 2.2f;
+                    behind.y = transform.position.y + (player.transform.position.y - transform.position.y);
+                    transform.position = behind;
+                    if (cc != null) cc.enabled = true;
+                    Vector3 to2 = player.transform.position - transform.position; to2.y = 0f;
+                    if (to2.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(to2);
+                    HitFX.Ring(transform.position, 1.5f, new Color(0.15f, 0.05f, 0.25f), 40);
+                    yield return new WaitForSeconds(0.35f);
+                    if (InReach(1.2f, 90f)) player.TakeDamage(damage * 1.2f, transform.position);
+                    break;
+                }
+            }
+
+            yield return new WaitForSeconds(recovery);
+            if (state == State.Attack) state = State.Chase;
+        }
+
+        static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
+
+        void DropFire(Vector3 at)
+        {
+            var go = new GameObject("Burning Ground");
+            go.transform.position = at + Vector3.down * 0.9f * transform.lossyScale.y;
+            var fh = go.AddComponent<FireHazard>();
+            fh.radius = 1.3f;
+            fh.damagePerTick = 6f;
+            HitFX.Ring(go.transform.position, 0.8f, new Color(1f, 0.45f, 0.1f), 12);
+            Destroy(go, 5f);
         }
 
         IEnumerator ShootRoutine()
