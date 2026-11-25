@@ -62,6 +62,7 @@ namespace Rafidain
         {
             if (!stats.TryUseStamina(a.stamina)) return;
             OnAttack?.Invoke(a == heavyAttack);
+            if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.swing, transform.position, a == heavyAttack ? 1f : 0.7f);
             StartCoroutine(AttackRoutine(a));
         }
 

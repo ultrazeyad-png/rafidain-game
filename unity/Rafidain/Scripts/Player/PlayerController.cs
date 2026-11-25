@@ -119,6 +119,7 @@ namespace Rafidain
                 planarVelocity = Vector3.zero;
                 CurrentSpeed = 0f;
                 OnDodge?.Invoke();
+                if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.roll, transform.position, 0.8f);
                 return;
             }
 

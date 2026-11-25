@@ -188,6 +188,7 @@ namespace Rafidain
                 }
                 SetTint(0f, Color.red);
 
+                if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.swing, transform.position + Vector3.up, 0.8f, 0.15f);
                 // Active frames with lunge
                 bool landed = false;
                 t = 0f;
@@ -275,6 +276,7 @@ namespace Rafidain
             if (state == State.Dead) return false;
             health -= amount;
             StartCoroutine(HitFlash());
+            if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.hit, transform.position + Vector3.up, 0.9f);
             OnHitTaken?.Invoke();
 
             if (state == State.Idle || state == State.Return) Engage();

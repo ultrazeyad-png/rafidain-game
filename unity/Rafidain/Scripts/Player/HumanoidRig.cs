@@ -58,7 +58,12 @@ namespace Rafidain
             float speed = pc != null ? pc.CurrentSpeed : ai != null ? ai.CurrentSpeed : 0f;
             bool dead = lyingDown || (stats != null && stats.IsDead) || (ai != null && ai.IsDead);
 
+            float prevPhase = phase;
             phase += speed * cyclesPerMeter * Mathf.PI * 2f * dt;
+            // a footstep every half stride (only Furat, to keep the soundscape clean)
+            if (pc != null && speed > 0.8f && Mathf.FloorToInt(prevPhase / Mathf.PI) != Mathf.FloorToInt(phase / Mathf.PI)
+                && AudioManager.Instance != null)
+                AudioManager.At(AudioManager.Instance.step, transform.position + Vector3.down * 0.9f, 0.45f, 0.12f);
             float amt = Mathf.Clamp01(speed / 4.5f);
             float swing = Mathf.Sin(phase) * strideAngle * amt;
 

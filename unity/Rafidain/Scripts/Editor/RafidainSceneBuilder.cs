@@ -160,6 +160,7 @@ namespace Rafidain.EditorTools
             sys.AddComponent<MobileControls>();
             sys.AddComponent<IntroSequence>();
             sys.AddComponent<PauseMenu>();
+            AddAudioManager(sys);
             gm.player = furat.GetComponent<PlayerStats>();
             hud.player = gm.player;
 
@@ -265,6 +266,7 @@ namespace Rafidain.EditorTools
             spawn.localPosition = new Vector3(0f, 1.05f, -1.8f);
 
             MakeEmbers(root.transform, new Vector3(0f, 0.35f, 0f), 22f);
+            AddLoop(root, "fire", 0.6f, 16f);
 
             var b = root.AddComponent<Bonfire>();
             b.bonfireId = id;
@@ -514,6 +516,38 @@ namespace Rafidain.EditorTools
             rig.armL = armL; rig.armR = armR;
             rig.cape = capePivot;
             return rig;
+        }
+
+        // ---------- audio ----------
+
+        internal static void AddLoop(GameObject go, string clipName, float volume, float maxDistance)
+        {
+            var clip = ProceduralAudio.Get(clipName);
+            if (clip == null) return;
+            var src = go.AddComponent<AudioSource>();
+            src.clip = clip;
+            src.loop = true;
+            src.playOnAwake = true;
+            src.spatialBlend = 1f;
+            src.volume = volume;
+            src.minDistance = 1.5f;
+            src.maxDistance = maxDistance;
+            src.rolloffMode = AudioRolloffMode.Linear;
+        }
+
+        internal static void AddAudioManager(GameObject sys)
+        {
+            var am = sys.GetComponent<AudioManager>();
+            if (am == null) am = sys.AddComponent<AudioManager>();
+            am.swing = ProceduralAudio.Get("swing");
+            am.hit = ProceduralAudio.Get("hit");
+            am.block = ProceduralAudio.Get("block");
+            am.step = ProceduralAudio.Get("step");
+            am.roll = ProceduralAudio.Get("roll");
+            am.pickup = ProceduralAudio.Get("pickup");
+            am.death = ProceduralAudio.Get("death");
+            am.wind = ProceduralAudio.Get("wind");
+            am.boss = ProceduralAudio.Get("boss");
         }
 
         // ---------- particles ----------

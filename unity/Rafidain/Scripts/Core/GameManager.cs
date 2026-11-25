@@ -82,6 +82,7 @@ namespace Rafidain
         {
             respawning = true;
             SaveSystem.Data.deaths++;
+            if (AudioManager.Instance != null) AudioManager.Instance.Ui(AudioManager.Instance.death, 0.9f);
             if (HUD.Instance != null) { HUD.Instance.ShowDeath(true); HUD.Instance.HideBoss(); }
 
             // Old lost embers vanish forever; current embers drop here

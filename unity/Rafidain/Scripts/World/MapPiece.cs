@@ -38,6 +38,7 @@ namespace Rafidain
         void Collect()
         {
             if (!SaveSystem.Data.mapPieces.Contains(pieceId)) SaveSystem.Data.mapPieces.Add(pieceId);
+            if (AudioManager.Instance != null) AudioManager.Instance.Ui(AudioManager.Instance.pickup, 0.9f);
             if (GameManager.Instance != null) GameManager.Instance.SaveNow();
 
             int found = 0;

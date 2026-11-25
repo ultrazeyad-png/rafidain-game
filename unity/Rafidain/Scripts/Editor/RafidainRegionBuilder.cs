@@ -1041,6 +1041,7 @@ namespace Rafidain.EditorTools
                 l.intensity = 3.5f;
                 l.shadows = i == 0 ? LightShadows.Soft : LightShadows.None;
                 RafidainSceneBuilder.MakeEmbers(br, new Vector3(0f, 1.5f, 0f), 18f);
+                RafidainSceneBuilder.AddLoop(br.gameObject, "fire", 0.45f, 14f);
             }
 
             // two Assyrian guardian statues (winged-bull style) at the entrance
@@ -1238,7 +1239,16 @@ namespace Rafidain.EditorTools
 
             var spots = new System.Collections.Generic.List<Vector3>();
             for (float z = 90f; z < 900f; z += 110f) spots.Add(OnRoad(td, z, Random.Range(-30f, 30f), 0.5f));
-            if (R.river) for (float x = 80f; x < 1000f; x += 140f) spots.Add(new Vector3(x, WaterLevel + 0.6f, RiverZ(x)));
+            if (R.river)
+                for (float x = 80f; x < 1000f; x += 140f)
+                {
+                    var rp = new Vector3(x, WaterLevel + 0.6f, RiverZ(x));
+                    spots.Add(rp);
+                    var water = new GameObject("River Sound");
+                    water.transform.SetParent(fx);
+                    water.transform.position = rp;
+                    RafidainSceneBuilder.AddLoop(water, "river", 0.6f, 45f);
+                }
             if (R.lake) for (int k = 0; k < 6; k++)
             {
                 float a = k / 6f * Mathf.PI * 2f;
@@ -1377,6 +1387,7 @@ namespace Rafidain.EditorTools
             sys.AddComponent<MobileControls>();
             sys.AddComponent<IntroSequence>();
             sys.AddComponent<PauseMenu>();
+            RafidainSceneBuilder.AddAudioManager(sys);
             gm.player = furat.GetComponent<PlayerStats>();
             hud.player = gm.player;
 
@@ -1563,6 +1574,7 @@ namespace Rafidain.EditorTools
                 var em = RafidainSceneBuilder.MakeEmbers(vent, new Vector3(0f, 0.1f, 0f), 28f);
                 var shape = em.shape; shape.radius = 1.3f;
                 vent.gameObject.AddComponent<FireHazard>().radius = 1.6f;
+                if (placed % 2 == 0) RafidainSceneBuilder.AddLoop(vent.gameObject, "fire", 0.5f, 12f);
                 placed++;
             }
         }

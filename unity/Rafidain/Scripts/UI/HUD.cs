@@ -112,12 +112,14 @@ namespace Rafidain
             boss = e;
             bossName.text = ArabicText.Fix(e.displayName);
             bossRoot.SetActive(true);
+            if (AudioManager.Instance != null) AudioManager.Instance.BossMusic(true);
         }
 
         public void HideBoss()
         {
             boss = null;
             if (bossRoot != null) bossRoot.SetActive(false);
+            if (AudioManager.Instance != null) AudioManager.Instance.BossMusic(false);
         }
 
         Coroutine deathCo;
