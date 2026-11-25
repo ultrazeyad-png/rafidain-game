@@ -1417,6 +1417,20 @@ namespace Rafidain.EditorTools
                 townCount++;
             }
 
+            // Archers on the slopes above the road
+            float[] archerZ = { 260f, 560f, 760f };
+            for (int k = 0; k < archerZ.Length; k++)
+            {
+                float side = (k % 2 == 0 ? 1f : -1f) * Random.Range(14f, 22f);
+                var archer = RafidainSceneBuilder.MakeEnemy(enemies, "Hollow Archer", OnRoad(td, archerZ[k], side, 1.05f), hollow, steel, 1f);
+                archer.ranged = true;
+                archer.maxHealth = 55f;
+                archer.damage = 15f;
+                archer.detectRange = 22f;
+                archer.leashRange = 36f;
+                archer.emberReward = 70;
+            }
+
             // Bridge guards
             var brute = RafidainSceneBuilder.MakeEnemy(enemies, "Bridge Brute", OnRoad(td, BridgeZ + 50f, 0f, 1.4f), hollow, steel, 1.35f, 3);
             brute.maxHealth = 180f; brute.damage = 30f; brute.windup = 1.0f; brute.moveSpeed = 2.3f; brute.emberReward = 180;

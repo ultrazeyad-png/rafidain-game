@@ -45,6 +45,13 @@ namespace Rafidain
         [Range(0f, 1f)] public float phase2Threshold = 0.5f;
         public float phase2SpeedMultiplier = 1.35f;
 
+        [Header("Ranged (archers)")]
+        public bool ranged;
+        public float preferredRange = 13f;
+        public float drawTime = 1.1f;
+        public float arrowSpeed = 26f;
+        float nextShot;
+
         [Header("Poise (stagger)")]
         [Tooltip("Damage soaked before the enemy staggers and can be executed. 0 = auto (bosses get more).")]
         public float poise = 0f;
@@ -178,6 +185,14 @@ namespace Rafidain
                         StartCoroutine(LeapRoutine());
                         break;
                     }
+                    if (ranged && dist > attackRange + 0.5f)
+                    {
+                        // archers keep their distance and loose arrows
+                        if (dist < preferredRange - 3f) Move(-transform.forward * moveSpeed * 0.8f);
+                        else if (dist > preferredRange + 5f) Move(transform.forward * moveSpeed);
+                        if (dist < preferredRange + 8f && Time.time > nextShot) StartCoroutine(ShootRoutine());
+                        break;
+                    }
                     if (dist > attackRange) Move(transform.forward * moveSpeed * speedMul);
                     else StartCoroutine(AttackRoutine());
                     break;
@@ -272,6 +287,44 @@ namespace Rafidain
             float scaledReach = attackReach * reachMul * transform.lossyScale.x;
             if (angle < 0f) angle = attackAngle;
             return to.magnitude <= scaledReach && Vector3.Angle(transform.forward, to) <= angle;
+        }
+
+        IEnumerator ShootRoutine()
+        {
+            state = State.Attack;
+            OnAttackStart?.Invoke();
+            float t = 0f;
+            while (t < drawTime)
+            {
+                t += Time.deltaTime;
+                if (player != null)
+                {
+                    Vector3 to = player.transform.position - transform.position; to.y = 0f;
+                    Face(to, 2f);
+                }
+                SetTint(t / drawTime * 0.8f, new Color(1f, 0.85f, 0.3f));
+                yield return null;
+            }
+            SetTint(0f, Color.red);
+            if (player != null)
+            {
+                Vector3 from = transform.position + Vector3.up * 0.55f * transform.lossyScale.y + transform.forward * 0.6f;
+                var pc = player.GetComponent<PlayerController>();
+                Vector3 target = player.transform.position + Vector3.up * 0.3f;
+                if (pc != null) target += player.transform.forward * pc.CurrentSpeed * 0.35f; // lead a moving target a little
+                Vector3 dir = (target - from);
+                float flight = dir.magnitude / arrowSpeed;
+                Vector3 v = dir / flight + Vector3.up * 0.5f * 4f * flight; // compensate the arrow's drop
+                Material m = null;
+                var blade = transform.Find("WeaponPivot/Blade");
+                if (blade == null) foreach (var r in GetComponentsInChildren<Renderer>()) if (r.name == "Blade") { m = r.sharedMaterial; break; }
+                if (blade != null) m = blade.GetComponent<Renderer>().sharedMaterial;
+                Projectile.Fire(from, v, damage, m);
+                if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.swing, from, 0.6f, 0.3f);
+            }
+            nextShot = Time.time + recovery + 1.2f;
+            yield return new WaitForSeconds(0.4f);
+            if (state == State.Attack) state = State.Chase;
         }
 
         IEnumerator LeapRoutine()
