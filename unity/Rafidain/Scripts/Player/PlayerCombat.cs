@@ -81,7 +81,7 @@ namespace Rafidain
             if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(to);
             float t = 0f;
             while (t < 0.3f) { t += Time.deltaTime; SetSwing(Mathf.Lerp(0f, -1f, t / 0.3f)); yield return null; }
-            float dmg = riposteDamage + (victim.isBoss ? victim.maxHealth * 0.12f : victim.maxHealth * 0.6f);
+            float dmg = riposteDamage * stats.DamageMultiplier + (victim.isBoss ? victim.maxHealth * 0.12f : victim.maxHealth * 0.6f);
             victim.TakeRiposte(dmg, transform.position);
             HitFX.Hit(victim.transform.position + Vector3.up * 0.5f, true, new Color(0.8f, 0.1f, 0.06f));
             t = 0f;
@@ -153,7 +153,7 @@ namespace Rafidain
                 var target = col.GetComponentInParent<IDamageable>();
                 if (target == null || target.IsDead || hitThisSwing.Contains(target)) continue;
                 hitThisSwing.Add(target);
-                target.TakeDamage(a.damage, transform.position);
+                target.TakeDamage(a.damage * stats.DamageMultiplier, transform.position);
             }
         }
 

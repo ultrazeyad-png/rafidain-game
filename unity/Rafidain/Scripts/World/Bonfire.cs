@@ -50,6 +50,7 @@ namespace Rafidain
             }
             if (HUD.Instance != null)
                 HUD.Instance.ShowMessage(ArabicText.Fix((firstTime ? "اشتعلت الشعلة" : "استرحت") + "\n" + displayName), 2.5f);
+            if (LevelUpUI.Instance != null) LevelUpUI.Instance.Open();
         }
     }
 }

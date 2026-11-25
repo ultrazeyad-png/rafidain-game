@@ -160,6 +160,7 @@ namespace Rafidain.EditorTools
             sys.AddComponent<MobileControls>();
             sys.AddComponent<IntroSequence>();
             sys.AddComponent<PauseMenu>();
+            sys.AddComponent<LevelUpUI>();
             AddAudioManager(sys);
             gm.player = furat.GetComponent<PlayerStats>();
             hud.player = gm.player;

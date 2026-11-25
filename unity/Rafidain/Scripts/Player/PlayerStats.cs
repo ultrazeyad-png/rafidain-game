@@ -37,11 +37,27 @@ namespace Rafidain
         float lastStaminaUse = -10f;
         PlayerController controller;
 
+        public float DamageMultiplier { get; private set; } = 1f;
+
+        const float BaseHealth = 100f, BaseStamina = 100f;
+
         void Awake()
         {
             controller = GetComponent<PlayerController>();
+            ApplyLevels();
             RestoreAll();
         }
+
+        /// <summary>Recalculate max health/stamina/damage from the levels bought at the flames.</summary>
+        public void ApplyLevels()
+        {
+            var d = SaveSystem.Data;
+            maxHealth = BaseHealth + d.vigor * 8f;
+            maxStamina = BaseStamina + d.endurance * 5f;
+            DamageMultiplier = 1f + d.strength * 0.045f;
+        }
+
+        public static int LevelCost(int level) => Mathf.RoundToInt(260f * Mathf.Pow(1.13f, level - 1));
 
         void Update()
         {

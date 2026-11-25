@@ -9,6 +9,8 @@ namespace Rafidain
     {
         public int embers;
         public bool introSeen;
+        public int level = 1;
+        public int vigor, endurance, strength;
         public string currentScene = "";
         public bool underworldOpened;
         public bool endingSeen;
