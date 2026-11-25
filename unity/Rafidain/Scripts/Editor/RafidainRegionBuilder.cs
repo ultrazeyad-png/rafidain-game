@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -42,8 +43,36 @@ namespace Rafidain.EditorTools
             public string landmark = "";     // nineveh | citadel | fire | malwiya | underworld
             public float townRaise;          // Erbil: the town sits on its citadel mound
             public bool finalRegion;
+            public Mood mood;
             public string ScenePath => $"Assets/Rafidain/Scenes/{sceneName}.unity";
         }
+
+        // Light and air of each governorate
+        class Mood
+        {
+            public float sunPitch = 10f, sunYaw = -35f, sunIntensity = 1.75f;
+            public Color sun = new Color(1f, 0.64f, 0.40f);
+            public Color skyTint = new Color(0.46f, 0.43f, 0.50f);
+            public float atmosphere = 1.55f;
+            public Color fog = new Color(0.53f, 0.47f, 0.45f);
+            public float fogDensity = 0.0042f;
+            public Color ambientSky = new Color(0.50f, 0.50f, 0.58f);
+            public Color ambientEquator = new Color(0.52f, 0.42f, 0.35f);
+            public Color filter = Color.white;
+        }
+
+        static readonly Mood MoodDuhok = new Mood { sunPitch = 16f, sun = new Color(1f, 0.85f, 0.72f), skyTint = new Color(0.42f, 0.5f, 0.62f), atmosphere = 1.1f,
+            fog = new Color(0.55f, 0.6f, 0.66f), fogDensity = 0.0038f, ambientSky = new Color(0.5f, 0.56f, 0.66f), ambientEquator = new Color(0.45f, 0.46f, 0.48f), filter = new Color(0.93f, 0.97f, 1.05f) };
+        static readonly Mood MoodMosul = new Mood { sunPitch = 34f, sunIntensity = 1.9f, sun = new Color(1f, 0.92f, 0.8f), skyTint = new Color(0.5f, 0.5f, 0.55f), atmosphere = 1.0f,
+            fog = new Color(0.7f, 0.66f, 0.6f), fogDensity = 0.0032f, ambientSky = new Color(0.58f, 0.58f, 0.62f), ambientEquator = new Color(0.56f, 0.5f, 0.42f), filter = new Color(1.02f, 1f, 0.95f) };
+        static readonly Mood MoodErbil = new Mood { sunPitch = 22f, sun = new Color(1f, 0.75f, 0.5f), skyTint = new Color(0.5f, 0.45f, 0.45f), atmosphere = 1.35f,
+            fog = new Color(0.66f, 0.58f, 0.48f), fogDensity = 0.0036f, ambientEquator = new Color(0.58f, 0.46f, 0.34f), filter = new Color(1.05f, 0.99f, 0.9f) };
+        static readonly Mood MoodKirkuk = new Mood { sunPitch = 12f, sun = new Color(1f, 0.5f, 0.25f), skyTint = new Color(0.55f, 0.38f, 0.3f), atmosphere = 2.2f,
+            fog = new Color(0.55f, 0.38f, 0.25f), fogDensity = 0.006f, ambientSky = new Color(0.5f, 0.4f, 0.36f), ambientEquator = new Color(0.6f, 0.38f, 0.22f), filter = new Color(1.1f, 0.94f, 0.82f) };
+        static readonly Mood MoodSamarra = new Mood { sunPitch = 7f, sun = new Color(1f, 0.6f, 0.35f), skyTint = new Color(0.52f, 0.44f, 0.4f), atmosphere = 1.9f,
+            fog = new Color(0.62f, 0.52f, 0.4f), fogDensity = 0.005f, ambientEquator = new Color(0.58f, 0.45f, 0.32f), filter = new Color(1.06f, 0.98f, 0.86f) };
+        static readonly Mood MoodBaghdad = new Mood { sunPitch = 4f, sunIntensity = 1.5f, sun = new Color(0.95f, 0.5f, 0.45f), skyTint = new Color(0.4f, 0.3f, 0.5f), atmosphere = 2.0f,
+            fog = new Color(0.38f, 0.3f, 0.42f), fogDensity = 0.005f, ambientSky = new Color(0.42f, 0.36f, 0.55f), ambientEquator = new Color(0.48f, 0.34f, 0.4f), filter = new Color(0.98f, 0.9f, 1.06f) };
 
         static readonly RegionDef Zakho = new RegionDef
         {
@@ -71,6 +100,7 @@ namespace Rafidain.EditorTools
 
         static readonly RegionDef Duhok = new RegionDef
         {
+            mood = MoodDuhok,
             id = "duhok", name = "دهوك", sceneName = "Duhok_Region", terrainName = "Duhok Terrain", townName = "Duhok Town",
             seed = 2047, noiseX = 3100f, noiseZ = 1700f, roadPhase = 1.9f, mountains = 1.15f,
             river = false, lake = true, lakeCenter = new Vector2(250f, 620f), lakeRadius = 115f,
@@ -98,6 +128,7 @@ namespace Rafidain.EditorTools
 
         static readonly RegionDef Mosul = new RegionDef
         {
+            mood = MoodMosul,
             id = "mosul", name = "الموصل", sceneName = "Mosul_Region", terrainName = "Nineveh Terrain", townName = "Old Mosul",
             seed = 3121, noiseX = 5200f, noiseZ = 900f, roadPhase = 3.1f, mountains = 0.55f,
             river = true, tier = 2, landmark = "nineveh",
@@ -113,6 +144,7 @@ namespace Rafidain.EditorTools
 
         static readonly RegionDef Erbil = new RegionDef
         {
+            mood = MoodErbil,
             id = "erbil", name = "اربيل", sceneName = "Erbil_Region", terrainName = "Erbil Terrain", townName = "Erbil Citadel",
             seed = 4409, noiseX = 800f, noiseZ = 6100f, roadPhase = 4.4f, mountains = 0.7f,
             river = false, tier = 3, landmark = "citadel", townRaise = 16f,
@@ -128,6 +160,7 @@ namespace Rafidain.EditorTools
 
         static readonly RegionDef Kirkuk = new RegionDef
         {
+            mood = MoodKirkuk,
             id = "kirkuk", name = "كركوك", sceneName = "Kirkuk_Region", terrainName = "Kirkuk Terrain", townName = "Kirkuk Town",
             seed = 5077, noiseX = 7300f, noiseZ = 4400f, roadPhase = 5.2f, mountains = 0.6f,
             river = false, tier = 4, landmark = "fire",
@@ -143,6 +176,7 @@ namespace Rafidain.EditorTools
 
         static readonly RegionDef Samarra = new RegionDef
         {
+            mood = MoodSamarra,
             id = "samarra", name = "سامراء", sceneName = "Samarra_Region", terrainName = "Samarra Terrain", townName = "Samarra",
             seed = 6151, noiseX = 2600f, noiseZ = 8800f, roadPhase = 0.7f, mountains = 0.45f,
             river = true, tier = 5, landmark = "malwiya",
@@ -158,6 +192,7 @@ namespace Rafidain.EditorTools
 
         static readonly RegionDef Baghdad = new RegionDef
         {
+            mood = MoodBaghdad,
             id = "baghdad", name = "بغداد", sceneName = "Baghdad_Region", terrainName = "Baghdad Terrain", townName = "Old Baghdad",
             seed = 7777, noiseX = 9100f, noiseZ = 2300f, roadPhase = 2.4f, mountains = 0.4f,
             river = true, tier = 6, landmark = "underworld", finalRegion = true,
@@ -316,6 +351,7 @@ namespace Rafidain.EditorTools
                 PlaceGameplay(terrainData, sun, furatMat, hollowMat, guardianMat, steel, ember, stone);
 
                 RafidainSceneBuilder.CreatePostVolume();
+                CreateMoodVolume();
                 PlaceGates(terrainData, stone);
                 PlaceStory(terrainData, stone);
 
@@ -759,24 +795,55 @@ namespace Rafidain.EditorTools
         // Atmosphere
         // =====================================================================
 
+        // A small per-governorate grade layered over the shared one (priority 1)
+        static void CreateMoodVolume()
+        {
+            var m = R.mood ?? new Mood();
+            string path = $"{Gen}/{R.id}_Mood.asset";
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(profile, path);
+            }
+            else
+            {
+                foreach (var old in profile.components.ToArray()) if (old != null) Object.DestroyImmediate(old, true);
+                profile.components.Clear();
+            }
+            var ca = profile.Add<ColorAdjustments>(true);
+            ca.colorFilter.Override(m.filter);
+            foreach (var c in profile.components)
+            {
+                c.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
+                AssetDatabase.AddObjectToAsset(c, profile);
+            }
+            EditorUtility.SetDirty(profile);
+            var go = new GameObject("Mood Volume - " + R.name);
+            var vol = go.AddComponent<Volume>();
+            vol.isGlobal = true;
+            vol.priority = 1f;
+            vol.sharedProfile = profile;
+        }
+
         static Light SetupAtmosphere()
         {
+            var m = R.mood ?? new Mood();
             var sun = Object.FindAnyObjectByType<Light>();
             sun.name = "Sun";
-            // low golden-hour sun: long shadows, dark-fantasy mood
-            sun.color = new Color(1f, 0.64f, 0.40f);
-            sun.intensity = 1.75f;
+            sun.color = m.sun;
+            sun.intensity = m.sunIntensity;
             sun.shadows = LightShadows.Soft;
             sun.shadowStrength = 0.9f;
-            sun.transform.rotation = Quaternion.Euler(10f, -35f, 0f);
+            sun.transform.rotation = Quaternion.Euler(m.sunPitch, m.sunYaw, 0f);
 
             var skyShader = Shader.Find("Skybox/Procedural");
             if (skyShader != null)
             {
                 var sky = new Material(skyShader);
                 sky.SetFloat("_SunSize", 0.035f);
-                sky.SetFloat("_AtmosphereThickness", 1.55f);
-                sky.SetColor("_SkyTint", new Color(0.46f, 0.43f, 0.50f));
+                sky.SetFloat("_AtmosphereThickness", m.atmosphere);
+                sky.SetColor("_SkyTint", m.skyTint);
                 sky.SetColor("_GroundColor", new Color(0.35f, 0.32f, 0.28f));
                 sky.SetFloat("_Exposure", 1.0f);
                 AssetDatabase.CreateAsset(sky, $"{Gen}/{R.id}_Sky.mat");
@@ -785,11 +852,11 @@ namespace Rafidain.EditorTools
             RenderSettings.sun = sun;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
-            RenderSettings.fogColor = new Color(0.53f, 0.47f, 0.45f);
-            RenderSettings.fogDensity = 0.0042f;
+            RenderSettings.fogColor = m.fog;
+            RenderSettings.fogDensity = m.fogDensity;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.50f, 0.50f, 0.58f);
-            RenderSettings.ambientEquatorColor = new Color(0.52f, 0.42f, 0.35f);
+            RenderSettings.ambientSkyColor = m.ambientSky;
+            RenderSettings.ambientEquatorColor = m.ambientEquator;
             RenderSettings.ambientGroundColor = new Color(0.12f, 0.10f, 0.09f);
             return sun;
         }
