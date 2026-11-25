@@ -332,7 +332,9 @@ namespace Rafidain.EditorTools
                 // ---------- Water ----------
                 var waterGo = RafidainSceneBuilder.Prim(PrimitiveType.Plane, "Khabur River", null,
                     new Vector3(Size * 0.5f, WaterLevel, Size * 0.5f), new Vector3(Size / 10f, 1f, Size / 10f), water, keepCollider: false);
-                waterGo.isStatic = true;
+                waterGo.isStatic = false;
+                SetupWaterMaterial(water);
+                waterGo.AddComponent<WaterFlow>();
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Building Zakho old town…", 0.6f);
                 var world = new GameObject("World").transform;
@@ -1326,6 +1328,73 @@ namespace Rafidain.EditorTools
                 foreach (var t in weapon) if (t.name == "WeaponPivot") { Object.DestroyImmediate(t.gameObject); break; }
                 placed++;
             }
+        }
+
+        // Ripple normal maps for the river/lake: tileable sine-wave sums, scrolled at runtime by WaterFlow
+        static void SetupWaterMaterial(Material water)
+        {
+            var nrm = WaterNormal("WaterRipples", 7, 0.9f);
+            var nrm2 = WaterNormal("WaterRipplesFine", 23, 0.5f);
+            water.SetColor("_BaseColor", new Color(0.07f, 0.15f, 0.16f));
+            water.SetFloat("_Smoothness", 0.96f);
+            water.SetFloat("_Metallic", 0.05f);
+            if (nrm != null)
+            {
+                water.SetTexture("_BumpMap", nrm);
+                water.SetFloat("_BumpScale", 0.6f);
+                water.EnableKeyword("_NORMALMAP");
+                water.mainTextureScale = new Vector2(60f, 60f);
+            }
+            if (nrm2 != null && water.HasProperty("_DetailNormalMap"))
+            {
+                water.SetTexture("_DetailNormalMap", nrm2);
+                water.SetFloat("_DetailNormalMapScale", 0.5f);
+                water.SetVector("_DetailAlbedoMap_ST", new Vector4(140f, 140f, 0f, 0f));
+                water.EnableKeyword("_DETAIL_MULX2");
+            }
+            EditorUtility.SetDirty(water);
+        }
+
+        static Texture2D WaterNormal(string name, int baseFreq, float strength)
+        {
+            string path = $"{Gen}/{name}.png";
+            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (existing != null) return existing;
+            const int S = 256;
+            var rng = new System.Random(baseFreq * 31);
+            int waves = 6;
+            var kx = new int[waves]; var ky = new int[waves]; var ph = new float[waves]; var amp = new float[waves];
+            for (int w = 0; w < waves; w++)
+            {
+                kx[w] = rng.Next(-baseFreq, baseFreq + 1);
+                ky[w] = rng.Next(1, baseFreq + 1);
+                ph[w] = (float)rng.NextDouble() * Mathf.PI * 2f;
+                amp[w] = 1f / (1f + w * 0.6f);
+            }
+            var tex = new Texture2D(S, S, TextureFormat.RGB24, false);
+            for (int y = 0; y < S; y++)
+            {
+                for (int x = 0; x < S; x++)
+                {
+                    float dx = 0f, dy = 0f;
+                    for (int w = 0; w < waves; w++)
+                    {
+                        float a = 2f * Mathf.PI * (kx[w] * x + ky[w] * y) / S + ph[w];
+                        float c = Mathf.Cos(a) * amp[w];
+                        dx += c * kx[w];
+                        dy += c * ky[w];
+                    }
+                    var n = new Vector3(-dx * strength * 0.08f, -dy * strength * 0.08f, 1f).normalized;
+                    tex.SetPixel(x, y, new Color(n.x * 0.5f + 0.5f, n.y * 0.5f + 0.5f, n.z * 0.5f + 0.5f));
+                }
+            }
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp != null) { imp.textureType = TextureImporterType.NormalMap; imp.SaveAndReimport(); }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         static void ScatterBushes(Transform world, TerrainData td, Material leaves)
