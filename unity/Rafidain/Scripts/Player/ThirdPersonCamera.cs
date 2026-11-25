@@ -15,6 +15,10 @@ namespace Rafidain
         public float collisionRadius = 0.25f;
         public float followSmooth = 20f;
         public float lockOnRange = 18f;
+        [Tooltip("The lock breaks when the target gets this far away.")]
+        public float lockBreakRange = 25f;
+        [Tooltip("How hard you flick the stick / mouse sideways to jump to the next enemy.")]
+        public float switchFlick = 6f;
 
         public Transform LockTarget { get; private set; }
         public static ThirdPersonCamera Instance { get; private set; }
@@ -26,6 +30,9 @@ namespace Rafidain
         void Awake() => Instance = this;
 
         EnemyAI lockEnemy;
+        float switchAccum;
+        float switchCooldown;
+        float blockedTime;
         float yaw;
         float pitch = 12f;
         float currentDistance;
@@ -57,7 +64,30 @@ namespace Rafidain
             if (lockEnemy != null)
             {
                 float d = Vector3.Distance(lockEnemy.transform.position, target.position);
-                if (lockEnemy.IsDead || !lockEnemy.gameObject.activeInHierarchy || d > lockOnRange * 1.3f) ClearLock();
+                if (lockEnemy.IsDead || !lockEnemy.gameObject.activeInHierarchy || d > lockBreakRange) ClearLock();
+                else
+                {
+                    // lose the lock if a wall / hill hides the target for a while
+                    Vector3 eye = target.position + Vector3.up * pivotHeight;
+                    Vector3 aim = lockEnemy.transform.position + Vector3.up * 1f;
+                    bool hidden = Physics.Linecast(eye, aim, out var hit, ~0, QueryTriggerInteraction.Ignore)
+                                  && !hit.transform.IsChildOf(lockEnemy.transform) && !hit.transform.IsChildOf(target);
+                    blockedTime = hidden ? blockedTime + dt : 0f;
+                    if (blockedTime > 1.5f) ClearLock();
+                }
+            }
+
+            // flick sideways while locked to jump to the next enemy
+            if (lockEnemy != null && input != null)
+            {
+                switchCooldown -= dt;
+                switchAccum = Mathf.MoveTowards(switchAccum, 0f, dt * 20f) + input.Look.x;
+                if (switchCooldown <= 0f && Mathf.Abs(switchAccum) > switchFlick)
+                {
+                    SwitchTarget(switchAccum > 0f ? 1 : -1);
+                    switchAccum = 0f;
+                    switchCooldown = 0.35f;
+                }
             }
 
             pivot = Vector3.Lerp(pivot, target.position + Vector3.up * pivotHeight, 1f - Mathf.Exp(-followSmooth * dt));
@@ -131,8 +161,33 @@ namespace Rafidain
             }
         }
 
+        /// <summary>Jump to the nearest living enemy on the given side (1 = right, -1 = left) of the current target.</summary>
+        void SwitchTarget(int side)
+        {
+            if (lockEnemy == null) return;
+            Vector3 from = lockEnemy.transform.position - target.position; from.y = 0f;
+            Vector3 right = transform.right; right.y = 0f; right.Normalize();
+            EnemyAI best = null;
+            float bestAngle = float.MaxValue;
+            foreach (var e in EnemyAI.All)
+            {
+                if (e == null || e == lockEnemy || e.IsDead) continue;
+                Vector3 to = e.transform.position - target.position; to.y = 0f;
+                if (to.magnitude > lockOnRange) continue;
+                float signed = Vector3.SignedAngle(from, to, Vector3.up);   // + is clockwise = to the right
+                if (Mathf.Sign(signed) != side || Mathf.Abs(signed) < 2f) continue;
+                if (Mathf.Abs(signed) < bestAngle) { bestAngle = Mathf.Abs(signed); best = e; }
+            }
+            if (best == null) return;
+            lockEnemy = best;
+            LockTarget = best.transform;
+            blockedTime = 0f;
+        }
+
         void ClearLock()
         {
+            blockedTime = 0f;
+            switchAccum = 0f;
             lockEnemy = null;
             LockTarget = null;
         }

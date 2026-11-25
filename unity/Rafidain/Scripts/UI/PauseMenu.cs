@@ -222,19 +222,20 @@ namespace Rafidain
                 { "صد بالدرع", "زر الماوس الأيمن", "LB" },
                 { "صد متقن (بلحظة الضربة)", "زر الماوس الأيمن", "LB" },
                 { "تثبيت على العدو", "Q / زر العجلة", "R3" },
+                { "تبديل الهدف", "حرك الماوس يمين/يسار", "العصا اليمنى يمين/يسار" },
                 { "تفاعل / كلام", "E", "Y" },
                 { "شرب الدواء", "R", "X" },
                 { "الخريطة", "M / Tab", "Select" },
                 { "إيقاف", "Esc", "Start" },
             };
 
-            float y = 320;
+            float y = 335;
             MakeColumnRow(ArabicText.Fix("الفعل"), ArabicText.Fix("كيبورد"), ArabicText.Fix("يد تحكم"), y, new Color(0.95f, 0.8f, 0.5f));
             y -= 52;
             for (int i = 0; i < rows.GetLength(0); i++)
             {
                 MakeColumnRow(ArabicText.Fix(rows[i, 0]), ArabicText.Fix(rows[i, 1]), ArabicText.Fix(rows[i, 2]), y, new Color(0.92f, 0.88f, 0.8f));
-                y -= 44;
+                y -= 42;
             }
 
             MakeText(controlsPanel.transform, ArabicText.Fix("بالموبايل: العصا يسار للحركة، اسحب يمين للكاميرا، والأزرار على اليمين"), new Vector2(0, y - 10), 24, new Color(0.8f, 0.75f, 0.65f));
