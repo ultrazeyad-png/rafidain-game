@@ -1642,6 +1642,7 @@ namespace Rafidain.EditorTools
             camData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             camData.antialiasingQuality = AntialiasingQuality.High;
             RafidainSceneBuilder.MakeAsh(cam.transform);
+            MakeWeather(cam.transform);
 
             // Systems
             var sys = new GameObject("_Game");
@@ -2214,6 +2215,97 @@ namespace Rafidain.EditorTools
             l.intensity = 2.5f;
             RafidainSceneBuilder.MakeEmbers(root.transform, new Vector3(0f, 0.6f, 0f), 10f);
             root.AddComponent<MapPiece>().pieceId = id;
+        }
+
+        /// <summary>Weather that travels with the camera: Duhok drizzle, Kirkuk falling embers, Samarra blowing sand, Baghdad violet ash.</summary>
+        static void MakeWeather(Transform cam)
+        {
+            string kind = R.id;
+            if (kind != "duhok" && kind != "kirkuk" && kind != "samarra" && kind != "baghdad") return;
+
+            var go = new GameObject("Weather - " + kind);
+            go.transform.SetParent(cam, false);
+            go.transform.localPosition = new Vector3(0f, 6f, 6f);
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.prewarm = true;
+            var em = ps.emission;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            var vel = ps.velocityOverLifetime;
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            r.receiveShadows = false;
+
+            switch (kind)
+            {
+                case "duhok":   // light drizzle off the dam lake
+                    main.startLifetime = 1.1f;
+                    main.startSpeed = 0f;
+                    main.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.02f);
+                    main.startColor = new Color(0.75f, 0.8f, 0.88f, 0.35f);
+                    main.maxParticles = 1500;
+                    em.rateOverTime = 900f;
+                    shape.scale = new Vector3(30f, 1f, 30f);
+                    vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
+                    vel.x = new ParticleSystem.MinMaxCurve(-1f, -0.6f);
+                    vel.y = new ParticleSystem.MinMaxCurve(-14f, -11f);
+                    vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+                    r.renderMode = ParticleSystemRenderMode.Stretch;
+                    r.velocityScale = 0.06f;
+                    r.lengthScale = 1f;
+                    r.sharedMaterial = RafidainSceneBuilder.ParticleMat("RainStreak", false);
+                    break;
+                case "kirkuk":  // embers drifting down from the eternal fire
+                    main.startLifetime = new ParticleSystem.MinMaxCurve(5f, 8f);
+                    main.startSpeed = 0f;
+                    main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.06f);
+                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.45f, 0.1f, 0.9f), new Color(1f, 0.75f, 0.3f, 0.8f));
+                    main.maxParticles = 500;
+                    em.rateOverTime = 70f;
+                    shape.scale = new Vector3(34f, 2f, 34f);
+                    vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
+                    vel.x = new ParticleSystem.MinMaxCurve(0.3f, 0.9f);
+                    vel.y = new ParticleSystem.MinMaxCurve(-1.2f, -0.6f);
+                    vel.z = new ParticleSystem.MinMaxCurve(-0.3f, 0.3f);
+                    var n = ps.noise; n.enabled = true; n.strength = 0.5f; n.frequency = 0.4f;
+                    r.sharedMaterial = RafidainSceneBuilder.ParticleMat("EmberFall", true);
+                    break;
+                case "samarra": // sand carried on the wind across the plain
+                    main.startLifetime = new ParticleSystem.MinMaxCurve(2f, 3.5f);
+                    main.startSpeed = 0f;
+                    main.startSize = new ParticleSystem.MinMaxCurve(0.01f, 0.03f);
+                    main.startColor = new Color(0.85f, 0.72f, 0.52f, 0.55f);
+                    main.maxParticles = 1200;
+                    em.rateOverTime = 420f;
+                    go.transform.localPosition = new Vector3(-12f, -4.5f, 6f);
+                    shape.scale = new Vector3(4f, 4f, 30f);
+                    vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
+                    vel.x = new ParticleSystem.MinMaxCurve(8f, 13f);
+                    vel.y = new ParticleSystem.MinMaxCurve(-0.4f, 0.6f);
+                    vel.z = new ParticleSystem.MinMaxCurve(-1f, 1f);
+                    r.renderMode = ParticleSystemRenderMode.Stretch;
+                    r.velocityScale = 0.04f;
+                    r.lengthScale = 1f;
+                    r.sharedMaterial = RafidainSceneBuilder.ParticleMat("SandStreak", false);
+                    break;
+                default:        // Baghdad: violet ash from the gate below
+                    main.startLifetime = new ParticleSystem.MinMaxCurve(7f, 11f);
+                    main.startSpeed = 0f;
+                    main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.07f);
+                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.7f, 0.55f, 0.9f, 0.6f), new Color(0.45f, 0.35f, 0.6f, 0.5f));
+                    main.maxParticles = 700;
+                    em.rateOverTime = 80f;
+                    shape.scale = new Vector3(36f, 2f, 36f);
+                    vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
+                    vel.x = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
+                    vel.y = new ParticleSystem.MinMaxCurve(-0.7f, -0.3f);
+                    vel.z = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
+                    var bn = ps.noise; bn.enabled = true; bn.strength = 0.3f; bn.frequency = 0.25f;
+                    r.sharedMaterial = RafidainSceneBuilder.ParticleMat("VioletAsh", true);
+                    break;
+            }
         }
 
         static void MakeLightShafts(Transform parent, Vector3 groundPos, Color sun)

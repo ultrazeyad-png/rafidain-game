@@ -104,6 +104,7 @@ namespace Rafidain
                     {
                         attacker.Parried();
                         OnParry?.Invoke();
+                        Haptics.Pulse();
                         if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.block, transform.position, 1f, 0.3f);
                         HitFX.Hit(transform.position + transform.forward * 0.6f + Vector3.up * 0.4f, true, new Color(1f, 0.95f, 0.7f));
                         HitFX.Ring(transform.position + Vector3.up * 0.1f, 1.6f, new Color(1f, 0.9f, 0.6f));
@@ -130,6 +131,7 @@ namespace Rafidain
                     DrainStamina(Stamina);
                     amount *= 0.5f;
                     OnGuardBroken?.Invoke();
+                    Haptics.Pulse();
                     if (HUD.Instance != null) HUD.Instance.ShowMessage(ArabicText.Fix("انكسر صدك"), 1.2f);
                     Health -= amount;
                     OnDamaged?.Invoke();
@@ -141,6 +143,7 @@ namespace Rafidain
 
             Health -= amount;
             OnDamaged?.Invoke();
+            Haptics.Pulse();
             if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.hit, transform.position, 0.9f);
             HitFX.Hit(transform.position + Vector3.up * 0.3f, amount >= 30f, new Color(0.7f, 0.12f, 0.08f));
             if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.15f);

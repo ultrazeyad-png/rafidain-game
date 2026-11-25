@@ -16,6 +16,7 @@ namespace Rafidain
         Text sensLabel;
         Text volumeLabel;
         Text invertLabel;
+        Text hapticsLabel;
         GameObject controlsPanel;
         GameObject statsPanel;
         Text statsBody;
@@ -136,6 +137,8 @@ namespace Rafidain
             }
             if (volumeLabel != null)
                 volumeLabel.text = Mathf.RoundToInt(PlayerPrefs.GetFloat("rafidain_volume", 1f) * 100f) + "%  :" + ArabicText.Fix("الصوت");
+            if (hapticsLabel != null)
+                hapticsLabel.text = ArabicText.Fix(Haptics.Enabled ? "الاهتزاز: نعم" : "الاهتزاز: لا");
             if (invertLabel != null)
                 invertLabel.text = ArabicText.Fix(invertY ? "نعم" : "لا") + "  :" + ArabicText.Fix("عكس الكاميرا العمودي");
             if (sensLabel != null) sensLabel.text = sensitivity.ToString("0.0") + "  :" + ArabicText.Fix("حساسية الكاميرا");
@@ -190,6 +193,12 @@ namespace Rafidain
             var ib = MakeButton(panel.transform, "", new Vector2(0.5f, 0.5f), new Vector2(0, -95), new Vector2(520, 64), 26);
             invertLabel = ib.GetComponentInChildren<Text>();
             ib.onClick.AddListener(ToggleInvert);
+            if (Application.isMobilePlatform)
+            {
+                var hb = MakeButton(panel.transform, "", new Vector2(0.5f, 0.5f), new Vector2(420, -95), new Vector2(280, 64), 24);
+                hapticsLabel = hb.GetComponentInChildren<Text>();
+                hb.onClick.AddListener(() => { Haptics.Enabled = !Haptics.Enabled; RefreshLabels(); });
+            }
 
             MakeButton(panel.transform, ArabicText.Fix("رحلتك"), new Vector2(0.5f, 0.5f), new Vector2(-135, -170), new Vector2(250, 64), 28)
                 .onClick.AddListener(OpenStats);
