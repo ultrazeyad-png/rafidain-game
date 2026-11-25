@@ -64,6 +64,8 @@ namespace Rafidain.EditorTools
                 urp.shadowDistance = isHigh ? 160f : 60f;
                 urp.shadowCascadeCount = isHigh ? 4 : 2;
                 urp.supportsHDR = true;
+                HighQualityShadows(urp, isHigh);
+                if (isHigh) EnsureSSAO(urp);
                 EditorUtility.SetDirty(urp);
             }
             var def = GraphicsSettings.defaultRenderPipeline as UniversalRenderPipelineAsset;
@@ -73,6 +75,61 @@ namespace Rafidain.EditorTools
                 EditorUtility.SetDirty(def);
             }
         }
+
+        // Sharper, softer shadows on the PC/high profile (serialized fields, safe across URP versions)
+        static void HighQualityShadows(UniversalRenderPipelineAsset urp, bool isHigh)
+        {
+            var so = new SerializedObject(urp);
+            void SetInt(string name, int v) { var p = so.FindProperty(name); if (p != null) p.intValue = v; }
+            void SetBool(string name, bool v) { var p = so.FindProperty(name); if (p != null) p.boolValue = v; }
+            SetInt("m_MainLightShadowmapResolution", isHigh ? 4096 : 1024);
+            SetInt("m_AdditionalLightsShadowmapResolution", isHigh ? 2048 : 512);
+            SetBool("m_SoftShadowsSupported", true);
+            SetInt("m_SoftShadowQuality", isHigh ? 3 : 1);
+            SetBool("m_AdditionalLightShadowsSupported", true);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // Screen-space ambient occlusion: contact shadows in corners, under rocks and eaves
+        static void EnsureSSAO(UniversalRenderPipelineAsset urp)
+        {
+            var listField = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var list = listField != null ? listField.GetValue(urp) as ScriptableRendererData[] : null;
+            if (list == null) return;
+
+            System.Type ssaoType = null;
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                ssaoType = asm.GetType("UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion");
+                if (ssaoType != null) break;
+            }
+            if (ssaoType == null) return;
+
+            foreach (var data in list)
+            {
+                if (data == null) continue;
+                bool has = false;
+                foreach (var f in data.rendererFeatures) if (f != null && f.GetType() == ssaoType) has = true;
+                if (has) continue;
+                var feature = ScriptableObject.CreateInstance(ssaoType) as ScriptableRendererFeature;
+                if (feature == null) continue;
+                feature.name = "SSAO";
+                AssetDatabase.AddObjectToAsset(feature, data);
+                data.rendererFeatures.Add(feature);
+                var so = new SerializedObject(data);
+                var map = so.FindProperty("m_RendererFeatureMap");
+                if (map != null)
+                {
+                    map.arraySize++;
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(feature, out string _, out long localId);
+                    map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                }
+                EditorUtility.SetDirty(data);
+            }
+        }
+
 
         static UniversalRenderPipelineAsset CreatePipeline(string name, bool highQuality)
         {

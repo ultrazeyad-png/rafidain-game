@@ -146,6 +146,8 @@ namespace Rafidain.EditorTools
             cam.transform.position = furat.transform.position + new Vector3(0f, 2f, -4f);
             var camData = cam.GetUniversalAdditionalCameraData();
             camData.renderPostProcessing = true;
+            camData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            camData.antialiasingQuality = AntialiasingQuality.High;
 
             // ---------- Post-processing (the realistic look) ----------
             CreatePostVolume();
@@ -318,6 +320,13 @@ namespace Rafidain.EditorTools
             var ca = profile.Add<ChromaticAberration>(true);
             ca.intensity.Override(0.06f);
 
+            var dof = profile.Add<DepthOfField>(true);
+            dof.mode.Override(DepthOfFieldMode.Gaussian);
+            dof.gaussianStart.Override(140f);
+            dof.gaussianEnd.Override(420f);
+            dof.gaussianMaxRadius.Override(1.2f);
+            dof.highQualitySampling.Override(true);
+
             var grain = profile.Add<FilmGrain>(true);
             grain.intensity.Override(0.12f);
 
@@ -345,12 +354,12 @@ namespace Rafidain.EditorTools
             Material coat, cloth, skin, dark, metal;
             switch (style)
             {
-                case 0:
-                    coat = Mat("Hunter_Coat", new Color(0.11f, 0.10f, 0.10f), 0.25f);
-                    cloth = Mat("Hunter_Cloth", new Color(0.20f, 0.17f, 0.14f), 0.15f);
+                case 0: // Furat, after Zeyad's Assyrian design: bronze scales, red fringed kilt, red cloak, gold headband
+                    coat = Mat("Furat_BronzeScale", new Color(0.46f, 0.33f, 0.17f), 0.55f, 0.75f);
+                    cloth = Mat("Furat_RedWool", new Color(0.42f, 0.07f, 0.06f), 0.12f);
                     skin = Mat("Skin", new Color(0.55f, 0.41f, 0.32f), 0.3f);
-                    dark = Mat("Leather_Dark", new Color(0.06f, 0.05f, 0.045f), 0.35f);
-                    metal = Mat("Steel", new Color(0.72f, 0.72f, 0.74f), 0.85f, 1f);
+                    dark = Mat("Furat_Leather", new Color(0.22f, 0.14f, 0.08f), 0.3f);
+                    metal = Mat("Furat_Gold", new Color(0.78f, 0.58f, 0.25f), 0.75f, 1f);
                     break;
                 case 2:
                     coat = Mat("Guardian_Bronze", new Color(0.36f, 0.24f, 0.11f), 0.65f, 0.85f);
@@ -402,7 +411,17 @@ namespace Rafidain.EditorTools
             Prim(PrimitiveType.Capsule, "Torso", body, new Vector3(0f, 0.33f, 0f), new Vector3(0.46f * bulk, 0.36f, 0.30f * bulk), coat, keepCollider: false);
             Prim(PrimitiveType.Cylinder, "Belt", body, new Vector3(0f, 0.02f, 0f), new Vector3(0.47f * bulk, 0.035f, 0.33f * bulk), dark, keepCollider: false);
             if (style == 0 || style == 2)
-                Prim(PrimitiveType.Cylinder, "CoatSkirt", body, new Vector3(0f, -0.28f, 0f), new Vector3(0.5f * bulk, 0.3f, 0.38f * bulk), style == 0 ? coat : cloth, keepCollider: false);
+            {
+                Prim(PrimitiveType.Cylinder, "CoatSkirt", body, new Vector3(0f, -0.28f, 0f), new Vector3(0.5f * bulk, 0.3f, 0.38f * bulk), cloth, keepCollider: false);
+                if (style == 0)
+                {
+                    var indigo = Mat("Furat_Indigo", new Color(0.12f, 0.14f, 0.30f), 0.1f);
+                    Prim(PrimitiveType.Cube, "KiltPanel", body, new Vector3(-0.08f, -0.3f, 0.17f), new Vector3(0.22f, 0.5f, 0.04f), indigo, keepCollider: false);
+                    Prim(PrimitiveType.Cylinder, "Fringe", body, new Vector3(0f, -0.57f, 0f), new Vector3(0.52f, 0.025f, 0.4f), metal, keepCollider: false);
+                    Prim(PrimitiveType.Cylinder, "SunDisc", body, new Vector3(0f, 0.04f, 0.17f), new Vector3(0.12f, 0.02f, 0.12f), metal, keepCollider: false)
+                        .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                }
+            }
             else
                 Prim(PrimitiveType.Cylinder, "Rags", body, new Vector3(0f, -0.16f, 0f), new Vector3(0.48f * bulk, 0.16f, 0.36f * bulk), cloth, keepCollider: false);
 
@@ -412,8 +431,13 @@ namespace Rafidain.EditorTools
                 var pivot = new GameObject(x < 0 ? "ArmL" : "ArmR").transform;
                 pivot.SetParent(body, false);
                 pivot.localPosition = new Vector3(x * bulk, 0.6f, 0f);
-                Prim(PrimitiveType.Capsule, "Arm", pivot, new Vector3(0f, -0.32f, 0f), new Vector3(0.13f * bulk, 0.33f, 0.13f * bulk), style == 3 ? skin : coat, keepCollider: false);
-                Prim(PrimitiveType.Sphere, "Hand", pivot, new Vector3(0f, -0.66f, 0f), Vector3.one * 0.11f * bulk, style == 0 ? dark : skin, keepCollider: false);
+                Prim(PrimitiveType.Capsule, "Arm", pivot, new Vector3(0f, -0.32f, 0f), new Vector3(0.13f * bulk, 0.33f, 0.13f * bulk), (style == 3 || style == 0) ? skin : coat, keepCollider: false);
+                Prim(PrimitiveType.Sphere, "Hand", pivot, new Vector3(0f, -0.66f, 0f), Vector3.one * 0.11f * bulk, skin, keepCollider: false);
+                if (style == 0)
+                {
+                    Prim(PrimitiveType.Cylinder, "Bracer", pivot, new Vector3(0f, -0.48f, 0f), new Vector3(0.15f, 0.1f, 0.15f), metal, keepCollider: false);
+                    Prim(PrimitiveType.Sphere, "ShoulderScale", pivot, new Vector3(0f, -0.04f, 0f), new Vector3(0.22f, 0.18f, 0.22f), coat, keepCollider: false);
+                }
                 if (style == 2)
                     Prim(PrimitiveType.Sphere, "Pauldron", pivot, new Vector3(0f, 0.02f, 0f), new Vector3(0.34f, 0.24f, 0.34f), metal, keepCollider: false);
                 return pivot;
@@ -438,11 +462,17 @@ namespace Rafidain.EditorTools
             Prim(PrimitiveType.Sphere, "Head", body, new Vector3(0f, 0.88f, 0.02f), Vector3.one * 0.23f, skin, keepCollider: false);
             switch (style)
             {
-                case 0: // hood + cloth mask like a Yharnam hunter
-                    Prim(PrimitiveType.Sphere, "Hood", body, new Vector3(0f, 0.91f, -0.03f), new Vector3(0.31f, 0.33f, 0.33f), coat, keepCollider: false);
-                    Prim(PrimitiveType.Cube, "Mask", body, new Vector3(0f, 0.84f, 0.12f), new Vector3(0.2f, 0.1f, 0.06f), dark, keepCollider: false);
-                    Prim(PrimitiveType.Cube, "Scarf", body, new Vector3(0f, 0.7f, 0.05f), new Vector3(0.36f, 0.1f, 0.3f), cloth, keepCollider: false);
+                case 0: // long black hair, full beard, gold headband, red cloak over the shoulder
+                {
+                    var hair = Mat("Furat_Hair", new Color(0.05f, 0.04f, 0.035f), 0.35f);
+                    Prim(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.9f, -0.04f), new Vector3(0.26f, 0.27f, 0.27f), hair, keepCollider: false);
+                    Prim(PrimitiveType.Capsule, "HairBack", body, new Vector3(0f, 0.76f, -0.1f), new Vector3(0.2f, 0.14f, 0.08f), hair, keepCollider: false);
+                    Prim(PrimitiveType.Sphere, "Beard", body, new Vector3(0f, 0.79f, 0.09f), new Vector3(0.17f, 0.17f, 0.1f), hair, keepCollider: false);
+                    Prim(PrimitiveType.Cylinder, "Headband", body, new Vector3(0f, 0.95f, 0.01f), new Vector3(0.245f, 0.02f, 0.245f), metal, keepCollider: false);
+                    var drape = Prim(PrimitiveType.Cube, "ShoulderDrape", body, new Vector3(-0.08f, 0.6f, 0.02f), new Vector3(0.52f, 0.14f, 0.34f), cloth, keepCollider: false);
+                    drape.transform.localRotation = Quaternion.Euler(0f, 0f, 18f);
                     break;
+                }
                 case 2: // horned crown helm
                     Prim(PrimitiveType.Sphere, "Helm", body, new Vector3(0f, 0.92f, 0f), new Vector3(0.28f, 0.27f, 0.28f), metal, keepCollider: false);
                     Prim(PrimitiveType.Cylinder, "Crown", body, new Vector3(0f, 1.05f, 0f), new Vector3(0.26f, 0.05f, 0.26f), metal, keepCollider: false);
@@ -465,7 +495,7 @@ namespace Rafidain.EditorTools
                 capePivot.SetParent(body, false);
                 capePivot.localPosition = new Vector3(0f, 0.64f, -0.17f * bulk);
                 float len = style == 1 ? 0.6f : 1.05f;
-                Prim(PrimitiveType.Cube, "Cape", capePivot, new Vector3(0f, -len * 0.5f, 0f), new Vector3(0.5f * bulk, len, 0.03f), style == 0 ? coat : cloth, keepCollider: false);
+                Prim(PrimitiveType.Cube, "Cape", capePivot, new Vector3(0f, -len * 0.5f, 0f), new Vector3(0.5f * bulk, len, 0.03f), cloth, keepCollider: false);
             }
 
             // weapon into the right hand

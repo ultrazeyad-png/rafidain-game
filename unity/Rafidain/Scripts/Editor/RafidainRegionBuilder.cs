@@ -309,6 +309,8 @@ namespace Rafidain.EditorTools
                 EditorUtility.DisplayProgressBar("Rafidain", "Planting oak forest and rocks…", 0.75f);
                 ScatterNature(world, terrainData, bark, leaves, rockMat);
                 if (R.river) ScatterPalms(world, terrainData, palmBark, palmLeaf);
+                ScatterBushes(world, terrainData, leaves);
+                AddAtmosphereFX(world, terrainData);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Placing Furat, enemies and flames…", 0.9f);
                 PlaceGameplay(terrainData, sun, furatMat, hollowMat, guardianMat, steel, ember, stone);
@@ -504,7 +506,21 @@ namespace Rafidain.EditorTools
                 dryColor = new Color(0.72f, 0.66f, 0.40f),
                 noiseSpread = 0.3f
             };
-            td.detailPrototypes = new[] { proto };
+            var poppy = new DetailPrototype
+            {
+                prototypeTexture = FlowerTexture("Poppies", new Color(0.78f, 0.12f, 0.08f), new Color(0.15f, 0.05f, 0.03f)),
+                renderMode = DetailRenderMode.GrassBillboard,
+                minWidth = 0.4f, maxWidth = 0.7f, minHeight = 0.35f, maxHeight = 0.6f,
+                healthyColor = Color.white, dryColor = new Color(0.9f, 0.8f, 0.7f), noiseSpread = 0.5f
+            };
+            var chamomile = new DetailPrototype
+            {
+                prototypeTexture = FlowerTexture("Chamomile", new Color(0.95f, 0.93f, 0.85f), new Color(0.95f, 0.75f, 0.2f)),
+                renderMode = DetailRenderMode.GrassBillboard,
+                minWidth = 0.35f, maxWidth = 0.6f, minHeight = 0.25f, maxHeight = 0.45f,
+                healthyColor = Color.white, dryColor = new Color(0.9f, 0.9f, 0.8f), noiseSpread = 0.5f
+            };
+            td.detailPrototypes = new[] { proto, poppy, chamomile };
             const int DetailRes = 1024;
             td.SetDetailResolution(DetailRes, 16);
             td.wavingGrassStrength = 0.35f;
@@ -527,6 +543,26 @@ namespace Rafidain.EditorTools
                 }
             }
             td.SetDetailLayer(0, 0, 0, layer);
+
+            // wild flowers in patches on the grass (poppies and chamomile, like a Kurdish spring)
+            var poppies = new int[DetailRes, DetailRes];
+            var daisies = new int[DetailRes, DetailRes];
+            for (int y = 0; y < DetailRes; y++)
+            {
+                int ay = Mathf.Min(AlphaRes - 1, y * AlphaRes / DetailRes);
+                for (int x = 0; x < DetailRes; x++)
+                {
+                    int ax = Mathf.Min(AlphaRes - 1, x * AlphaRes / DetailRes);
+                    if (maps[ay, ax, 0] < 0.6f) continue;
+                    float patchA = Mathf.PerlinNoise(x * 0.02f + 31f, y * 0.02f + 7f);
+                    float patchB = Mathf.PerlinNoise(x * 0.025f + 91f, y * 0.025f + 53f);
+                    double r = rng.NextDouble();
+                    if (patchA > 0.66f && r < 0.5) poppies[y, x] = 1 + (int)((patchA - 0.66f) * 10f);
+                    else if (patchB > 0.68f && r < 0.4) daisies[y, x] = 1 + (int)((patchB - 0.68f) * 8f);
+                }
+            }
+            td.SetDetailLayer(0, 0, 1, poppies);
+            td.SetDetailLayer(0, 0, 2, daisies);
         }
 
         static Texture2D GrassBladeTexture()
@@ -1132,6 +1168,145 @@ namespace Rafidain.EditorTools
             }
         }
 
+        static Texture2D FlowerTexture(string name, Color petal, Color centre)
+        {
+            string path = $"{Gen}/{name}.png";
+            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (existing != null) return existing;
+            const int S = 128;
+            var tex = new Texture2D(S, S, TextureFormat.RGBA32, false);
+            var clear = new Color(0.3f, 0.4f, 0.2f, 0f);
+            for (int y = 0; y < S; y++) for (int x = 0; x < S; x++) tex.SetPixel(x, y, clear);
+            var stem = new Color(0.25f, 0.38f, 0.14f, 1f);
+            var rng = new System.Random(name.GetHashCode());
+            for (int f = 0; f < 5; f++)
+            {
+                int bx = 14 + rng.Next(S - 28);
+                int top = 50 + rng.Next(60);
+                for (int y = 0; y < top; y++) for (int x = bx - 1; x <= bx + 1; x++) tex.SetPixel(x, y, stem);
+                int pr = 6 + rng.Next(5);
+                for (int y = -pr; y <= pr; y++)
+                    for (int x = -pr; x <= pr; x++)
+                    {
+                        float d = Mathf.Sqrt(x * x + y * y);
+                        if (d > pr) continue;
+                        int px = bx + x, py = top + y;
+                        if (px < 0 || px >= S || py < 0 || py >= S) continue;
+                        var c = d < pr * 0.35f ? centre : petal * (0.85f + 0.15f * (1f - d / pr));
+                        c.a = 1f;
+                        tex.SetPixel(px, py, c);
+                    }
+            }
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp != null) { imp.alphaIsTransparency = true; imp.wrapMode = TextureWrapMode.Clamp; imp.SaveAndReimport(); }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        static void ScatterBushes(Transform world, TerrainData td, Material leaves)
+        {
+            var bushes = new GameObject("Bushes").transform;
+            bushes.SetParent(world);
+            var dark = RafidainSceneBuilder.Mat("BushLeaves", new Color(0.18f, 0.24f, 0.11f), 0.08f);
+            int placed = 0, tries = 0;
+            while (placed < 380 && tries < 8000)
+            {
+                tries++;
+                float x = Random.Range(20f, Size - 20f), z = Random.Range(20f, Size - 20f);
+                float u = x / Size, v = z / Size;
+                float h = td.GetInterpolatedHeight(u, v);
+                if (h < WaterLevel + 1f || h > 110f || td.GetSteepness(u, v) > 32f) continue;
+                if (!IsFreeGround(x, z, 3f)) continue;
+                float sz = Random.Range(1.2f, 2.8f);
+                var b = MeshObj("Bush", bushes, ProceduralMeshes.Canopy(Random.Range(0, 6)), Random.value < 0.5f ? leaves : dark,
+                    new Vector3(x, h + sz * 0.25f, z), new Vector3(sz, sz * 0.7f, sz), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), false);
+                b.isStatic = true;
+                placed++;
+            }
+        }
+
+        // Ground mist creeping through the valley and along the water, fireflies by the river at dusk
+        static void AddAtmosphereFX(Transform world, TerrainData td)
+        {
+            var fx = new GameObject("Atmosphere FX").transform;
+            fx.SetParent(world);
+            var mistMat = RafidainSceneBuilder.ParticleMat("MistParticle", false);
+            var flyMat = RafidainSceneBuilder.ParticleMat("EmberParticle", true);
+
+            var spots = new System.Collections.Generic.List<Vector3>();
+            for (float z = 90f; z < 900f; z += 110f) spots.Add(OnRoad(td, z, Random.Range(-30f, 30f), 0.5f));
+            if (R.river) for (float x = 80f; x < 1000f; x += 140f) spots.Add(new Vector3(x, WaterLevel + 0.6f, RiverZ(x)));
+            if (R.lake) for (int k = 0; k < 6; k++)
+            {
+                float a = k / 6f * Mathf.PI * 2f;
+                spots.Add(new Vector3(R.lakeCenter.x + Mathf.Cos(a) * R.lakeRadius * 0.7f, WaterLevel + 0.6f, R.lakeCenter.y + Mathf.Sin(a) * R.lakeRadius * 0.7f));
+            }
+
+            foreach (var p in spots)
+            {
+                var go = new GameObject("Ground Mist");
+                go.transform.SetParent(fx);
+                go.transform.position = p;
+                var ps = go.AddComponent<ParticleSystem>();
+                var main = ps.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(12f, 18f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.3f);
+                main.startSize = new ParticleSystem.MinMaxCurve(9f, 18f);
+                main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.78f, 0.74f, 0.70f, 0.07f), new Color(0.70f, 0.66f, 0.62f, 0.04f));
+                main.maxParticles = 50;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                main.prewarm = true;
+                var em = ps.emission; em.rateOverTime = 3f;
+                var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = new Vector3(70f, 1.5f, 70f);
+                var col = ps.colorOverLifetime; col.enabled = true;
+                var g = new Gradient();
+                g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                          new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.3f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) });
+                col.color = g;
+                var r = go.GetComponent<ParticleSystemRenderer>();
+                r.sharedMaterial = mistMat;
+                r.sortingFudge = 10f;
+            }
+
+            // fireflies near the water / palms
+            if (R.river || R.lake)
+            {
+                for (int k = 0; k < 8; k++)
+                {
+                    Vector3 p = R.river
+                        ? new Vector3(90f + k * 115f, 0f, 0f)
+                        : new Vector3(R.lakeCenter.x + Mathf.Cos(k) * (R.lakeRadius + 30f), 0f, R.lakeCenter.y + Mathf.Sin(k) * (R.lakeRadius + 30f));
+                    if (R.river) p.z = RiverZ(p.x) + (k % 2 == 0 ? 40f : -40f);
+                    p.y = td.GetInterpolatedHeight(p.x / Size, p.z / Size) + 1.5f;
+
+                    var go = new GameObject("Fireflies");
+                    go.transform.SetParent(fx);
+                    go.transform.position = p;
+                    var ps = go.AddComponent<ParticleSystem>();
+                    var main = ps.main;
+                    main.startLifetime = new ParticleSystem.MinMaxCurve(3f, 6f);
+                    main.startSpeed = 0.1f;
+                    main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.08f);
+                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.85f, 1f, 0.45f), new Color(1f, 0.9f, 0.4f));
+                    main.maxParticles = 80;
+                    main.simulationSpace = ParticleSystemSimulationSpace.World;
+                    main.prewarm = true;
+                    var em = ps.emission; em.rateOverTime = 12f;
+                    var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = new Vector3(30f, 3f, 30f);
+                    var noise = ps.noise; noise.enabled = true; noise.strength = 0.6f; noise.frequency = 0.4f;
+                    var col = ps.colorOverLifetime; col.enabled = true;
+                    var g = new Gradient();
+                    g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                              new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(0.2f, 0.5f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) });
+                    col.color = g;
+                    go.GetComponent<ParticleSystemRenderer>().sharedMaterial = flyMat;
+                }
+            }
+        }
+
         static GameObject MeshObj(string name, Transform parent, Mesh mesh, Material mat, Vector3 localPos, Vector3 scale, Quaternion rot, bool collider)
         {
             var go = new GameObject(name);
@@ -1188,7 +1363,10 @@ namespace Rafidain.EditorTools
             var rig = cam.gameObject.AddComponent<ThirdPersonCamera>();
             rig.target = furat.transform;
             cam.transform.position = furat.transform.position + new Vector3(0f, 2f, -4f);
-            cam.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+            var camData = cam.GetUniversalAdditionalCameraData();
+            camData.renderPostProcessing = true;
+            camData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            camData.antialiasingQuality = AntialiasingQuality.High;
             RafidainSceneBuilder.MakeAsh(cam.transform);
 
             // Systems
