@@ -358,6 +358,11 @@ namespace Rafidain.EditorTools
                 PlaceGates(terrainData, stone);
                 PlaceStory(terrainData, stone);
 
+                EditorUtility.DisplayProgressBar("Rafidain", "Optimising (LODs, shadows, batching)…", 0.97f);
+                Optimize(world.gameObject);
+                var sysGo = GameObject.Find("_Game");
+                if (sysGo != null && sysGo.GetComponent<PerformanceTuner>() == null) sysGo.AddComponent<PerformanceTuner>();
+
                 EditorSceneManager.SaveScene(scene, ScenePath);
                 RafidainSceneBuilder.AddSceneToBuild(ScenePath, firstScene);
                 AssetDatabase.SaveAssets();
@@ -1395,6 +1400,32 @@ namespace Rafidain.EditorTools
             var imp = AssetImporter.GetAtPath(path) as TextureImporter;
             if (imp != null) { imp.textureType = TextureImporterType.NormalMap; imp.SaveAndReimport(); }
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        // Small props stop casting shadows and fade out at distance; static props get batched.
+        static void Optimize(GameObject root)
+        {
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var go = r.gameObject;
+                if (go.GetComponentInParent<BirdFlock>() != null || go.GetComponentInParent<WaterFlow>() != null) continue;
+                float size = r.bounds.size.magnitude;
+
+                if (size < 1.6f) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+                if (go.GetComponent<LODGroup>() == null && size < 14f)
+                {
+                    var lod = go.AddComponent<LODGroup>();
+                    float cull = size < 1.6f ? 0.025f : size < 5f ? 0.012f : 0.006f;
+                    lod.SetLODs(new[] { new LOD(cull, new Renderer[] { r }) });
+                    lod.RecalculateBounds();
+                }
+
+                bool movable = go.GetComponentInParent<EnemyAI>() != null || go.GetComponentInParent<MapPiece>() != null
+                            || go.GetComponentInParent<SacredOil>() != null || go.GetComponentInParent<UnderworldDoor>() != null;
+                if (!movable)
+                    GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic);
+            }
         }
 
         static void ScatterBushes(Transform world, TerrainData td, Material leaves)
