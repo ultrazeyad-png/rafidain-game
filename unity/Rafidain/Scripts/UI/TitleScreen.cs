@@ -11,7 +11,7 @@ namespace Rafidain
 
         Font font;
         GameObject mainPanel, settingsPanel;
-        Text volumeLabel, sensLabel, qualityLabel;
+        Text volumeLabel, sensLabel, qualityLabel, invertLabel;
         Transform cam;
 
         void Start()
@@ -84,6 +84,7 @@ namespace Rafidain
         {
             volumeLabel.text = Mathf.RoundToInt(PlayerPrefs.GetFloat("rafidain_volume", 1f) * 100f) + "%  :" + ArabicText.Fix("الصوت");
             sensLabel.text = PlayerPrefs.GetFloat("rafidain_sens", 1.3f).ToString("0.0") + "  :" + ArabicText.Fix("حساسية الكاميرا");
+            invertLabel.text = ArabicText.Fix(PlayerPrefs.GetInt("rafidain_invert", 0) == 1 ? "نعم" : "لا") + "  :" + ArabicText.Fix("عكس الكاميرا العمودي");
             qualityLabel.text = QualitySettings.names[QualitySettings.GetQualityLevel()] + "  :" + ArabicText.Fix("الجودة");
         }
 
@@ -120,7 +121,9 @@ namespace Rafidain
             MakeSmall(settingsPanel.transform, "+", new Vector2(330, -10), () => ChangeSens(0.1f));
             qualityLabel = MakeText(settingsPanel.transform, "", new Vector2(0, -100), 34, Color.white);
             MakeSmall(settingsPanel.transform, ">", new Vector2(330, -100), CycleQuality);
-            MakeButton(settingsPanel.transform, ArabicText.Fix("رجوع"), new Vector2(0, -220), () => { settingsPanel.SetActive(false); mainPanel.SetActive(true); });
+            invertLabel = MakeText(settingsPanel.transform, "", new Vector2(0, -190), 34, Color.white);
+            MakeSmall(settingsPanel.transform, ">", new Vector2(330, -190), () => { PlayerPrefs.SetInt("rafidain_invert", PlayerPrefs.GetInt("rafidain_invert", 0) == 1 ? 0 : 1); Refresh(); });
+            MakeButton(settingsPanel.transform, ArabicText.Fix("رجوع"), new Vector2(0, -300), () => { settingsPanel.SetActive(false); mainPanel.SetActive(true); });
             settingsPanel.SetActive(false);
 
             MakeText(canvasGo.transform, "Next Level  ·  v0.9", new Vector2(0, -490), 20, new Color(0.6f, 0.55f, 0.5f));
