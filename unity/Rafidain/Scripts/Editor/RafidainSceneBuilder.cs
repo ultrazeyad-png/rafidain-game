@@ -699,7 +699,10 @@ namespace Rafidain.EditorTools
         {
             var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
             scenes.RemoveAll(s => s.path == path);
-            if (first) scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+            // the title screen (MainMenu) always stays the very first scene of the build
+            bool isTitle = path.EndsWith("/MainMenu.unity");
+            int at = (!isTitle && scenes.Count > 0 && scenes[0].path.EndsWith("/MainMenu.unity")) ? 1 : 0;
+            if (first) scenes.Insert(at, new EditorBuildSettingsScene(path, true));
             else scenes.Add(new EditorBuildSettingsScene(path, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }
