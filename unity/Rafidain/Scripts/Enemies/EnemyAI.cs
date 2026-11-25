@@ -169,6 +169,7 @@ namespace Rafidain
         public event System.Action OnAttackStart;
         public event System.Action OnHitTaken;
         public event System.Action OnDied;
+        public event System.Action OnEngage;
         public event System.Action OnReset;
         public float HealthRatio => maxHealth > 0 ? health / maxHealth : 0f;
         public bool IsPhase2 => phase2;
@@ -286,6 +287,7 @@ namespace Rafidain
         void Engage()
         {
             state = State.Chase;
+            OnEngage?.Invoke();
             if (isBoss && HUD.Instance != null) HUD.Instance.ShowBoss(this);
             // first meeting with a guardian: camera turns to him and his name fills the screen (once per guardian)
             string introKey = string.IsNullOrEmpty(bossId) ? displayName : bossId;

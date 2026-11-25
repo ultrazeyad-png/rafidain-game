@@ -1776,6 +1776,14 @@ namespace Rafidain.EditorTools
                 boss.transform.localScale = Vector3.one * 1.9f;
             }
 
+            // mist seals the arena once the guardian wakes (the final arena has its own door)
+            if (!R.finalRegion)
+            {
+                var arenaSeal = new GameObject("Arena Mist").AddComponent<BossArena>();
+                arenaSeal.transform.position = new Vector3(ArenaCenter.x, ArenaHeight, ArenaCenter.y);
+                arenaSeal.boss = boss;
+            }
+
             // each governorate on the road to Baghdad is harder
             float hp = 1f + 0.25f * R.tier, dmg = 1f + 0.15f * R.tier;
             foreach (var e in enemies.GetComponentsInChildren<EnemyAI>(true))
