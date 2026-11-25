@@ -91,12 +91,18 @@ namespace Rafidain
             player.Embers = 0;
             SaveNow();
 
-            yield return new WaitForSeconds(respawnDelay);
+            yield return new WaitForSeconds(Mathf.Max(0.5f, respawnDelay - 1f));
+            if (HUD.Instance != null) yield return HUD.Instance.FadeBlack(1f, 1f);
 
             ResetAllEnemies();
             if (CurrentBonfire != null) TeleportToBonfire(CurrentBonfire);
             player.RestoreAll();
-            if (HUD.Instance != null) HUD.Instance.ShowDeath(false);
+            if (HUD.Instance != null)
+            {
+                HUD.Instance.ShowDeath(false);
+                yield return new WaitForSeconds(0.4f);
+                HUD.Instance.FadeBlack(0f, 1.4f);
+            }
             respawning = false;
         }
 

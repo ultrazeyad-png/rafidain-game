@@ -580,7 +580,7 @@ namespace Rafidain
                 if (HUD.Instance != null)
                 {
                     HUD.Instance.HideBoss();
-                    HUD.Instance.ShowMessage(ArabicText.Fix("سقط عدو عظيم"), 4f);
+                    HUD.Instance.ShowVictory(ArabicText.Fix(displayName + "   ·   " + emberReward + " جمرة"));
                 }
                 if (GameManager.Instance != null) GameManager.Instance.SaveNow();
             }

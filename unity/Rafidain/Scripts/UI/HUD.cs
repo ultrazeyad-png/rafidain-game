@@ -19,7 +19,9 @@ namespace Rafidain
         RectTransform hpFill, stFill, bossFill;
         Text embersText, flaskText, promptText, messageText, bossName, deathText, lostMarker;
         GameObject bossRoot;
-        CanvasGroup deathGroup, messageGroup;
+        CanvasGroup deathGroup, messageGroup, blackGroup, victoryGroup;
+        Text victoryText, victorySub;
+        RectTransform deathTextRt, victoryTextRt;
         RectTransform compass;
         readonly Text[] cardinals = new Text[8];
         static readonly string[] CardinalNames = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
@@ -208,7 +210,57 @@ namespace Rafidain
 
         IEnumerator DeathFade(bool show)
         {
-            yield return Fade(deathGroup, show ? 1f : 0f, show ? 1.2f : 0.5f);
+            if (!show) { yield return Fade(deathGroup, 0f, 0.5f); yield break; }
+            deathTextRt.localScale = Vector3.one * 0.94f;
+            float t = 0f;
+            while (t < 3.2f)
+            {
+                t += Time.unscaledDeltaTime;
+                deathGroup.alpha = Mathf.Clamp01(t / 1.4f);
+                deathTextRt.localScale = Vector3.one * Mathf.Lerp(0.94f, 1.08f, t / 3.2f);
+                yield return null;
+            }
+        }
+
+        /// <summary>Fade the whole screen to black (to = 1) or back (to = 0).</summary>
+        public Coroutine FadeBlack(float to, float seconds)
+        {
+            return StartCoroutine(Fade(blackGroup, to, seconds));
+        }
+
+        Coroutine victoryCo;
+
+        /// <summary>Big golden "a great enemy has fallen" banner.</summary>
+        public void ShowVictory(string subtitle)
+        {
+            if (victoryCo != null) StopCoroutine(victoryCo);
+            victoryCo = StartCoroutine(VictoryRoutine(subtitle));
+        }
+
+        IEnumerator VictoryRoutine(string subtitle)
+        {
+            victorySub.text = subtitle ?? "";
+            victoryTextRt.localScale = Vector3.one * 1.12f;
+            float t = 0f;
+            while (t < 1.2f)
+            {
+                t += Time.unscaledDeltaTime;
+                victoryGroup.alpha = Mathf.Clamp01(t / 0.6f);
+                victoryTextRt.localScale = Vector3.one * Mathf.Lerp(1.12f, 1f, Mathf.SmoothStep(0f, 1f, t / 1.2f));
+                yield return null;
+            }
+            yield return new WaitForSecondsRealtime(3f);
+            yield return Fade(victoryGroup, 0f, 1.2f);
+        }
+
+        void MakeBand(RectTransform parent, Color c)
+        {
+            var band = Rect(parent, "Band", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            band.anchorMin = new Vector2(0f, 0.5f); band.anchorMax = new Vector2(1f, 0.5f);
+            band.sizeDelta = new Vector2(0f, 260f);
+            var img = band.gameObject.AddComponent<Image>();
+            img.color = c;
+            img.raycastTarget = false;
         }
 
         static IEnumerator Fade(CanvasGroup g, float to, float time)
@@ -286,17 +338,43 @@ namespace Rafidain
             messageGroup.alpha = 0f;
             messageGroup.blocksRaycasts = false;
 
-            // Death screen
+            // Death screen: a dark band across the middle, blood-red title that slowly grows (souls style)
             var deathRt = Rect(root, "Death", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             deathRt.anchorMin = Vector2.zero; deathRt.anchorMax = Vector2.one; deathRt.sizeDelta = Vector2.zero;
-            var deathBg = deathRt.gameObject.AddComponent<Image>();
-            deathBg.color = new Color(0, 0, 0, 0.55f);
-            deathBg.raycastTarget = false;
+            var deathVeil = deathRt.gameObject.AddComponent<Image>();
+            deathVeil.color = new Color(0.05f, 0f, 0f, 0.35f);
+            deathVeil.raycastTarget = false;
             deathGroup = deathRt.gameObject.AddComponent<CanvasGroup>();
             deathGroup.alpha = 0f;
             deathGroup.blocksRaycasts = false;
-            deathText = Label(deathRt, "DeathText", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1600, 200), 96, TextAnchor.MiddleCenter, new Color(0.7f, 0.08f, 0.05f));
+            MakeBand(deathRt, new Color(0f, 0f, 0f, 0.82f));
+            deathText = Label(deathRt, "DeathText", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1600, 200), 110, TextAnchor.MiddleCenter, new Color(0.62f, 0.05f, 0.04f));
             deathText.text = ArabicText.Fix("هلكت");
+            deathText.fontStyle = FontStyle.Bold;
+            deathTextRt = deathText.rectTransform;
+
+            // Victory screen: golden title over a band
+            var vicRt = Rect(root, "Victory", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            vicRt.anchorMin = Vector2.zero; vicRt.anchorMax = Vector2.one; vicRt.sizeDelta = Vector2.zero;
+            victoryGroup = vicRt.gameObject.AddComponent<CanvasGroup>();
+            victoryGroup.alpha = 0f;
+            victoryGroup.blocksRaycasts = false;
+            MakeBand(vicRt, new Color(0.02f, 0.015f, 0f, 0.78f));
+            victoryText = Label(vicRt, "VictoryText", new Vector2(0.5f, 0.5f), new Vector2(0, 18), new Vector2(1600, 170), 92, TextAnchor.MiddleCenter, new Color(0.98f, 0.8f, 0.42f));
+            victoryText.text = ArabicText.Fix("سقط عدو عظيم");
+            victoryText.fontStyle = FontStyle.Bold;
+            victoryTextRt = victoryText.rectTransform;
+            victorySub = Label(vicRt, "VictorySub", new Vector2(0.5f, 0.5f), new Vector2(0, -70), new Vector2(1600, 60), 30, TextAnchor.MiddleCenter, new Color(0.9f, 0.82f, 0.68f));
+
+            // full-screen black for respawn / scene transitions (above everything else)
+            var blackRt = Rect(root, "Black", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            blackRt.anchorMin = Vector2.zero; blackRt.anchorMax = Vector2.one; blackRt.sizeDelta = Vector2.zero;
+            var blackImg = blackRt.gameObject.AddComponent<Image>();
+            blackImg.color = Color.black;
+            blackImg.raycastTarget = false;
+            blackGroup = blackRt.gameObject.AddComponent<CanvasGroup>();
+            blackGroup.alpha = 0f;
+            blackGroup.blocksRaycasts = false;
 
             // lock-on marker
             lockMarker = Rect(root, "LockOn", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16, 16));
