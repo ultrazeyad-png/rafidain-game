@@ -426,6 +426,7 @@ namespace Rafidain
             var lockImg = lockMarker.gameObject.AddComponent<Image>();
             lockImg.color = new Color(1f, 0.85f, 0.55f, 0.95f);
             lockImg.raycastTarget = false;
+            blackGroup.transform.SetAsLastSibling();   // the fade covers every HUD element
             lockMarker.localRotation = Quaternion.Euler(0f, 0f, 45f);
             lockMarker.gameObject.SetActive(false);
         }
