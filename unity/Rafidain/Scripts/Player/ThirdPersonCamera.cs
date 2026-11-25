@@ -9,6 +9,7 @@ namespace Rafidain
         public float distance = 4.2f;
         public float pivotHeight = 1.5f;
         public float sensitivity = 1.3f;
+        public bool invertY;
         public float minPitch = -35f;
         public float maxPitch = 70f;
         public float collisionRadius = 0.25f;
@@ -72,7 +73,7 @@ namespace Rafidain
             else if (input != null)
             {
                 yaw += input.Look.x * sensitivity;
-                pitch = Mathf.Clamp(pitch - input.Look.y * sensitivity, minPitch, maxPitch);
+                pitch = Mathf.Clamp(pitch - input.Look.y * sensitivity * (invertY ? -1f : 1f), minPitch, maxPitch);
             }
 
             Quaternion rot = Quaternion.Euler(pitch, yaw, 0f);
