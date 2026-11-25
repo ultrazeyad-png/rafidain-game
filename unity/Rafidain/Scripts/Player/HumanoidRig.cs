@@ -64,7 +64,12 @@ namespace Rafidain
 
             if (legL != null) legL.localRotation = Quaternion.Euler(swing, 0f, 0f);
             if (legR != null) legR.localRotation = Quaternion.Euler(-swing, 0f, 0f);
-            if (armL != null) armL.localRotation = Quaternion.Euler(-swing * 0.8f, 0f, -6f);
+            if (armL != null)
+            {
+                bool blocking = pc != null && pc.IsBlocking;
+                var t = blocking ? Quaternion.Euler(-80f, 25f, -35f) : Quaternion.Euler(-swing * 0.8f, 0f, -6f);
+                armL.localRotation = Quaternion.Slerp(armL.localRotation, t, 1f - Mathf.Exp(-20f * dt));
+            }
 
             // right arm: swings while walking, raised while attacking
             if (armR != null)

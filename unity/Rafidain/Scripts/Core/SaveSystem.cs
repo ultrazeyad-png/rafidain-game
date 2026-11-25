@@ -9,6 +9,9 @@ namespace Rafidain
     {
         public int embers;
         public bool introSeen;
+        public string currentScene = "";
+        public bool underworldOpened;
+        public bool endingSeen;
         public string lastBonfireId = "";
         public List<string> discoveredBonfires = new List<string>();
         public List<string> defeatedBosses = new List<string>();

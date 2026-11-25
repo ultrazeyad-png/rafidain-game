@@ -302,6 +302,16 @@ namespace Rafidain
             {
                 if (!string.IsNullOrEmpty(bossId) && !SaveSystem.Data.defeatedBosses.Contains(bossId))
                     SaveSystem.Data.defeatedBosses.Add(bossId);
+                // every guardian carries one of the five keys of the gate under Baghdad
+                string key = bossId + "_key";
+                if (!string.IsNullOrEmpty(bossId) && !SaveSystem.Data.keys.Contains(key))
+                {
+                    SaveSystem.Data.keys.Add(key);
+                    if (HUD.Instance != null)
+                        HUD.Instance.ShowDialog(ArabicText.Fix("مفتاح الحارس"),
+                            ArabicText.Fix("سقط من يد الحارس مفتاح من برونز قديم") + "\n" +
+                            SaveSystem.Data.keys.Count + " / 5  " + ArabicText.Fix("مفاتيح باب العالم السفلي"), 6f);
+                }
                 if (HUD.Instance != null)
                 {
                     HUD.Instance.HideBoss();

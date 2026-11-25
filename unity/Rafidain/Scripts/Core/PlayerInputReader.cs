@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 namespace Rafidain
 {
-    public enum GameAction { Attack = 0, HeavyAttack = 1, Dodge = 2, LockOn = 3, Interact = 4, Heal = 5 }
+    public enum GameAction { Attack = 0, HeavyAttack = 1, Dodge = 2, LockOn = 3, Interact = 4, Heal = 5, Map = 6 }
 
     /// <summary>
     /// One place that reads keyboard/mouse, gamepad and on-screen touch controls.
@@ -27,14 +27,16 @@ namespace Rafidain
         public Vector2 Move { get; private set; }
         public Vector2 Look { get; private set; }
         public bool SprintHeld { get; private set; }
+        public bool BlockHeld { get; private set; }
         public bool PausePressed { get; private set; }
 
-        const int ActionCount = 6;
+        const int ActionCount = 7;
         readonly float[] lastPress = new float[ActionCount];
 
         Vector2 mobileMove;
         Vector2 mobileLook;
         bool mobileSprint;
+        bool mobileBlock;
         float padEastDownTime = -1f;
 
         void Awake()
@@ -60,12 +62,14 @@ namespace Rafidain
         public void SetMobileMove(Vector2 v) => mobileMove = v;
         public void AddMobileLook(Vector2 delta) => mobileLook += delta * touchLookSensitivity;
         public void SetMobileSprint(bool held) => mobileSprint = held;
+        public void SetMobileBlock(bool held) => mobileBlock = held;
 
         void Update()
         {
             Vector2 move = Vector2.zero;
             Vector2 look = Vector2.zero;
             bool sprint = false;
+            bool block = false;
             PausePressed = false;
 
 #if ENABLE_INPUT_SYSTEM
@@ -82,6 +86,8 @@ namespace Rafidain
                 if (kb.eKey.wasPressedThisFrame) Press(GameAction.Interact);
                 if (kb.rKey.wasPressedThisFrame) Press(GameAction.Heal);
                 if (kb.qKey.wasPressedThisFrame) Press(GameAction.LockOn);
+                if (kb.fKey.wasPressedThisFrame) Press(GameAction.HeavyAttack);
+                if (kb.mKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame) Press(GameAction.Map);
                 if (kb.escapeKey.wasPressedThisFrame) PausePressed = true;
             }
 
@@ -90,7 +96,7 @@ namespace Rafidain
                 if (Cursor.lockState == CursorLockMode.Locked)
                     look += mouse.delta.ReadValue() * mouseSensitivity;
                 if (mouse.leftButton.wasPressedThisFrame) Press(GameAction.Attack);
-                if (mouse.rightButton.wasPressedThisFrame) Press(GameAction.HeavyAttack);
+                block |= mouse.rightButton.isPressed;
                 if (mouse.middleButton.wasPressedThisFrame) Press(GameAction.LockOn);
             }
 
@@ -111,9 +117,11 @@ namespace Rafidain
                 if (pad.rightShoulder.wasPressedThisFrame) Press(GameAction.Attack);
                 if (pad.rightTrigger.wasPressedThisFrame) Press(GameAction.HeavyAttack);
                 if (pad.rightStickButton.wasPressedThisFrame) Press(GameAction.LockOn);
+                block |= pad.leftShoulder.isPressed;
                 if (pad.buttonNorth.wasPressedThisFrame) Press(GameAction.Interact);
                 if (pad.buttonWest.wasPressedThisFrame) Press(GameAction.Heal);
                 if (pad.startButton.wasPressedThisFrame) PausePressed = true;
+                if (pad.selectButton.wasPressedThisFrame) Press(GameAction.Map);
             }
 #else
             move.x = Input.GetAxisRaw("Horizontal");
@@ -126,7 +134,9 @@ namespace Rafidain
             if (Input.GetKeyDown(KeyCode.R)) Press(GameAction.Heal);
             if (Input.GetKeyDown(KeyCode.Q) || Input.GetMouseButtonDown(2)) Press(GameAction.LockOn);
             if (Input.GetMouseButtonDown(0)) Press(GameAction.Attack);
-            if (Input.GetMouseButtonDown(1)) Press(GameAction.HeavyAttack);
+            block |= Input.GetMouseButton(1);
+            if (Input.GetKeyDown(KeyCode.F)) Press(GameAction.HeavyAttack);
+            if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyDown(KeyCode.Tab)) Press(GameAction.Map);
             if (Input.GetKeyDown(KeyCode.Escape)) PausePressed = true;
 #endif
 
@@ -134,10 +144,12 @@ namespace Rafidain
             look += mobileLook;
             mobileLook = Vector2.zero;
             sprint |= mobileSprint;
+            block |= mobileBlock;
 
             Move = Vector2.ClampMagnitude(move, 1f);
             Look = look;
             SprintHeld = sprint;
+            BlockHeld = block;
         }
     }
 }

@@ -23,6 +23,16 @@ namespace Rafidain
         {
             Instance = this;
             SaveSystem.Load();
+
+            // continue in the governorate the player was last in
+            string saved = SaveSystem.Data.currentScene;
+            string here = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (!string.IsNullOrEmpty(saved) && saved != here && Application.CanStreamedLevelBeLoaded(saved))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(saved);
+                return;
+            }
+            SaveSystem.Data.currentScene = here;
         }
 
         void Start()
@@ -87,6 +97,14 @@ namespace Rafidain
             player.RestoreAll();
             if (HUD.Instance != null) HUD.Instance.ShowDeath(false);
             respawning = false;
+        }
+
+        /// <summary>Fast travel from the map: arrive at the flame and rest there.</summary>
+        public void FastTravel(Bonfire b)
+        {
+            if (b == null || player == null || player.IsDead) return;
+            TeleportToBonfire(b);
+            b.Rest();
         }
 
         public void ResetAllEnemies()

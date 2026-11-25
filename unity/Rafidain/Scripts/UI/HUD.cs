@@ -67,6 +67,46 @@ namespace Rafidain
             messageCo = StartCoroutine(MessageRoutine(text, seconds));
         }
 
+        GameObject dialogRoot;
+        Text dialogName, dialogBody;
+        Coroutine dialogCo;
+
+        /// <summary>Talk box at the bottom of the screen. Pass already-fixed Arabic text (ArabicText.Fix), lines split with \n.</summary>
+        public void ShowDialog(string speaker, string body, float seconds)
+        {
+            if (dialogRoot == null) BuildDialog();
+            dialogName.text = speaker;
+            dialogBody.text = body;
+            dialogRoot.SetActive(true);
+            if (dialogCo != null) StopCoroutine(dialogCo);
+            dialogCo = StartCoroutine(HideDialogLater(seconds));
+        }
+
+        public void HideDialog()
+        {
+            if (dialogRoot != null) dialogRoot.SetActive(false);
+        }
+
+        IEnumerator HideDialogLater(float seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+            HideDialog();
+        }
+
+        void BuildDialog()
+        {
+            var canvas = GetComponentInChildren<Canvas>().transform;
+            var rt = Rect(canvas, "Dialog", new Vector2(0.5f, 0f), new Vector2(0f, 300f), new Vector2(1300f, 170f));
+            var bg = rt.gameObject.AddComponent<Image>();
+            bg.color = new Color(0.05f, 0.04f, 0.03f, 0.82f);
+            bg.raycastTarget = false;
+            dialogRoot = rt.gameObject;
+            dialogName = Label(rt, "Speaker", new Vector2(1f, 1f), new Vector2(-30f, -16f), new Vector2(600f, 40f), 28, TextAnchor.MiddleRight, new Color(1f, 0.78f, 0.45f));
+            dialogName.rectTransform.pivot = new Vector2(1f, 1f);
+            dialogBody = Label(rt, "Body", new Vector2(0.5f, 0.5f), new Vector2(0f, -14f), new Vector2(1240f, 120f), 30, TextAnchor.MiddleRight, new Color(0.95f, 0.92f, 0.85f));
+            dialogRoot.SetActive(false);
+        }
+
         public void ShowBoss(EnemyAI e)
         {
             boss = e;

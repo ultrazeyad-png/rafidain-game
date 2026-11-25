@@ -26,6 +26,13 @@ namespace Rafidain
         public float StaminaRatio => maxStamina > 0 ? Stamina / maxStamina : 0f;
 
         public event Action OnDamaged;
+        public event Action OnBlocked;
+        public event Action OnGuardBroken;
+
+        [Header("Shield")]
+        [Range(0f, 1f)] public float blockDamageTaken = 0.1f;
+        public float blockStaminaPerDamage = 1.1f;
+        public float blockAngle = 70f;
 
         float lastStaminaUse = -10f;
         PlayerController controller;
@@ -40,8 +47,9 @@ namespace Rafidain
         {
             if (IsDead) return;
             bool sprinting = controller != null && controller.IsSprinting;
+            bool blocking = controller != null && controller.IsBlocking;
             if (!sprinting && Time.time - lastStaminaUse > staminaRegenDelay)
-                Stamina = Mathf.Min(maxStamina, Stamina + staminaRegen * Time.deltaTime);
+                Stamina = Mathf.Min(maxStamina, Stamina + staminaRegen * (blocking ? 0.4f : 1f) * Time.deltaTime);
         }
 
         /// <summary>Souls rule: any action is allowed while stamina is above zero.</summary>
@@ -62,6 +70,38 @@ namespace Rafidain
         {
             if (IsDead) return false;
             if (controller != null && controller.IsInvulnerable) return false;
+
+            // shield block: attacks from the front cost stamina instead of health
+            if (controller != null && controller.IsBlocking)
+            {
+                Vector3 toSource = sourcePosition - transform.position;
+                toSource.y = 0f;
+                if (Vector3.Angle(transform.forward, toSource) <= blockAngle)
+                {
+                    float cost = amount * blockStaminaPerDamage;
+                    if (Stamina >= cost)
+                    {
+                        DrainStamina(cost);
+                        amount *= blockDamageTaken;
+                        OnBlocked?.Invoke();
+                        if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.08f);
+                        controller.ApplyHitStagger(sourcePosition, 0.12f, 1.5f);
+                        Health -= amount;
+                        if (Health <= 0f) { Health = 0f; IsDead = true; if (GameManager.Instance != null) GameManager.Instance.OnPlayerDied(); }
+                        return true;
+                    }
+                    // guard break
+                    DrainStamina(Stamina);
+                    amount *= 0.5f;
+                    OnGuardBroken?.Invoke();
+                    if (HUD.Instance != null) HUD.Instance.ShowMessage(ArabicText.Fix("انكسر صدك"), 1.2f);
+                    Health -= amount;
+                    OnDamaged?.Invoke();
+                    controller.ApplyHitStagger(sourcePosition, 0.9f, 2f);
+                    if (Health <= 0f) { Health = 0f; IsDead = true; if (GameManager.Instance != null) GameManager.Instance.OnPlayerDied(); }
+                    return true;
+                }
+            }
 
             Health -= amount;
             OnDamaged?.Invoke();

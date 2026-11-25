@@ -29,6 +29,8 @@ namespace Rafidain
         public bool IsInvulnerable { get; private set; }
         public bool IsSprinting { get; private set; }
         public bool IsHealing { get; private set; }
+        public bool IsBlocking { get; private set; }
+        public float blockMoveMultiplier = 0.5f;
         public bool IsStaggered => staggerTimer > 0f;
         public float CurrentSpeed { get; private set; }
 
@@ -84,7 +86,7 @@ namespace Rafidain
             if (staggerTimer > 0f)
             {
                 staggerTimer -= dt;
-                cc.Move((staggerPush * (staggerTimer / 0.35f) + Vector3.up * verticalVelocity) * dt);
+                cc.Move((staggerPush * Mathf.Clamp01(staggerTimer / 0.35f) + Vector3.up * verticalVelocity) * dt);
                 ApplyGravity(dt);
                 return;
             }
@@ -110,6 +112,7 @@ namespace Rafidain
             if (canAct && input.Consume(GameAction.Dodge) && stats.TryUseStamina(dodgeStamina))
             {
                 IsDodging = true;
+                IsBlocking = false;
                 dodgeTimer = 0f;
                 dodgeDir = moveDir.sqrMagnitude > 0.01f ? moveDir.normalized : -transform.forward; // backstep
                 if (moveDir.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(dodgeDir);
@@ -140,11 +143,13 @@ namespace Rafidain
 
             // --- Normal movement ---
             bool attacking = combat != null && combat.IsAttacking;
-            IsSprinting = input.SprintHeld && moveDir.sqrMagnitude > 0.01f && !attacking && !IsHealing && stats.Stamina > 0.5f;
+            IsBlocking = input.BlockHeld && !attacking && !IsHealing && stats.Stamina > 0.5f;
+            IsSprinting = input.SprintHeld && !IsBlocking && moveDir.sqrMagnitude > 0.01f && !attacking && !IsHealing && stats.Stamina > 0.5f;
             if (IsSprinting) stats.DrainStamina(sprintStaminaPerSecond * dt);
 
             float speedNow = IsSprinting ? runSpeed : walkSpeed;
             if (IsHealing) speedNow *= healMoveMultiplier;
+            if (IsBlocking) speedNow *= blockMoveMultiplier;
             if (attacking) speedNow = 0f;
 
             planarVelocity = Vector3.MoveTowards(planarVelocity, moveDir * speedNow, acceleration * dt);
@@ -172,12 +177,15 @@ namespace Rafidain
             }
         }
 
-        public void ApplyHitStagger(Vector3 sourcePosition)
+        public void ApplyHitStagger(Vector3 sourcePosition) => ApplyHitStagger(sourcePosition, 0.35f, 3f);
+
+        public void ApplyHitStagger(Vector3 sourcePosition, float duration, float push)
         {
+            IsBlocking = false;
             Vector3 away = transform.position - sourcePosition;
             away.y = 0f;
-            staggerPush = away.sqrMagnitude > 0.001f ? away.normalized * 3f : -transform.forward * 3f;
-            staggerTimer = 0.35f;
+            staggerPush = away.sqrMagnitude > 0.001f ? away.normalized * push : -transform.forward * push;
+            staggerTimer = duration;
             IsHealing = false;
             planarVelocity = Vector3.zero;
             CurrentSpeed = 0f;
