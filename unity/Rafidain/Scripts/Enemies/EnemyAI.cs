@@ -162,6 +162,9 @@ namespace Rafidain
 
         public bool IsDead => state == State.Dead;
         public float CurrentSpeed { get; private set; }
+        /// <summary>For the floating health bar: when this enemy was last hit, and the damage summed over the current combo.</summary>
+        public float LastHitTime { get; private set; } = -10f;
+        public float RecentDamage { get; private set; }
 
         public event System.Action OnAttackStart;
         public event System.Action OnHitTaken;
@@ -585,6 +588,8 @@ namespace Rafidain
         {
             if (state == State.Dead) return false;
             health -= amount;
+            RecentDamage = Time.time - LastHitTime < 1.6f ? RecentDamage + amount : amount;
+            LastHitTime = Time.time;
             StartCoroutine(HitFlash());
             if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.hit, transform.position + Vector3.up, 0.9f);
             Vector3 impact = transform.position + Vector3.up * 0.4f * transform.lossyScale.y + (sourcePosition - transform.position).normalized * 0.4f;
