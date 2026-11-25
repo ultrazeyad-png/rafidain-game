@@ -869,6 +869,10 @@ namespace Rafidain
                         HUD.Instance.ShowDialog(ArabicText.Fix("قطعة من المفتاح"),
                             ArabicText.Fix("سقطت من يد الحارس قطعة من المفتاح الذي كسره ادابا... تذكر فرات شيئا") + "\n" +
                             SaveSystem.Data.keys.Count + " / " + Regions.KeysNeeded + "  " + ArabicText.Fix("قطع مفتاح العالم السفلي"), 6f);
+                    // and with the shard, a memory of Dijla comes back
+                    int ri = Regions.IndexOf(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+                    if (HUD.Instance != null && ri >= 0 && ri < Regions.Memories.Length)
+                        HUD.Instance.ShowDialogLater(ArabicText.Fix("ذكرى"), ArabicText.Fix(Regions.Memories[ri]), 6.5f, 7f);
                 }
                 if (HUD.Instance != null)
                 {

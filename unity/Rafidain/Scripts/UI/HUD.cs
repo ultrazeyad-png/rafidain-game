@@ -87,6 +87,18 @@ namespace Rafidain
             dialogCo = StartCoroutine(HideDialogLater(seconds));
         }
 
+        /// <summary>Show a dialog after a delay (a memory after the shard text).</summary>
+        public void ShowDialogLater(string speaker, string body, float delay, float seconds)
+        {
+            StartCoroutine(DialogLater(speaker, body, delay, seconds));
+        }
+
+        IEnumerator DialogLater(string speaker, string body, float delay, float seconds)
+        {
+            yield return new WaitForSeconds(delay);
+            ShowDialog(speaker, body, seconds);
+        }
+
         public void HideDialog()
         {
             if (dialogRoot != null) dialogRoot.SetActive(false);

@@ -19,6 +19,59 @@ namespace Rafidain
         Text hapticsLabel;
         GameObject controlsPanel;
         GameObject statsPanel;
+        RectTransform routeRoot;
+
+        // rough longitude / latitude of each stop on the road, to draw the route over Iraq
+        static readonly Vector2[] RouteGeo =
+        {
+            new Vector2(42.68f, 37.14f), new Vector2(42.99f, 36.87f), new Vector2(43.13f, 36.34f), new Vector2(44.01f, 36.19f),
+            new Vector2(45.43f, 35.56f), new Vector2(44.39f, 35.47f), new Vector2(43.87f, 34.20f), new Vector2(43.30f, 33.42f),
+            new Vector2(44.02f, 32.60f), new Vector2(44.33f, 32.00f), new Vector2(44.93f, 31.99f), new Vector2(45.28f, 31.31f),
+            new Vector2(47.78f, 30.51f), new Vector2(47.15f, 31.84f), new Vector2(46.26f, 31.04f), new Vector2(45.82f, 32.51f),
+            new Vector2(44.42f, 32.47f), new Vector2(44.65f, 33.75f), new Vector2(44.36f, 33.31f),
+        };
+
+        /// <summary>The road from Zakho to Baghdad drawn over Iraq: gold = guardian fallen, red = here.</summary>
+        void DrawRoute()
+        {
+            for (int i = routeRoot.childCount - 1; i >= 0; i--) Destroy(routeRoot.GetChild(i).gameObject);
+            var d = SaveSystem.Data;
+            string here = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            Vector2 size = routeRoot.sizeDelta;
+            Vector2 P(int i) => new Vector2(
+                Mathf.InverseLerp(42.3f, 48.2f, RouteGeo[i].x) * size.x - size.x * 0.5f,
+                Mathf.InverseLerp(30.2f, 37.4f, RouteGeo[i].y) * size.y - size.y * 0.5f);
+
+            int n = Mathf.Min(RouteGeo.Length, Regions.Count);
+            for (int i = 0; i + 1 < n; i++)
+            {
+                Vector2 a = P(i), b = P(i + 1);
+                var line = new GameObject("Road", typeof(RectTransform)).GetComponent<RectTransform>();
+                line.SetParent(routeRoot, false);
+                line.anchoredPosition = (a + b) * 0.5f;
+                line.sizeDelta = new Vector2((b - a).magnitude, 3f);
+                line.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg);
+                var li = line.gameObject.AddComponent<Image>();
+                li.color = new Color(0.8f, 0.65f, 0.4f, 0.35f);
+                li.raycastTarget = false;
+            }
+            for (int i = 0; i < n; i++)
+            {
+                bool fallen = d.defeatedBosses.Contains("boss_" + (i == n - 1 ? "adapa" : Regions.Scenes[i].Replace("_Region", "").ToLowerInvariant()));
+                bool isHere = Regions.Scenes[i] == here;
+                bool visited = d.visitedRegions != null && d.visitedRegions.Contains(Regions.Scenes[i]);
+                var dot = new GameObject("Stop", typeof(RectTransform)).GetComponent<RectTransform>();
+                dot.SetParent(routeRoot, false);
+                dot.anchoredPosition = P(i);
+                dot.sizeDelta = Vector2.one * (isHere ? 20f : 13f);
+                dot.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                var di = dot.gameObject.AddComponent<Image>();
+                di.color = isHere ? new Color(0.85f, 0.15f, 0.1f) : fallen ? new Color(1f, 0.78f, 0.35f) : visited ? new Color(0.8f, 0.75f, 0.65f) : new Color(0.35f, 0.32f, 0.3f);
+                di.raycastTarget = false;
+                var label = MakeText(routeRoot, ArabicText.Fix(Regions.Names[i]), P(i) + new Vector2(0f, 16f), 16, new Color(0.85f, 0.8f, 0.7f, visited || isHere ? 1f : 0.45f));
+                label.rectTransform.sizeDelta = new Vector2(200f, 24f);
+            }
+        }
         Text statsBody;
         Font font;
         float sensitivity = 1.3f;
@@ -270,8 +323,13 @@ namespace Rafidain
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.sizeDelta = Vector2.zero;
             statsPanel.AddComponent<Image>().color = new Color(0.04f, 0.03f, 0.02f, 0.96f);
             MakeText(statsPanel.transform, ArabicText.Fix("رحلة فرات"), new Vector2(0, 380), 56, new Color(0.95f, 0.8f, 0.5f)).fontStyle = FontStyle.Bold;
-            statsBody = MakeText(statsPanel.transform, "", new Vector2(0, 0), 32, new Color(0.93f, 0.88f, 0.78f));
-            statsBody.rectTransform.sizeDelta = new Vector2(1200, 640);
+            statsBody = MakeText(statsPanel.transform, "", new Vector2(380, 0), 30, new Color(0.93f, 0.88f, 0.78f));
+            statsBody.rectTransform.sizeDelta = new Vector2(820, 700);
+            statsBody.alignment = TextAnchor.MiddleRight;
+            routeRoot = new GameObject("Route Map", typeof(RectTransform)).GetComponent<RectTransform>();
+            routeRoot.SetParent(statsPanel.transform, false);
+            routeRoot.anchoredPosition = new Vector2(-430, 0);
+            routeRoot.sizeDelta = new Vector2(620, 680);
             statsBody.lineSpacing = 1.25f;
             MakeButton(statsPanel.transform, ArabicText.Fix("رجوع"), new Vector2(0.5f, 0.5f), new Vector2(0, -420), new Vector2(360, 70), 32)
                 .onClick.AddListener(() => statsPanel.SetActive(false));
@@ -292,6 +350,7 @@ namespace Rafidain
                 Row("السلاح", ArabicText.Fix(Weapons.Get(d.equippedWeapon).name)),
                 Row("الحراس الذين سقطوا", d.defeatedBosses.Count + " / " + Regions.Count),
                 Row("قطع المفتاح", Mathf.Min(d.keys.Count, Regions.KeysNeeded) + " / " + Regions.KeysNeeded),
+                Row("ذكريات دجلة", Mathf.Min(d.keys.Count, Regions.Memories.Length) + " / " + Regions.Memories.Length),
                 Row("قطع الخريطة", d.mapPieces.Count + " / " + Regions.Count * 2),
                 Row("جرار الزيت المقدس", d.sacredOils.Count + " / " + Regions.Count),
                 Row("الاسلحة", (d.weapons != null ? d.weapons.Count : 1) + " / 3"),
@@ -300,6 +359,7 @@ namespace Rafidain
                 Row("وقت الرحلة", time),
             };
             statsBody.text = string.Join("\n", lines);
+            DrawRoute();
             statsPanel.SetActive(true);
         }
 
