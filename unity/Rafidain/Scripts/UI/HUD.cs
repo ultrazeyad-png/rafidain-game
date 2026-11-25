@@ -20,7 +20,9 @@ namespace Rafidain
         Text embersText, flaskText, promptText, messageText, bossName, deathText, lostMarker;
         GameObject bossRoot;
         CanvasGroup deathGroup, messageGroup, blackGroup, victoryGroup;
-        Text victoryText, victorySub;
+        Text victoryText, victorySub, bossTitle, bossEpithet;
+        CanvasGroup bossTitleGroup;
+        RectTransform bossTitleRt;
         RectTransform deathTextRt, victoryTextRt;
         RectTransform compass;
         readonly Text[] cardinals = new Text[8];
@@ -228,6 +230,30 @@ namespace Rafidain
             return StartCoroutine(Fade(blackGroup, to, seconds));
         }
 
+        Coroutine titleCo;
+
+        /// <summary>Big name card when a guardian is met for the first time.</summary>
+        public void ShowBossTitle(string name, string epithet)
+        {
+            if (titleCo != null) StopCoroutine(titleCo);
+            titleCo = StartCoroutine(BossTitleRoutine(name, epithet));
+        }
+
+        IEnumerator BossTitleRoutine(string name, string epithet)
+        {
+            bossTitle.text = name;
+            bossEpithet.text = epithet;
+            float t = 0f;
+            while (t < 2.6f)
+            {
+                t += Time.unscaledDeltaTime;
+                bossTitleGroup.alpha = Mathf.Clamp01(t / 0.5f);
+                bossTitleRt.localScale = Vector3.one * Mathf.Lerp(0.96f, 1.03f, t / 2.6f);
+                yield return null;
+            }
+            yield return Fade(bossTitleGroup, 0f, 0.8f);
+        }
+
         Coroutine victoryCo;
 
         /// <summary>Big golden "a great enemy has fallen" banner.</summary>
@@ -365,6 +391,25 @@ namespace Rafidain
             victoryText.fontStyle = FontStyle.Bold;
             victoryTextRt = victoryText.rectTransform;
             victorySub = Label(vicRt, "VictorySub", new Vector2(0.5f, 0.5f), new Vector2(0, -70), new Vector2(1600, 60), 30, TextAnchor.MiddleCenter, new Color(0.9f, 0.82f, 0.68f));
+
+            // Boss title card: name in large letters, epithet beneath, thin gold lines
+            var btRt = Rect(root, "BossTitle", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            btRt.anchorMin = Vector2.zero; btRt.anchorMax = Vector2.one; btRt.sizeDelta = Vector2.zero;
+            bossTitleGroup = btRt.gameObject.AddComponent<CanvasGroup>();
+            bossTitleGroup.alpha = 0f;
+            bossTitleGroup.blocksRaycasts = false;
+            MakeBand(btRt, new Color(0f, 0f, 0f, 0.55f));
+            bossEpithet = Label(btRt, "Epithet", new Vector2(0.5f, 0.5f), new Vector2(0, 75), new Vector2(1600, 60), 30, TextAnchor.MiddleCenter, new Color(0.85f, 0.75f, 0.6f));
+            bossTitle = Label(btRt, "Name", new Vector2(0.5f, 0.5f), new Vector2(0, -10), new Vector2(1600, 150), 96, TextAnchor.MiddleCenter, new Color(0.96f, 0.9f, 0.8f));
+            bossTitle.fontStyle = FontStyle.Bold;
+            bossTitleRt = bossTitle.rectTransform;
+            for (int i = -1; i <= 1; i += 2)
+            {
+                var line = Rect(btRt, "Line", new Vector2(0.5f, 0.5f), new Vector2(0, i < 0 ? -90 : 110), new Vector2(700, 2));
+                var li = line.gameObject.AddComponent<Image>();
+                li.color = new Color(0.9f, 0.7f, 0.35f, 0.8f);
+                li.raycastTarget = false;
+            }
 
             // full-screen black for respawn / scene transitions (above everything else)
             var blackRt = Rect(root, "Black", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);

@@ -103,6 +103,20 @@ namespace Rafidain
             if (HUD.Instance != null && isBoss) HUD.Instance.ShowMessage(ArabicText.Fix("ترنح الحارس... اضرب الان"), 1.5f);
         }
 
+        string BossEpithet()
+        {
+            switch (special)
+            {
+                case BossMove.Wave: return "سيد السد الغارق";
+                case BossMove.WingGust: return "الثور المجنح لنينوى";
+                case BossMove.ShieldCharge: return "حامي القلعة الذي لا يسقط";
+                case BossMove.FireTrail: return "ابن النار الازلية";
+                case BossMove.Spin: return "دوامة الملوية";
+                case BossMove.ShadowStep: return "ادابا... حارس باب ارشكيكال";
+                default: return "حارس الطريق الاول";
+            }
+        }
+
         /// <summary>The player's shield caught this attack at the last moment (parry).</summary>
         public void Parried()
         {
@@ -200,6 +214,14 @@ namespace Rafidain
             float dist = toPlayer.magnitude;
             float speedMul = phase2 ? phase2SpeedMultiplier : 1f;
 
+            // the guardian stands and glares while his name is shown
+            if (state == State.Chase && Time.time < introHoldUntil)
+            {
+                Face(toPlayer, 0.5f);
+                CurrentSpeed = 0f;
+                return;
+            }
+
             switch (state)
             {
                 case State.Idle:
@@ -256,10 +278,22 @@ namespace Rafidain
             }
         }
 
+        float introHoldUntil;
+
         void Engage()
         {
             state = State.Chase;
             if (isBoss && HUD.Instance != null) HUD.Instance.ShowBoss(this);
+            // first meeting with a guardian: camera turns to him and his name fills the screen (once per guardian)
+            string introKey = string.IsNullOrEmpty(bossId) ? displayName : bossId;
+            var seen = SaveSystem.Data.bossIntrosSeen;
+            if (isBoss && seen != null && !seen.Contains(introKey))
+            {
+                seen.Add(introKey);
+                introHoldUntil = Time.time + 2.8f;
+                if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Focus(transform, 2.6f);
+                if (HUD.Instance != null) HUD.Instance.ShowBossTitle(ArabicText.Fix(displayName), ArabicText.Fix(BossEpithet()));
+            }
         }
 
         void GoHome()

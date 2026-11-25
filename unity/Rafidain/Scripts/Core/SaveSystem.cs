@@ -22,6 +22,7 @@ namespace Rafidain
         public List<string> mapPieces = new List<string>();  // 2 per governorate
         public List<string> weapons = new List<string> { "sword" };
         public string equippedWeapon = "sword";
+        public List<string> bossIntrosSeen = new List<string>();
         public float playTimeSeconds;
         public int deaths;
         public bool hasLostEmbers;

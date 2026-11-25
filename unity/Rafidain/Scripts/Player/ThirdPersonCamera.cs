@@ -30,6 +30,15 @@ namespace Rafidain
         void Awake() => Instance = this;
 
         EnemyAI lockEnemy;
+        Transform focusTarget;
+        float focusUntil;
+
+        /// <summary>Turn the camera toward a target for a few seconds (boss intro). Any skip input ends it early.</summary>
+        public void Focus(Transform t, float seconds)
+        {
+            focusTarget = t;
+            focusUntil = Time.time + seconds;
+        }
         float switchAccum;
         float switchCooldown;
         float blockedTime;
@@ -92,7 +101,15 @@ namespace Rafidain
 
             pivot = Vector3.Lerp(pivot, target.position + Vector3.up * pivotHeight, 1f - Mathf.Exp(-followSmooth * dt));
 
-            if (LockTarget != null)
+            if (focusTarget != null && Time.time < focusUntil)
+            {
+                Vector3 to = focusTarget.position + Vector3.up * 1.6f * Mathf.Max(1f, focusTarget.lossyScale.y) - pivot;
+                Quaternion look = Quaternion.LookRotation(to);
+                float targetPitch = Mathf.Clamp(Mathf.DeltaAngle(0f, look.eulerAngles.x) - 4f, -20f, 30f);
+                yaw = Mathf.LerpAngle(yaw, look.eulerAngles.y, 1f - Mathf.Exp(-3.5f * dt));
+                pitch = Mathf.Lerp(pitch, targetPitch, 1f - Mathf.Exp(-3.5f * dt));
+            }
+            else if (LockTarget != null)
             {
                 Vector3 to = LockTarget.position + Vector3.up * 1.0f - pivot;
                 Quaternion look = Quaternion.LookRotation(to);
