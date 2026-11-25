@@ -138,9 +138,10 @@ namespace Rafidain
             }
             else data.lostEmbersAmount = 0;
             SaveSystem.Save();
+            ProfileSync.Push();
         }
 
-        void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
+        void OnApplicationPause(bool paused) { if (paused) { SaveNow(); ProfileSync.Push(force: true); } }
         void OnApplicationQuit() => SaveNow();
     }
 }

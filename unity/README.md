@@ -172,3 +172,37 @@ Rafidain ← Delete Save File
 - **Rafidain ← Build Android APK**: يطلع `Builds/Android/Rafidain_v0.9.apk`، تنزله على أي موبايل أندرويد (ARM64).
 - **Rafidain ← Build Web (for the Next Level site)**: يطلع مجلد `Builds/Web`، ترفعه على موقعك (مضغوط Gzip، ويشتغل على أي استضافة).
 - لازم تبني المحافظات (Build ALL) قبل هالخطوة. البناء الأول ياخذ وكت طويل، خصوصاً الأندرويد.
+
+## ربط البروفايل بموقع Next Level (ProfileSync)
+
+**مطفي افتراضياً**: اللعبة ما ترسل أي شي إلا إذا حطيت رابط الـ API.
+- بالكود: `Scripts/Core/ProfileSync.cs` ← `DefaultEndpoint = "https://موقعك/api/rafidain/profile"`
+- أو وقت التشغيل: `ProfileSync.SetEndpoint(url)`، وينحفظ بـ PlayerPrefs `rafidain_sync_url`
+
+**متى يرسل:** بعد كل حفظ، بحد أقصى مرة بالدقيقة. ويرسل فوراً لما اللاعب يطلع من اللعبة أو يصغّرها بالموبايل.
+
+**الطلب:** `POST` بنوع `application/json`، والمهلة 10 ثواني:
+```json
+{
+  "apiVersion": 1,
+  "playerId": "a3f0c9...",            // معرّف ثابت للجهاز (GUID)
+  "linkCode": "NL-1234",              // كود يجيبه اللاعب من صفحة بروفايله بالموقع (ProfileSync.LinkCode)
+  "gameVersion": "0.9",
+  "platform": "Android",
+  "sentAtUnix": 1764080000,
+  "level": 12, "vigor": 5, "endurance": 4, "strength": 3,
+  "embers": 1840, "deaths": 27, "playTimeSeconds": 9320.5,
+  "currentScene": "Mosul_Region",
+  "defeatedBosses": ["boss_zakho", "boss_duhok"],
+  "keys": ["boss_zakho_key"],
+  "mapPieces": 5, "sacredOils": 2, "discoveredBonfires": 9,
+  "endingSeen": false
+}
+```
+
+**الموقع يرجّع:** أي رد `2xx` يعني نجح. اللعبة ما تقرا محتوى الرد هسه.
+
+**اقتراح للموقع:**
+1. اربط `playerId` بحساب الزبون من خلال `linkCode`.
+2. خزّن آخر نسخة من البيانات.
+3. اعرض بالبروفايل: المستوى، والزعماء المهزومين، وساعات اللعب، وعدد مرات الموت.
