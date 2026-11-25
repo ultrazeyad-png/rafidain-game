@@ -41,7 +41,7 @@ namespace Rafidain
             int have = SaveSystem.Data.keys.Count;
             if (have < keysNeeded)
             {
-                HUD.Instance?.SetPrompt(have + " / " + keysNeeded + "  " + ArabicText.Fix("الباب يطلب مفاتيح كل الحراس"));
+                HUD.Instance?.SetPrompt(have + " / " + keysNeeded + "  " + ArabicText.Fix("الباب يطلب قطع المفتاح الثماني عشرة"));
                 return;
             }
             HUD.Instance?.SetPrompt(ArabicText.Fix("افتح باب العالم السفلي") + "   [E]");
@@ -57,7 +57,7 @@ namespace Rafidain
             if (boss != null) boss.SetActive(true);
             if (HUD.Instance != null)
                 HUD.Instance.ShowDialog(ArabicText.Fix("صوت من تحت الارض"),
-                    ArabicText.Fix("فرات... جئت بمفاتيح الحراس لتسرق مني ما اخذته") + "\n" +
+                    ArabicText.Fix("فرات... جمعت المفتاح الذي كسرته؟ اذكرت الان من انت؟") + "\n" +
                     ArabicText.Fix("ادابا... لا تدعه يمر"), 7f);
         }
     }

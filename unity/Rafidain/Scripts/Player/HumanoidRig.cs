@@ -15,6 +15,11 @@ namespace Rafidain
         public float cyclesPerMeter = 0.33f;
         [Tooltip("Lies on the ground (used by the opening scene: Furat asleep by the flame).")]
         public bool lyingDown;
+        [Tooltip("Walking speed driven by a cutscene when there is no controller (-1 = off).")]
+        public float cinematicSpeed = -1f;
+
+        /// <summary>Raise the weapon arm as if striking (cutscenes).</summary>
+        public void PlayReach(float seconds) => attackT = seconds;
 
         PlayerController pc;
         PlayerCombat combat;
@@ -55,7 +60,7 @@ namespace Rafidain
         {
             if (body == null) return;
             float dt = Time.deltaTime;
-            float speed = pc != null ? pc.CurrentSpeed : ai != null ? ai.CurrentSpeed : 0f;
+            float speed = pc != null ? pc.CurrentSpeed : ai != null ? ai.CurrentSpeed : Mathf.Max(0f, cinematicSpeed);
             bool dead = lyingDown || (stats != null && stats.IsDead) || (ai != null && ai.IsDead);
 
             float prevPhase = phase;

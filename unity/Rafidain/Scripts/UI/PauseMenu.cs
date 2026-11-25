@@ -290,7 +290,7 @@ namespace Rafidain
                 Row("الحيوية / التحمل / القوة", d.vigor + " / " + d.endurance + " / " + d.strength),
                 Row("السلاح", ArabicText.Fix(Weapons.Get(d.equippedWeapon).name)),
                 Row("الحراس الذين سقطوا", d.defeatedBosses.Count + " / " + Regions.Count),
-                Row("مفاتيح باب العالم السفلي", Mathf.Min(d.keys.Count, Regions.KeysNeeded) + " / " + Regions.KeysNeeded),
+                Row("قطع المفتاح", Mathf.Min(d.keys.Count, Regions.KeysNeeded) + " / " + Regions.KeysNeeded),
                 Row("قطع الخريطة", d.mapPieces.Count + " / " + Regions.Count * 2),
                 Row("جرار الزيت المقدس", d.sacredOils.Count + " / " + Regions.Count),
                 Row("الاسلحة", (d.weapons != null ? d.weapons.Count : 1) + " / 3"),

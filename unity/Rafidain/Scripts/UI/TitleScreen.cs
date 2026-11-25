@@ -40,7 +40,8 @@ namespace Rafidain
         void NewGame()
         {
             SaveSystem.DeleteSave();
-            Load(firstScene);
+            // the story opens in Baghdad, then Furat wakes in Zakho
+            Load(Application.CanStreamedLevelBeLoaded("Prologue") ? "Prologue" : firstScene);
         }
 
         void Load(string scene)

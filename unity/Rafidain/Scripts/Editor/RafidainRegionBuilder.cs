@@ -416,6 +416,7 @@ namespace Rafidain.EditorTools
                 for (int i = AllRegions.Length - 1; i >= 0; i--) BuildRegion(AllRegions[i], AllRegions[i] == Zakho);
             }
             finally { quiet = false; }
+            BuildPrologueScene(openAfter: false);
             BuildTitleScene(openAfter: false);
             EditorSceneManager.OpenScene(Zakho.ScenePath);
             EditorUtility.DisplayDialog("Rafidain", "All 18 governorates (19 maps) and the title screen are built, from Zakho to Baghdad.\n\nZakho is open: press Play (or open MainMenu to start from the title screen).", "OK");
@@ -460,6 +461,153 @@ namespace Rafidain.EditorTools
             RafidainSceneBuilder.AddSceneToBuild(path, true);
             if (!openAfter) return;
             EditorUtility.DisplayDialog("Rafidain", "Title screen built and set as the first scene.\n\nPress Play.", "OK");
+        }
+
+        [MenuItem("Rafidain/Build Prologue (Baghdad cinematic)")]
+        public static void BuildPrologueMenu() => BuildPrologueScene(openAfter: true);
+
+        /// <summary>The opening cinematic: Baghdad by night, the stolen key, Adapa, the forgetting.</summary>
+        static void BuildPrologueScene(bool openAfter)
+        {
+            if (openAfter && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            RafidainSceneBuilder.EnsureFolder("Assets/Rafidain/Scenes");
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            var cam = Camera.main;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.03f, 0.03f, 0.07f);
+            cam.farClipPlane = 900f;
+            cam.transform.position = new Vector3(-30f, 6f, 30f);
+            cam.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+
+            var moon = Object.FindAnyObjectByType<Light>();
+            if (moon != null)
+            {
+                moon.color = new Color(0.55f, 0.62f, 0.9f);
+                moon.intensity = 0.35f;
+                moon.transform.rotation = Quaternion.Euler(35f, 200f, 0f);
+                moon.shadows = LightShadows.Soft;
+            }
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.08f, 0.08f, 0.14f);
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = new Color(0.1f, 0.08f, 0.16f);
+            RenderSettings.fogDensity = 0.006f;
+
+            var earth = RafidainSceneBuilder.Mat("NightEarth", new Color(0.2f, 0.17f, 0.14f), 0.1f);
+            var stone = RafidainSceneBuilder.Mat("AncientStone", new Color(0.62f, 0.55f, 0.44f), 0.25f);
+            var mud = RafidainSceneBuilder.Mat("NightMudBrick", new Color(0.42f, 0.34f, 0.26f), 0.1f);
+            var river = RafidainSceneBuilder.Mat("NightTigris", new Color(0.04f, 0.07f, 0.12f), 0.95f);
+            var window = RafidainSceneBuilder.Mat("NightWindow", new Color(1f, 0.6f, 0.25f), 0.3f);
+            window.EnableKeyword("_EMISSION"); window.SetColor("_EmissionColor", new Color(1f, 0.55f, 0.2f) * 3f);
+            var gold = RafidainSceneBuilder.Mat("KeyGold", new Color(0.95f, 0.72f, 0.3f), 0.85f, 1f);
+            gold.EnableKeyword("_EMISSION"); gold.SetColor("_EmissionColor", new Color(1f, 0.7f, 0.25f) * 1.5f);
+            var seal = RafidainSceneBuilder.Mat("UnderworldSeal", new Color(0.4f, 0.15f, 0.7f), 0.6f);
+            seal.EnableKeyword("_EMISSION"); seal.SetColor("_EmissionColor", new Color(0.5f, 0.15f, 0.9f) * 3f);
+            var moonMat = RafidainSceneBuilder.Mat("MoonDisc", new Color(0.9f, 0.9f, 1f), 0f);
+            moonMat.EnableKeyword("_EMISSION"); moonMat.SetColor("_EmissionColor", new Color(0.85f, 0.88f, 1f) * 2f);
+
+            var world = new GameObject("Baghdad by Night").transform;
+            RafidainSceneBuilder.Prim(PrimitiveType.Plane, "Ground", world, Vector3.zero, new Vector3(40f, 1f, 40f), earth);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Tigris", world, new Vector3(0f, -0.25f, 80f), new Vector3(420f, 0.2f, 40f), river, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Moon", world, new Vector3(-120f, 140f, 420f), Vector3.one * 26f, moonMat, keepCollider: false);
+
+            // the old city across the river: houses with lit windows, a dome and minarets
+            for (int i = 0; i < 70; i++)
+            {
+                float x = Random.Range(-160f, 160f), z = Random.Range(110f, 230f);
+                float w = Random.Range(8f, 16f), h = Random.Range(6f, 16f), d = Random.Range(8f, 14f);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "House", world, new Vector3(x, h * 0.5f, z), new Vector3(w, h, d), mud, keepCollider: false);
+                int lit = Random.Range(0, 4);
+                for (int k = 0; k < lit; k++)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Window", world, new Vector3(x + Random.Range(-w * 0.35f, w * 0.35f), Random.Range(2f, h - 1.5f), z - d * 0.5f - 0.05f), new Vector3(1f, 1.4f, 0.1f), window, keepCollider: false);
+            }
+            var domeGold = RafidainSceneBuilder.Mat("ShrineGold", new Color(0.95f, 0.74f, 0.3f), 0.8f, 0.9f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Mosque", world, new Vector3(30f, 8f, 160f), new Vector3(30f, 16f, 30f), mud, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Dome", world, new Vector3(30f, 22f, 160f), new Vector3(20f, 18f, 20f), domeGold, keepCollider: false);
+            for (int sd = -1; sd <= 1; sd += 2)
+                RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Minaret", world, new Vector3(30f + sd * 18f, 20f, 146f), new Vector3(2.4f, 20f, 2.4f), mud, keepCollider: false);
+
+            // the hall of the gate on the near bank
+            var hall = new GameObject("Hall of the Gate").transform;
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Floor", hall, new Vector3(0f, 0.1f, 14f), new Vector3(18f, 0.2f, 34f), stone);
+            for (int k = 0; k < 6; k++)
+                for (int sd = -1; sd <= 1; sd += 2)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Column", hall, new Vector3(sd * 7f, 5f, 2f + k * 5.2f), new Vector3(1.4f, 5f, 1.4f), stone, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Altar", hall, new Vector3(0f, 0.7f, 24f), new Vector3(2.4f, 1.2f, 1.4f), stone);
+            var gate = RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Gate", hall, new Vector3(0f, 6f, 30f), new Vector3(9f, 12f, 1.4f), stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Seal", gate.transform, new Vector3(0f, 0.05f, -0.55f), new Vector3(0.36f, 0.05f, 0.27f), seal, keepCollider: false)
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var sealLight = new GameObject("Seal Light").AddComponent<Light>();
+            sealLight.transform.position = new Vector3(0f, 6f, 28f);
+            sealLight.type = LightType.Point; sealLight.color = new Color(0.55f, 0.2f, 1f); sealLight.range = 18f; sealLight.intensity = 4f;
+            for (int sd = -1; sd <= 1; sd += 2)
+            {
+                var torch = new GameObject("Torch").transform;
+                torch.position = new Vector3(sd * 5f, 2.5f, 22f);
+                var tl = torch.gameObject.AddComponent<Light>();
+                tl.type = LightType.Point; tl.color = new Color(1f, 0.55f, 0.25f); tl.range = 10f; tl.intensity = 2.5f;
+                RafidainSceneBuilder.MakeEmbers(torch, Vector3.zero, 12f);
+            }
+
+            // the key on the altar
+            var key = new GameObject("Key of the Gate").transform;
+            key.position = new Vector3(0f, 1.45f, 24f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Shaft", key, Vector3.zero, new Vector3(0.08f, 0.35f, 0.08f), gold, keepCollider: false)
+                .transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Bow", key, new Vector3(-0.4f, 0f, 0f), new Vector3(0.3f, 0.03f, 0.3f), gold, keepCollider: false)
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Bit", key, new Vector3(0.3f, -0.08f, 0f), new Vector3(0.1f, 0.16f, 0.05f), gold, keepCollider: false);
+            var keyLight = new GameObject("Key Light").AddComponent<Light>();
+            keyLight.transform.SetParent(key, false);
+            keyLight.type = LightType.Point; keyLight.color = new Color(1f, 0.75f, 0.35f); keyLight.range = 5f; keyLight.intensity = 2f;
+
+            // the cast
+            var furat = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            furat.name = "Furat";
+            Object.DestroyImmediate(furat.GetComponent<CapsuleCollider>());
+            furat.transform.position = new Vector3(0f, 1f, -6f);
+            RafidainSceneBuilder.BuildHumanoid(furat, 0);
+            var adapa = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            adapa.name = "Adapa";
+            Object.DestroyImmediate(adapa.GetComponent<CapsuleCollider>());
+            adapa.transform.localScale = Vector3.one * 1.9f;
+            adapa.transform.position = new Vector3(0f, 1.9f, 30f);
+            RafidainSceneBuilder.BuildHumanoid(adapa, 2);
+            var aura = RafidainSceneBuilder.MakeEmbers(adapa.transform, Vector3.down * 0.5f, 30f);
+            var auraMain = aura.main;
+            auraMain.startColor = new ParticleSystem.MinMaxGradient(new Color(0.6f, 0.25f, 1f), new Color(0.35f, 0.1f, 0.6f));
+
+            // camera marks
+            Transform Mark(string n, Vector3 p) { var t = new GameObject(n).transform; t.position = p; return t; }
+            var cityFrom = Mark("Shot City From", new Vector3(-40f, 7f, 20f));
+            cityFrom.rotation = Quaternion.LookRotation(new Vector3(0f, 12f, 160f) - cityFrom.position);
+            var cityLook = Mark("Shot City Look", new Vector3(10f, 14f, 160f));
+            var gateFrom = Mark("Shot Gate From", new Vector3(3f, 3.2f, 6f));
+            gateFrom.rotation = Quaternion.LookRotation(new Vector3(0f, 2f, 26f) - gateFrom.position);
+            var gateLook = Mark("Shot Gate Look", new Vector3(0f, 2.5f, 27f));
+            var walkStart = Mark("Walk Start", new Vector3(0f, 1f, -6f));
+            var walkEnd = Mark("Walk End", new Vector3(0f, 1f, 22.4f));
+
+            RafidainSceneBuilder.CreatePostVolume();
+            var am = new GameObject("_Audio");
+            RafidainSceneBuilder.AddAudioManager(am);
+
+            var dir = new GameObject("_Prologue").AddComponent<PrologueDirector>();
+            dir.furat = furat.transform;
+            dir.adapa = adapa.transform;
+            dir.key = key;
+            dir.keyLight = keyLight;
+            dir.sealLight = sealLight;
+            dir.cityShotFrom = cityFrom; dir.cityShotLook = cityLook;
+            dir.gateShotFrom = gateFrom; dir.gateShotLook = gateLook;
+            dir.walkStart = walkStart; dir.walkEnd = walkEnd;
+
+            string path = "Assets/Rafidain/Scenes/Prologue.unity";
+            EditorSceneManager.SaveScene(scene, path);
+            RafidainSceneBuilder.AddSceneToBuild(path, false);
+            if (!openAfter) return;
+            EditorUtility.DisplayDialog("Rafidain", "Prologue built.\n\nPress Play to watch it (it then loads Zakho).", "OK");
         }
 
         static bool quiet;

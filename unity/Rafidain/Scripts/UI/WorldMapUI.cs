@@ -68,7 +68,7 @@ namespace Rafidain
 
             int found = 0, total = region != null ? region.pieces.Length : 0;
             if (region != null) foreach (var p in region.pieces) if (SaveSystem.Data.mapPieces.Contains(p.id)) found++;
-            info.text = SaveSystem.Data.keys.Count + " / " + Regions.KeysNeeded + "  " + ArabicText.Fix("المفاتيح") + "        " +
+            info.text = SaveSystem.Data.keys.Count + " / " + Regions.KeysNeeded + "  " + ArabicText.Fix("قطع المفتاح") + "        " +
                         found + " / " + total + "  " + ArabicText.Fix("قطع الخريطة");
 
             BuildFog(region);
