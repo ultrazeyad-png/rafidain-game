@@ -17,6 +17,8 @@ namespace Rafidain
         Text volumeLabel;
         Text invertLabel;
         GameObject controlsPanel;
+        GameObject statsPanel;
+        Text statsBody;
         Font font;
         float sensitivity = 1.3f;
         bool invertY;
@@ -38,6 +40,7 @@ namespace Rafidain
             if (input != null && input.PausePressed && !WorldMapUI.IsOpen && !LevelUpUI.IsOpen)
             {
                 if (controlsPanel != null && controlsPanel.activeSelf) controlsPanel.SetActive(false);
+                else if (statsPanel != null && statsPanel.activeSelf) statsPanel.SetActive(false);
                 else SetPaused(!IsPaused);
             }
         }
@@ -47,6 +50,7 @@ namespace Rafidain
             IsPaused = paused;
             if (panel != null) panel.SetActive(paused);
             if (controlsPanel != null) controlsPanel.SetActive(false);
+            if (statsPanel != null) statsPanel.SetActive(false);
             Time.timeScale = paused ? 0f : 1f;
             if (!Application.isMobilePlatform)
             {
@@ -187,7 +191,9 @@ namespace Rafidain
             invertLabel = ib.GetComponentInChildren<Text>();
             ib.onClick.AddListener(ToggleInvert);
 
-            MakeButton(panel.transform, ArabicText.Fix("الأزرار والتحكم"), new Vector2(0.5f, 0.5f), new Vector2(0, -170), new Vector2(520, 64), 28)
+            MakeButton(panel.transform, ArabicText.Fix("رحلتك"), new Vector2(0.5f, 0.5f), new Vector2(-135, -170), new Vector2(250, 64), 28)
+                .onClick.AddListener(OpenStats);
+            MakeButton(panel.transform, ArabicText.Fix("الأزرار"), new Vector2(0.5f, 0.5f), new Vector2(135, -170), new Vector2(250, 64), 28)
                 .onClick.AddListener(() => controlsPanel.SetActive(true));
 
             MakeButton(panel.transform, ArabicText.Fix("مسح التقدم والبدء من جديد"), new Vector2(0.5f, 0.5f), new Vector2(0, -245), new Vector2(520, 64), 24)
@@ -199,6 +205,7 @@ namespace Rafidain
                 .onClick.AddListener(Quit);
 
             BuildControlsPage(canvasGo.transform);
+            BuildStatsPage(canvasGo.transform);
         }
 
         void BuildControlsPage(Transform canvas)
@@ -243,6 +250,46 @@ namespace Rafidain
             MakeButton(controlsPanel.transform, ArabicText.Fix("رجوع"), new Vector2(0.5f, 0.5f), new Vector2(0, -430), new Vector2(360, 70), 32)
                 .onClick.AddListener(() => controlsPanel.SetActive(false));
             controlsPanel.SetActive(false);
+        }
+
+        void BuildStatsPage(Transform canvas)
+        {
+            statsPanel = new GameObject("Stats", typeof(RectTransform));
+            statsPanel.transform.SetParent(canvas, false);
+            var rt = statsPanel.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.sizeDelta = Vector2.zero;
+            statsPanel.AddComponent<Image>().color = new Color(0.04f, 0.03f, 0.02f, 0.96f);
+            MakeText(statsPanel.transform, ArabicText.Fix("رحلة فرات"), new Vector2(0, 380), 56, new Color(0.95f, 0.8f, 0.5f)).fontStyle = FontStyle.Bold;
+            statsBody = MakeText(statsPanel.transform, "", new Vector2(0, 0), 32, new Color(0.93f, 0.88f, 0.78f));
+            statsBody.rectTransform.sizeDelta = new Vector2(1200, 640);
+            statsBody.lineSpacing = 1.25f;
+            MakeButton(statsPanel.transform, ArabicText.Fix("رجوع"), new Vector2(0.5f, 0.5f), new Vector2(0, -420), new Vector2(360, 70), 32)
+                .onClick.AddListener(() => statsPanel.SetActive(false));
+            statsPanel.SetActive(false);
+        }
+
+        void OpenStats()
+        {
+            var d = SaveSystem.Data;
+            int t = Mathf.FloorToInt(d.playTimeSeconds);
+            string time = (t / 3600) + ":" + ((t / 60) % 60).ToString("00");
+            string Row(string label, string value) => value + "   " + ArabicText.Fix(label);
+            var lines = new[]
+            {
+                Row("المستوى", d.level.ToString()),
+                Row("الحيوية / التحمل / القوة", d.vigor + " / " + d.endurance + " / " + d.strength),
+                Row("السلاح", ArabicText.Fix(Weapons.Get(d.equippedWeapon).name)),
+                Row("الحراس الذين سقطوا", d.defeatedBosses.Count + " / 7"),
+                Row("مفاتيح باب العالم السفلي", d.keys.Count + " / 5"),
+                Row("قطع الخريطة", d.mapPieces.Count + " / 14"),
+                Row("جرار الزيت المقدس", d.sacredOils.Count + " / 7"),
+                Row("الاسلحة", (d.weapons != null ? d.weapons.Count : 1) + " / 3"),
+                Row("الشعلات المشتعلة", d.discoveredBonfires.Count.ToString()),
+                Row("مرات الهلاك", d.deaths.ToString()),
+                Row("وقت الرحلة", time),
+            };
+            statsBody.text = string.Join("\n", lines);
+            statsPanel.SetActive(true);
         }
 
         void MakeColumnRow(string action, string keyboard, string pad, float y, Color c)
