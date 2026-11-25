@@ -1585,8 +1585,9 @@ namespace Rafidain.EditorTools
             MakePiece(td, pieces[1].id, wildSpot, clay);
 
             // --- riddle givers
-            Vector3 gateFlame = OnRoad(td, 68f, 6f, 0f);
-            MakeSage(td, R.sageTown, R.riddleTown, new Vector2(gateFlame.x + 6f, gateFlame.z + 9f), wood, glow);
+            // stand on the road edge (the gate is in a narrow canyon, the slopes are too steep)
+            Vector3 sageSpot = OnRoad(td, 84f, -4.5f, 0f);
+            MakeSage(td, R.sageTown, R.riddleTown, new Vector2(sageSpot.x, sageSpot.z), wood, glow);
             MakeSage(td, R.sageWild, R.riddleWild, PlazaCenter + new Vector2(6f, -9f), wood, glow);
 
             // --- painted map + region info
