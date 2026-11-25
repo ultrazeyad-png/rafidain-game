@@ -345,6 +345,7 @@ namespace Rafidain.EditorTools
                 ScatterNature(world, terrainData, bark, leaves, rockMat);
                 if (R.river) ScatterPalms(world, terrainData, palmBark, palmLeaf);
                 ScatterBushes(world, terrainData, leaves);
+                AddLife(world, terrainData);
                 AddAtmosphereFX(world, terrainData);
 
                 EditorUtility.DisplayProgressBar("Rafidain", "Placing Furat, enemies and flames…", 0.9f);
@@ -1272,6 +1273,59 @@ namespace Rafidain.EditorTools
             var imp = AssetImporter.GetAtPath(path) as TextureImporter;
             if (imp != null) { imp.alphaIsTransparency = true; imp.wrapMode = TextureWrapMode.Clamp; imp.SaveAndReimport(); }
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        // Birds over the town and the arena, and hollow townsfolk sitting against the walls
+        static void AddLife(Transform world, TerrainData td)
+        {
+            var life = new GameObject("Life").transform;
+            life.SetParent(world);
+
+            void Flock(string name, Vector2 at, float r, float h, int n, float size, Color c)
+            {
+                var go = new GameObject(name);
+                go.transform.SetParent(life);
+                go.transform.position = Ground(td, at.x, at.y, 0f);
+                var f = go.AddComponent<BirdFlock>();
+                f.radius = r; f.height = h; f.count = n; f.birdSize = size; f.color = c;
+            }
+            Flock("Crows over the town", TownCenter, 45f, 28f, 11, 0.55f, new Color(0.04f, 0.04f, 0.045f));
+            Flock("Vultures over the arena", ArenaCenter, 26f, 40f, 6, 1.1f, new Color(0.12f, 0.09f, 0.07f));
+            Flock("Eagles over the mountains", new Vector2(850f, 500f), 70f, 80f, 3, 1.4f, new Color(0.25f, 0.18f, 0.12f));
+            Flock("Birds over the road", new Vector2(RoadX(150f), 150f), 35f, 30f, 7, 0.45f, new Color(0.08f, 0.07f, 0.06f));
+
+            // hollow townsfolk: sitting, heads bowed, harmless
+            Vector2 origin = TownCenter - new Vector2(TownRadius, TownRadius);
+            int placed = 0;
+            for (int k = 0; k < 60 && placed < 9; k++)
+            {
+                int i = Random.Range(1, 8), j = Random.Range(1, 8);
+                Vector2 p = origin + new Vector2(i * BlockSize + StreetWidth - 0.8f, j * BlockSize + Random.Range(StreetWidth + 2f, BlockSize - 2f));
+                if (Vector2.Distance(p, TownCenter) > TownRadius - 15f) continue;
+                if (Mathf.Abs(p.x - RoadX(p.y)) < 20f) continue;
+                var npc = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                npc.name = "Hollow Townsfolk";
+                Object.DestroyImmediate(npc.GetComponent<CapsuleCollider>());
+                npc.transform.SetParent(life);
+                npc.transform.position = Ground(td, p.x, p.y, 1f);
+                npc.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                RafidainSceneBuilder.BuildHumanoid(npc, 1);
+                var rig = npc.GetComponent<HumanoidRig>();
+                if (rig != null)
+                {
+                    // sitting pose: body down, legs forward, head bowed
+                    rig.body.localPosition = new Vector3(0f, -0.48f, 0f);
+                    rig.body.localRotation = Quaternion.Euler(14f, 0f, 0f);
+                    rig.legL.localRotation = Quaternion.Euler(-85f, 0f, 0f);
+                    rig.legR.localRotation = Quaternion.Euler(-80f, 0f, 0f);
+                    rig.armL.localRotation = Quaternion.Euler(-30f, 0f, 0f);
+                    rig.armR.localRotation = Quaternion.Euler(-25f, 0f, 0f);
+                    Object.DestroyImmediate(rig);
+                }
+                var weapon = npc.GetComponentsInChildren<Transform>(true);
+                foreach (var t in weapon) if (t.name == "WeaponPivot") { Object.DestroyImmediate(t.gameObject); break; }
+                placed++;
+            }
         }
 
         static void ScatterBushes(Transform world, TerrainData td, Material leaves)
