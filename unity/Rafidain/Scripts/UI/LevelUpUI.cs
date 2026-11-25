@@ -13,7 +13,7 @@ namespace Rafidain
         public static bool IsOpen { get; private set; }
 
         GameObject panel;
-        Text levelText, embersText, costText, vigorText, endText, strText;
+        Text levelText, embersText, costText, vigorText, endText, strText, weaponText;
         Font font;
 
         void Awake()
@@ -66,6 +66,16 @@ namespace Rafidain
             Refresh();
         }
 
+        void SwitchWeapon()
+        {
+            var player = GameManager.Instance != null ? GameManager.Instance.player : null;
+            var combat = player != null ? player.GetComponent<PlayerCombat>() : null;
+            if (combat == null) return;
+            combat.CycleWeapon();
+            if (AudioManager.Instance != null) AudioManager.Instance.Ui(AudioManager.Instance.block, 0.5f);
+            Refresh();
+        }
+
         void Refresh()
         {
             var d = SaveSystem.Data;
@@ -78,6 +88,13 @@ namespace Rafidain
             costText.color = embers >= cost ? new Color(0.95f, 0.85f, 0.6f) : new Color(0.8f, 0.3f, 0.25f);
             vigorText.text = (100 + d.vigor * 8) + "  " + ArabicText.Fix("الحيوية - الصحة");
             endText.text = (100 + d.endurance * 5) + "  " + ArabicText.Fix("التحمل - الطاقة");
+            var combat = player != null ? player.GetComponent<PlayerCombat>() : null;
+            if (weaponText != null)
+            {
+                int owned = d.weapons != null ? d.weapons.Count : 1;
+                string wname = combat != null ? combat.Current.name : Weapons.Get(d.equippedWeapon).name;
+                weaponText.text = ArabicText.Fix("السلاح: " + wname + (owned > 1 ? "   (اضغط للتبديل)" : ""));
+            }
             strText.text = Mathf.RoundToInt((1f + d.strength * 0.045f) * 100f) + "%  " + ArabicText.Fix("القوة - الضرر");
         }
 
@@ -99,7 +116,7 @@ namespace Rafidain
             panel = new GameObject("Panel", typeof(RectTransform));
             panel.transform.SetParent(canvasGo.transform, false);
             var prt = panel.GetComponent<RectTransform>();
-            prt.sizeDelta = new Vector2(900, 720);
+            prt.sizeDelta = new Vector2(900, 780);
             panel.AddComponent<Image>().color = new Color(0.06f, 0.045f, 0.03f, 0.94f);
 
             MakeText(ArabicText.Fix("الشعلة تهمس... ماذا تريد ان تصبح"), new Vector2(0, 300), 34, new Color(1f, 0.78f, 0.45f));
@@ -111,7 +128,11 @@ namespace Rafidain
             endText = StatRow(new Vector2(0, -50), 1);
             strText = StatRow(new Vector2(0, -150), 2);
 
-            var leave = MakeButton(ArabicText.Fix("مغادرة الشعلة"), new Vector2(0, -280), new Vector2(420, 80), 32);
+            var wb = MakeButton("", new Vector2(0, -235), new Vector2(560, 64), 28);
+            weaponText = wb.GetComponentInChildren<Text>();
+            wb.onClick.AddListener(SwitchWeapon);
+
+            var leave = MakeButton(ArabicText.Fix("مغادرة الشعلة"), new Vector2(0, -315), new Vector2(420, 70), 32);
             leave.onClick.AddListener(Close);
         }
 

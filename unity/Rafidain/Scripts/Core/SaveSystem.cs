@@ -20,6 +20,8 @@ namespace Rafidain
         public List<string> defeatedBosses = new List<string>();
         public List<string> keys = new List<string>();       // the 5 guardian keys
         public List<string> mapPieces = new List<string>();  // 2 per governorate
+        public List<string> weapons = new List<string> { "sword" };
+        public string equippedWeapon = "sword";
         public float playTimeSeconds;
         public int deaths;
         public bool hasLostEmbers;

@@ -2110,6 +2110,41 @@ namespace Rafidain.EditorTools
             ol.type = LightType.Point; ol.color = new Color(1f, 0.75f, 0.35f); ol.range = 5f; ol.intensity = 2f;
             oil.AddComponent<SacredOil>().oilId = R.id + "_oil";
 
+            // --- a new weapon waits in Mosul (khanjar) and Kirkuk (mace), on the eastern slopes
+            string weaponId = R.id == "mosul" ? "khanjar" : R.id == "kirkuk" ? "mace" : null;
+            if (weaponId != null)
+            {
+                Vector2 wSpot = new Vector2(760f, 520f);
+                for (int k = 0; k < 2000; k++)
+                {
+                    float x = Random.Range(640f, 900f), z = Random.Range(300f, 760f);
+                    float h = td.GetInterpolatedHeight(x / Size, z / Size);
+                    if (h < WaterLevel + 3f || h > 85f || td.GetSteepness(x / Size, z / Size) > 22f) continue;
+                    if (!IsFreeGround(x, z, 6f)) continue;
+                    wSpot = new Vector2(x, z);
+                    break;
+                }
+                var wp = new GameObject("Weapon - " + weaponId);
+                wp.transform.position = Ground(td, wSpot.x, wSpot.y, 0f);
+                var metal = RafidainSceneBuilder.Mat(weaponId == "mace" ? "MaceStone" : "KhanjarSteel",
+                    weaponId == "mace" ? new Color(0.32f, 0.26f, 0.22f) : new Color(0.78f, 0.74f, 0.66f), 0.7f, 0.8f);
+                var vis = new GameObject("Visual").transform;
+                vis.SetParent(wp.transform, false);
+                vis.localPosition = new Vector3(0f, 0.35f, 0f);
+                vis.localRotation = Quaternion.Euler(-70f, 0f, 0f);    // planted in the ground
+                float len = weaponId == "mace" ? 1.0f : 0.55f;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Blade", vis, new Vector3(0f, 0f, len * 0.3f), new Vector3(0.07f, 0.1f, len), metal, keepCollider: false);
+                if (weaponId == "mace")
+                    RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Head", vis, new Vector3(0f, 0f, len * 0.8f), Vector3.one * 0.3f, metal, keepCollider: false);
+                var wl = new GameObject("Glow").AddComponent<Light>();
+                wl.transform.SetParent(wp.transform, false);
+                wl.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+                wl.type = LightType.Point; wl.color = new Color(0.9f, 0.85f, 1f); wl.range = 5f; wl.intensity = 2f;
+                wl.shadows = LightShadows.None;
+                RafidainSceneBuilder.MakeEmbers(wp.transform, new Vector3(0f, 0.5f, 0f), 6f);
+                wp.AddComponent<WeaponPickup>().weaponId = weaponId;
+            }
+
             // --- riddle givers
             // stand on the road edge (the gate is in a narrow canyon, the slopes are too steep)
             Vector3 sageSpot = OnRoad(td, 84f, -4.5f, 0f);

@@ -48,6 +48,58 @@ namespace Rafidain
             cc = GetComponent<CharacterController>();
         }
 
+        public Weapons.Def Current { get; private set; } = Weapons.Sword;
+        Transform maceHead;
+
+        void Start()
+        {
+            var d = SaveSystem.Data;
+            if (d.weapons == null || d.weapons.Count == 0) d.weapons = new List<string> { "sword" };
+            Equip(string.IsNullOrEmpty(d.equippedWeapon) ? "sword" : d.equippedWeapon);
+        }
+
+        /// <summary>Switch weapon: new attack timings and a new look for the blade.</summary>
+        public void Equip(string id)
+        {
+            Current = Weapons.Get(id);
+            lightAttack = Current.light;
+            heavyAttack = Current.heavy;
+            SaveSystem.Data.equippedWeapon = Current.id;
+
+            if (weaponPivot == null) return;
+            var blade = weaponPivot.Find("Blade");
+            if (blade != null)
+            {
+                blade.localScale = new Vector3(Current.bladeWidth, Current.maceHead ? Current.bladeWidth : 0.12f, Current.bladeLength);
+                blade.localPosition = new Vector3(0f, 0f, Current.bladeLength * 0.5f);
+            }
+            if (Current.maceHead && maceHead == null && blade != null)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                Destroy(go.GetComponent<Collider>());
+                go.name = "MaceHead";
+                maceHead = go.transform;
+                maceHead.SetParent(weaponPivot, false);
+                var r = blade.GetComponent<Renderer>();
+                if (r != null) go.GetComponent<Renderer>().sharedMaterial = r.sharedMaterial;
+            }
+            if (maceHead != null)
+            {
+                maceHead.gameObject.SetActive(Current.maceHead);
+                maceHead.localPosition = new Vector3(0f, 0f, Current.bladeLength);
+                maceHead.localScale = Vector3.one * 0.3f;
+            }
+        }
+
+        /// <summary>Next weapon the player owns (used at the flame).</summary>
+        public void CycleWeapon()
+        {
+            var owned = SaveSystem.Data.weapons;
+            if (owned == null || owned.Count == 0) return;
+            int i = owned.IndexOf(Current.id);
+            Equip(owned[(i + 1) % owned.Count]);
+        }
+
         void Update()
         {
             var input = PlayerInputReader.Instance;
@@ -81,7 +133,7 @@ namespace Rafidain
             if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(to);
             float t = 0f;
             while (t < 0.3f) { t += Time.deltaTime; SetSwing(Mathf.Lerp(0f, -1f, t / 0.3f)); yield return null; }
-            float dmg = riposteDamage * stats.DamageMultiplier + (victim.isBoss ? victim.maxHealth * 0.12f : victim.maxHealth * 0.6f);
+            float dmg = (riposteDamage * stats.DamageMultiplier + (victim.isBoss ? victim.maxHealth * 0.12f : victim.maxHealth * 0.6f)) * Current.riposteMul;
             victim.TakeRiposte(dmg, transform.position);
             HitFX.Hit(victim.transform.position + Vector3.up * 0.5f, true, new Color(0.8f, 0.1f, 0.06f));
             t = 0f;
