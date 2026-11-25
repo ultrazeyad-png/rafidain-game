@@ -45,6 +45,7 @@ namespace Rafidain.EditorTools
             public bool finalRegion;
             public string weather = "";      // rain | embers | sand | ash
             public EnemyAI.BossMove bossMove = EnemyAI.BossMove.None;
+            public string bossEpithet = "";
             public Mood mood;
             public string ScenePath => $"Assets/Rafidain/Scenes/{sceneName}.unity";
         }
@@ -95,7 +96,7 @@ namespace Rafidain.EditorTools
             seed = 1985, noiseX = 0f, noiseZ = 0f, roadPhase = 0f, mountains = 1f,
             river = true, lake = false,
             flameNames = new[] { "زاخو - البوابة الجنوبية", "زاخو - المدينة القديمة", "جسر الخابور", "صعود الحارس" },
-            bossName = "حارس زاخو", bossId = "boss_zakho",
+            bossName = "شيدو", bossEpithet = "الروح الحارسة لنهر الخابور", bossId = "boss_zakho",
             nextScene = "Duhok_Region", nextLabel = "الطريق الى دهوك",
             sageTown = "شيخ عند البوابة",
             riddleTown = new[]
@@ -120,7 +121,7 @@ namespace Rafidain.EditorTools
             seed = 2047, noiseX = 3100f, noiseZ = 1700f, roadPhase = 1.9f, mountains = 1.15f,
             river = false, lake = true, lakeCenter = new Vector2(250f, 620f), lakeRadius = 115f,
             flameNames = new[] { "دهوك - مدخل الوادي", "دهوك - السوق القديم", "ضفاف السد", "قلعة الجبل" },
-            bossName = "حارس دهوك", bossId = "boss_duhok",
+            bossName = "ابزو", bossEpithet = "سيد المياه المحبوسة خلف السد", bossId = "boss_duhok",
             prevScene = "Zakho_Region", prevLabel = "العودة الى زاخو",
             nextScene = "Mosul_Region", nextLabel = "الطريق الى الموصل",
             tier = 1, weather = "rain", bossMove = EnemyAI.BossMove.Wave,
@@ -148,7 +149,7 @@ namespace Rafidain.EditorTools
             seed = 3121, noiseX = 5200f, noiseZ = 900f, roadPhase = 3.1f, mountains = 0.55f,
             river = true, tier = 2, landmark = "nineveh", bossMove = EnemyAI.BossMove.WingGust,
             flameNames = new[] { "الموصل - باب سنجار", "الموصل القديمة", "جسر دجلة", "اطلال نينوى" },
-            bossName = "حارس نينوى", bossId = "boss_mosul",
+            bossName = "لاماسو", bossEpithet = "الثور المجنح لبوابة نينوى", bossId = "boss_mosul",
             prevScene = "Duhok_Region", prevLabel = "العودة الى دهوك",
             nextScene = "Erbil_Region", nextLabel = "الطريق الى اربيل",
             sageTown = "حكواتي الموصل",
@@ -164,7 +165,7 @@ namespace Rafidain.EditorTools
             seed = 4409, noiseX = 800f, noiseZ = 6100f, roadPhase = 4.4f, mountains = 0.7f,
             river = false, tier = 3, landmark = "citadel", townRaise = 16f, bossMove = EnemyAI.BossMove.ShieldCharge,
             flameNames = new[] { "اربيل - السهل", "قلعة اربيل", "سوق القيصرية", "تل الحارس" },
-            bossName = "حارس القلعة", bossId = "boss_erbil",
+            bossName = "اربا ايلو", bossEpithet = "حامي القلعة التي لم تسقط منذ سبعة الاف عام", bossId = "boss_erbil",
             prevScene = "Mosul_Region", prevLabel = "العودة الى الموصل",
             nextScene = "Sulaymaniyah_Region", nextLabel = "الطريق الى السليمانية",
             sageTown = "بائع في القيصرية",
@@ -180,7 +181,7 @@ namespace Rafidain.EditorTools
             seed = 5077, noiseX = 7300f, noiseZ = 4400f, roadPhase = 5.2f, mountains = 0.6f,
             river = false, tier = 5, landmark = "fire", weather = "embers", bossMove = EnemyAI.BossMove.FireTrail,
             flameNames = new[] { "كركوك - الطريق", "كركوك القديمة", "بابا كركر", "سفح النار" },
-            bossName = "حارس النار الازلية", bossId = "boss_kirkuk",
+            bossName = "كيبيل", bossEpithet = "ابن النار الازلية", bossId = "boss_kirkuk",
             prevScene = "Sulaymaniyah_Region", prevLabel = "العودة الى السليمانية",
             nextScene = "Samarra_Region", nextLabel = "الطريق الى سامراء",
             sageTown = "عجوز عند الموقد",
@@ -196,7 +197,7 @@ namespace Rafidain.EditorTools
             seed = 6151, noiseX = 2600f, noiseZ = 8800f, roadPhase = 0.7f, mountains = 0.45f,
             river = true, tier = 6, landmark = "malwiya", weather = "sand", bossMove = EnemyAI.BossMove.Spin,
             flameNames = new[] { "سامراء - البوابة", "سامراء القديمة", "ضفة دجلة", "ظل الملوية" },
-            bossName = "حارس الملوية", bossId = "boss_samarra",
+            bossName = "بازوزو", bossEpithet = "سيد الريح الدوارة حول الملوية", bossId = "boss_samarra",
             prevScene = "Kirkuk_Region", prevLabel = "العودة الى كركوك",
             nextScene = "Anbar_Region", nextLabel = "الطريق الى الانبار",
             sageTown = "حارس المئذنة",
@@ -212,7 +213,7 @@ namespace Rafidain.EditorTools
             seed = 7777, noiseX = 9100f, noiseZ = 2300f, roadPhase = 2.4f, mountains = 0.4f,
             river = true, tier = 18, landmark = "underworld", finalRegion = true, weather = "ash", bossMove = EnemyAI.BossMove.ShadowStep,
             flameNames = new[] { "بغداد - باب المعظم", "بغداد القديمة", "جسر الشهداء", "باب العالم السفلي" },
-            bossName = "ادابا", bossId = "boss_adapa",
+            bossName = "ادابا", bossEpithet = "حارس باب ارشكيكال", bossId = "boss_adapa",
             prevScene = "Diyala_Region", prevLabel = "العودة الى ديالى",
             sageTown = "شاعر في شارع المتنبي",
             riddleTown = new[] { "بغداد تحفظ كل الحكايات", "الا حكاية دجلة... كتبتها انت", "ابحث في الزقاق الذي لا يقرأه احد" },
@@ -238,98 +239,98 @@ namespace Rafidain.EditorTools
         static readonly RegionDef Sulaymaniyah = With(Gov("sulaymaniyah", "السليمانية", "Sulaymaniyah_Region", 8123, 1500f, 7400f, 1.2f, 1.35f, 4,
             "Erbil_Region", "اربيل", "Kirkuk_Region", "كركوك",
             new[] { "السليمانية - الممر الجبلي", "السوق القديم", "ضفاف دوكان", "قمة الحارس" },
-            "حارس الجبال الزرق", EnemyAI.BossMove.Wave, MoodMountain,
+            "خمبابا", EnemyAI.BossMove.RockFall, MoodMountain,
             "شاعر عند المقهى", new[] { "الجبال هنا تكتب الشعر", "والمدينة تقرأه في الليل", "ابحث في الزقاق الذي يصعد ولا ينزل" },
             "راع فوق الجبل", new[] { "البحيرة الزرقاء ترى كل شيء", "الا ما خبأه الثلج شرقا", "هناك بين الصخور... نصف الطريق" }),
-            r => { r.lake = true; r.lakeCenter = new Vector2(260f, 640f); r.lakeRadius = 105f; r.pieceAtLake = true; r.weather = "rain"; });
+            r => { r.bossEpithet = "حارس غابات الجبال الزرق";  r.lake = true; r.lakeCenter = new Vector2(260f, 640f); r.lakeRadius = 105f; r.pieceAtLake = true; r.weather = "rain"; });
 
         static readonly RegionDef Anbar = With(Gov("anbar", "الانبار", "Anbar_Region", 9241, 6400f, 3300f, 3.7f, 0.3f, 7,
             "Samarra_Region", "سامراء", "Karbala_Region", "كربلاء",
             new[] { "الانبار - طريق البادية", "الرمادي", "نواعير الفرات", "تل الرمال" },
-            "حارس البادية", EnemyAI.BossMove.Spin, MoodDesert,
+            "انزو", EnemyAI.BossMove.SandStorm, MoodDesert,
             "صاحب الناعور", new[] { "الناعور يدور منذ الف عام", "ويسقي من لا يشكره", "ابحث حيث يتوقف صوت الماء" },
             "بدوي عند النار", new[] { "البادية لا تحفظ الاثر", "الا اثر من مشى ليلا", "شرقا بين الكثبان... لوح من طين" }),
-            r => { r.river = true; r.landmark = "noria"; r.weather = "sand"; });
+            r => { r.bossEpithet = "طائر العاصفة فوق البادية";  r.river = true; r.landmark = "noria"; r.weather = "sand"; });
 
         static readonly RegionDef Karbala = With(Gov("karbala", "كربلاء", "Karbala_Region", 1061, 3900f, 9900f, 5.9f, 0.25f, 8,
             "Anbar_Region", "الانبار", "Najaf_Region", "النجف",
             new[] { "كربلاء - طريق الزائرين", "المدينة القديمة", "بساتين النخيل", "حافة الصحراء" },
-            "حارس العطش", EnemyAI.BossMove.FireTrail, MoodShrine,
+            "شمش", EnemyAI.BossMove.SunBeams, MoodShrine,
             "خادم عند الطريق", new[] { "الماء هنا اغلى من الذهب", "والصبر اغلى من الماء", "ابحث في الزقاق حيث يسقون العابرين" },
             "حادي القافلة", new[] { "القوافل تعرف الطريق بالنجوم", "اتبع النجم الذي لا يتحرك", "هناك عند النخلة الوحيدة" }),
-            r => { r.river = true; r.landmark = "dome"; });
+            r => { r.bossEpithet = "عين الشمس الحارقة";  r.river = true; r.landmark = "dome"; });
 
         static readonly RegionDef Najaf = With(Gov("najaf", "النجف", "Najaf_Region", 1171, 8800f, 6600f, 0.4f, 0.2f, 9,
             "Karbala_Region", "كربلاء", "Qadisiyah_Region", "القادسية",
             new[] { "النجف - باب الكوفة", "النجف القديمة", "بحر النجف", "وادي السلام" },
-            "حارس بحر النجف", EnemyAI.BossMove.WingGust, MoodShrine,
+            "انكي", EnemyAI.BossMove.SaltPillars, MoodShrine,
             "عالم في المدرسة القديمة", new[] { "العلم هنا اقدم من الحجر", "والطرق كلها تؤدي الى القبة", "لكن ما تبحث عنه في الزقاق الذي لا يزدحم" },
             "صياد على البحر", new[] { "بحر النجف كان ماء ثم صار ملحا", "امش على حافته غربا", "حيث يلمع الملح... نصف الخريطة" }),
-            r => { r.lake = true; r.lakeCenter = new Vector2(230f, 650f); r.lakeRadius = 120f; r.pieceAtLake = true; r.landmark = "dome"; });
+            r => { r.bossEpithet = "سيد البحر الذي صار ملحا";  r.lake = true; r.lakeCenter = new Vector2(230f, 650f); r.lakeRadius = 120f; r.pieceAtLake = true; r.landmark = "dome"; });
 
         static readonly RegionDef Qadisiyah = With(Gov("qadisiyah", "القادسية", "Qadisiyah_Region", 1283, 2200f, 5100f, 2.9f, 0.2f, 10,
             "Najaf_Region", "النجف", "Muthanna_Region", "المثنى",
             new[] { "الديوانية - المدخل", "سوق الديوانية", "شط الديوانية", "حقول الشلب" },
-            "حارس الحقول", EnemyAI.BossMove.ShieldCharge, MoodOrchard,
+            "ننورتا", EnemyAI.BossMove.Furrow, MoodOrchard,
             "فلاح عند الساقية", new[] { "الارض هنا تعطي من يصبر", "والشلب يحب الماء الراكد", "ابحث بين الحقول حيث لا يصل المحراث" },
             "مختار القرية", new[] { "القادسية شهدت معركة كبيرة", "والارض ما زالت تتذكر", "شرقا عند التل القديم" }),
-            r => { r.river = true; });
+            r => { r.bossEpithet = "فلاح الحرب وحارس الحقول";  r.river = true; });
 
         static readonly RegionDef Muthanna = With(Gov("muthanna", "المثنى", "Muthanna_Region", 1399, 7700f, 8100f, 4.8f, 0.25f, 11,
             "Qadisiyah_Region", "القادسية", "Basra_Region", "البصرة",
             new[] { "السماوة - الطريق", "السماوة القديمة", "ضفة الفرات", "اطلال الوركاء" },
-            "حارس الوركاء", EnemyAI.BossMove.Spin, MoodDesert,
+            "كلكامش", EnemyAI.BossMove.TripleLeap, MoodDesert,
             "راوي حكاية كلكامش", new[] { "هنا حكم كلكامش وبحث عن الخلود", "ولم يجده", "لكنك ستجد ما تبحث عنه في الزقاق الاخير" },
             "حارس الاطلال", new[] { "الوركاء اقدم مدن الارض", "جدرانها من طين وحكايات", "شرقا حيث يسكن الصمت" }),
-            r => { r.river = true; r.landmark = "ziggurat"; r.weather = "sand"; });
+            r => { r.bossEpithet = "ملك الوركاء الذي لم يجد الخلود";  r.river = true; r.landmark = "ziggurat"; r.weather = "sand"; });
 
         static readonly RegionDef Basra = With(Gov("basra", "البصرة", "Basra_Region", 1511, 5600f, 600f, 3.3f, 0.15f, 12,
             "Muthanna_Region", "المثنى", "Maysan_Region", "ميسان",
             new[] { "البصرة - طريق الزبير", "البصرة القديمة", "شط العرب", "غابة النخيل" },
-            "حارس شط العرب", EnemyAI.BossMove.Wave, MoodSouth,
+            "تيامات", EnemyAI.BossMove.Whirlpool, MoodSouth,
             "بحار عند المرفأ", new[] { "السندباد خرج من هنا", "ورجع بحكايات لا تصدق", "ابحث حيث تتكئ الشناشيل على الماء" },
             "صاحب البستان", new[] { "النخيل هنا لا يعد", "لكن واحدة منها تعرف السر", "شرقا عند اطراف الغابة" }),
-            r => { r.river = true; });
+            r => { r.bossEpithet = "ام البحار المالحة";  r.river = true; });
 
         static readonly RegionDef Maysan = With(Gov("maysan", "ميسان", "Maysan_Region", 1627, 9500f, 4900f, 1.6f, 0.1f, 13,
             "Basra_Region", "البصرة", "DhiQar_Region", "ذي قار",
             new[] { "العمارة - المدخل", "العمارة القديمة", "قلب الاهوار", "المضيف الكبير" },
-            "حارس الاهوار", EnemyAI.BossMove.ShadowStep, MoodMarsh,
+            "نمو", EnemyAI.BossMove.ReedSpikes, MoodMarsh,
             "صاحب المشحوف", new[] { "الاهوار بيت السومريين الاول", "والقصب يخفي من يعرفه", "ابحث في الزقاق القريب من الماء" },
             "شيخ في المضيف", new[] { "المضيف بني من قصب ولم يسقط", "اسال القصب اين الطريق", "عند حافة الماء الشرقية" }),
-            r => { r.lake = true; r.lakeCenter = new Vector2(250f, 600f); r.lakeRadius = 140f; r.pieceAtLake = true; r.landmark = "marsh"; });
+            r => { r.bossEpithet = "ام الاهوار الاولى";  r.lake = true; r.lakeCenter = new Vector2(250f, 600f); r.lakeRadius = 140f; r.pieceAtLake = true; r.landmark = "marsh"; });
 
         static readonly RegionDef DhiQar = With(Gov("dhiqar", "ذي قار", "DhiQar_Region", 1741, 4500f, 7700f, 5.3f, 0.15f, 14,
             "Maysan_Region", "ميسان", "Wasit_Region", "واسط",
             new[] { "الناصرية - المدخل", "الناصرية", "ضفة الفرات", "زقورة اور" },
-            "حارس اور", EnemyAI.BossMove.WingGust, MoodSouth,
+            "نانا", EnemyAI.BossMove.MoonFall, MoodSouth,
             "معلم عند المدرسة", new[] { "هنا ولد ابراهيم كما يقولون", "وهنا كتب الانسان اول حرف", "ابحث حيث تنتهي الكتابة" },
             "حارس الزقورة", new[] { "الزقورة سلم الى السماء", "لكن السر عند قدمها لا في قمتها", "شرقا حيث الطين القديم" }),
-            r => { r.river = true; r.landmark = "ziggurat"; });
+            r => { r.bossEpithet = "قمر اور";  r.river = true; r.landmark = "ziggurat"; });
 
         static readonly RegionDef Wasit = With(Gov("wasit", "واسط", "Wasit_Region", 1859, 6900f, 9400f, 2.1f, 0.2f, 15,
             "DhiQar_Region", "ذي قار", "Babil_Region", "بابل",
             new[] { "الكوت - المدخل", "الكوت القديمة", "سدة الكوت", "اطلال واسط" },
-            "حارس السدة", EnemyAI.BossMove.ShieldCharge, MoodSouth,
+            "انليل", EnemyAI.BossMove.Quake, MoodSouth,
             "حارس السدة القديمة", new[] { "دجلة هنا يلتف كالقوس", "والمدينة في قلب القوس", "ابحث في الزقاق حيث يسمع صوت الماء" },
             "صياد في القارب", new[] { "واسط كانت مدينة الحجاج", "ولم يبق منها الا التراب", "شرقا عند التل المنسي" }),
-            r => { r.river = true; });
+            r => { r.bossEpithet = "سيد الهواء والسدة";  r.river = true; });
 
         static readonly RegionDef Babil = With(Gov("babil", "بابل", "Babil_Region", 1973, 3100f, 2700f, 4.1f, 0.15f, 16,
             "Wasit_Region", "واسط", "Diyala_Region", "ديالى",
             new[] { "الحلة - المدخل", "الحلة القديمة", "شارع الموكب", "بوابة عشتار" },
-            "حارس بوابة عشتار", EnemyAI.BossMove.FireTrail, MoodShrine,
+            "مردوخ", EnemyAI.BossMove.ArrowRain, MoodShrine,
             "كاتب الالواح", new[] { "حمورابي كتب قوانينه هنا", "والقانون الاول: لا تضيع الطريق", "ابحث في الزقاق حيث ينام الطين" },
             "حارس شارع الموكب", new[] { "الاسود الزرقاء تحرس البوابة", "عبرها ولا تلتفت", "شرقا عند الجنائن المنسية" }),
-            r => { r.river = true; r.landmark = "babylon"; });
+            r => { r.bossEpithet = "سيد بابل وقاتل تيامات";  r.river = true; r.landmark = "babylon"; });
 
         static readonly RegionDef Diyala = With(Gov("diyala", "ديالى", "Diyala_Region", 2087, 8300f, 1400f, 0.9f, 0.5f, 17,
             "Babil_Region", "بابل", "Baghdad_Region", "بغداد",
             new[] { "بعقوبة - المدخل", "بعقوبة القديمة", "بساتين البرتقال", "تل حمرين" },
-            "حارس البساتين", EnemyAI.BossMove.Spin, MoodOrchard,
+            "ننخرساك", EnemyAI.BossMove.RootLines, MoodOrchard,
             "بائع البرتقال", new[] { "البرتقال هنا احلى من العسل", "لكن البستان القديم مر", "ابحث في الزقاق حيث تسقط الثمار" },
             "حارس حمرين", new[] { "بغداد قريبة... تشم رائحتها", "لكن الطريق الاخير اصعب", "شرقا عند سفوح حمرين" }),
-            r => { r.river = true; });
+            r => { r.bossEpithet = "ام الجبال والبساتين";  r.river = true; });
 
         static RegionDef With(RegionDef d, System.Action<RegionDef> tweak) { tweak(d); return d; }
 
@@ -1916,6 +1917,7 @@ namespace Rafidain.EditorTools
             boss.canLeap = true;
             boss.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
             boss.special = R.bossMove;
+            boss.epithet = R.bossEpithet;
             if (R.finalRegion) boss.specialCooldown = 6f;
             if (R.finalRegion)
             {

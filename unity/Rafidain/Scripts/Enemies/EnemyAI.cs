@@ -13,6 +13,8 @@ namespace Rafidain
     {
         [Header("Identity")]
         public string displayName = "Hollow Soldier";
+        [Tooltip("Title shown under a guardian's name the first time you meet him.")]
+        public string epithet = "";
         public bool isBoss;
         [Tooltip("Unique id for bosses, used so a defeated boss stays dead.")]
         public string bossId = "";
@@ -45,7 +47,8 @@ namespace Rafidain
         [Range(0f, 1f)] public float phase2Threshold = 0.5f;
         public float phase2SpeedMultiplier = 1.35f;
 
-        public enum BossMove { None, Wave, WingGust, ShieldCharge, FireTrail, Spin, ShadowStep }
+        public enum BossMove { None, Wave, WingGust, ShieldCharge, FireTrail, Spin, ShadowStep,
+            RockFall, SandStorm, SunBeams, SaltPillars, Furrow, TripleLeap, Whirlpool, ReedSpikes, MoonFall, Quake, ArrowRain, RootLines }
 
         [Header("Signature boss move")]
         public BossMove special = BossMove.None;
@@ -105,6 +108,7 @@ namespace Rafidain
 
         string BossEpithet()
         {
+            if (!string.IsNullOrEmpty(epithet)) return epithet;
             switch (special)
             {
                 case BossMove.Wave: return "سيد السد الغارق";
@@ -378,7 +382,7 @@ namespace Rafidain
             Color tell = special == BossMove.Wave ? new Color(0.3f, 0.6f, 1f)
                        : special == BossMove.FireTrail ? new Color(1f, 0.4f, 0.05f)
                        : special == BossMove.ShadowStep ? new Color(0.2f, 0.1f, 0.35f)
-                       : new Color(1f, 0.9f, 0.5f);
+                       : MoveColor(special);
             float wind = 1.0f, t = 0f;
             while (t < wind)
             {
@@ -457,6 +461,164 @@ namespace Rafidain
                     }
                     break;
                 }
+                case BossMove.RockFall: // Sulaymaniyah: boulders fall where Furat stands — keep moving
+                    for (int i = 0; i < 5 && player != null; i++)
+                    {
+                        StartCoroutine(Strike(player.transform.position, 2.2f, 0.8f, 0.8f, MoveColor(special)));
+                        yield return new WaitForSeconds(0.45f);
+                    }
+                    break;
+                case BossMove.SandStorm: // Anbar: three walls of sand roll outward and throw you back
+                    for (int w = 0; w < 3; w++)
+                    {
+                        bool hitDone = false;
+                        for (t = 0f; t < 0.8f; t += Time.deltaTime)
+                        {
+                            float r = Mathf.Lerp(0.5f, 11f, t / 0.8f);
+                            HitFX.Ring(transform.position + Vector3.down * 0.9f * s, r, new Color(0.85f, 0.7f, 0.45f, 0.8f), 24);
+                            if (!hitDone && player != null)
+                            {
+                                float d = Vector3.Distance(Flat(player.transform.position), Flat(transform.position));
+                                if (Mathf.Abs(d - r) < 0.9f && player.TakeDamage(damage * 0.6f, transform.position))
+                                {
+                                    hitDone = true;
+                                    var pc = player.GetComponent<PlayerController>();
+                                    if (pc != null) pc.ApplyHitStagger(transform.position, 0.4f, 6f);
+                                }
+                            }
+                            yield return null;
+                        }
+                    }
+                    break;
+                case BossMove.SunBeams: // Karbala: a crown of burning light falls around Furat — find the gap
+                    if (player != null)
+                    {
+                        Vector3 c = player.transform.position;
+                        StartCoroutine(Strike(c, 1.8f, 1.1f, 1f, MoveColor(special)));
+                        int gap = Random.Range(0, 7);
+                        for (int i = 0; i < 7; i++)
+                        {
+                            if (i == gap) continue;
+                            float a = i / 7f * Mathf.PI * 2f;
+                            StartCoroutine(Strike(c + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 3.6f, 1.8f, 1.1f, 1f, MoveColor(special)));
+                        }
+                        yield return new WaitForSeconds(1.2f);
+                    }
+                    break;
+                case BossMove.SaltPillars: // Najaf: pillars of salt burst from the dry sea in a line toward you
+                    if (player != null)
+                    {
+                        Vector3 dir = Flat(player.transform.position - transform.position).normalized;
+                        for (int i = 1; i <= 9; i++)
+                        {
+                            StartCoroutine(Strike(transform.position + dir * (i * 1.8f), 1.3f, 0.55f, 0.9f, MoveColor(special)));
+                            yield return new WaitForSeconds(0.1f);
+                        }
+                    }
+                    break;
+                case BossMove.Furrow: // Qadisiyah: he ploughs the earth — a long trench opens across your path
+                    if (player != null)
+                    {
+                        Vector3 to = Flat(player.transform.position - transform.position).normalized;
+                        Vector3 side = new Vector3(-to.z, 0f, to.x);
+                        for (int i = -4; i <= 4; i++)
+                            StartCoroutine(Strike(player.transform.position + side * (i * 1.9f), 1.2f, 0.9f, 1f, MoveColor(special)));
+                        yield return new WaitForSeconds(0.9f);
+                    }
+                    break;
+                case BossMove.TripleLeap: // Muthanna: Gilgamesh bounds three times, each landing shakes the ground
+                    for (int j = 0; j < 3 && player != null; j++)
+                    {
+                        Vector3 start = transform.position;
+                        Vector3 target = player.transform.position;
+                        StartCoroutine(Strike(target, 3f, 0.5f, 1f, MoveColor(special)));
+                        for (t = 0f; t < 0.5f; t += Time.deltaTime)
+                        {
+                            Vector3 flat = Vector3.Lerp(Flat(start), Flat(target), t / 0.5f);
+                            float arc = Mathf.Sin(t / 0.5f * Mathf.PI) * 4f;
+                            if (cc != null) cc.Move(new Vector3(flat.x, start.y + arc, flat.z) - transform.position);
+                            yield return null;
+                        }
+                        if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.3f);
+                        yield return new WaitForSeconds(0.25f);
+                    }
+                    break;
+                case BossMove.Whirlpool: // Basra: the sea drags Furat in, then crashes down
+                    if (player != null)
+                    {
+                        var pcc = player.GetComponent<CharacterController>();
+                        for (t = 0f; t < 2f; t += Time.deltaTime)
+                        {
+                            HitFX.Ring(transform.position + Vector3.down * 0.9f * s, Mathf.Lerp(9f, 3f, t / 2f), new Color(0.3f, 0.6f, 0.7f, 0.7f), 16);
+                            Vector3 pull = Flat(transform.position - player.transform.position);
+                            if (pcc != null && pcc.enabled && pull.magnitude > 1.5f) pcc.Move(pull.normalized * 3.2f * Time.deltaTime);
+                            yield return null;
+                        }
+                        StartCoroutine(Strike(transform.position, 4f, 0.15f, 1.2f, MoveColor(special)));
+                        yield return new WaitForSeconds(0.2f);
+                    }
+                    break;
+                case BossMove.ReedSpikes: // Maysan: sharp reeds stab up under your feet again and again
+                    for (int i = 0; i < 6 && player != null; i++)
+                    {
+                        StartCoroutine(Strike(player.transform.position, 1.4f, 0.55f, 0.6f, MoveColor(special)));
+                        yield return new WaitForSeconds(0.35f);
+                    }
+                    break;
+                case BossMove.MoonFall: // Dhi Qar: the moon of Ur falls — a huge circle, run far
+                    if (player != null)
+                    {
+                        StartCoroutine(Strike(player.transform.position, 6f, 1.7f, 1.6f, MoveColor(special)));
+                        yield return new WaitForSeconds(1.8f);
+                        if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.6f);
+                    }
+                    break;
+                case BossMove.Quake: // Wasit: two shockwaves through the earth — roll through each one
+                    for (int w = 0; w < 2; w++)
+                    {
+                        if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.35f);
+                        bool hitDone = false;
+                        for (t = 0f; t < 0.7f; t += Time.deltaTime)
+                        {
+                            float r = Mathf.Lerp(0.5f, 12f, t / 0.7f);
+                            HitFX.Ring(transform.position + Vector3.down * 0.9f * s, r, new Color(0.55f, 0.42f, 0.3f, 0.85f), 24);
+                            if (!hitDone && player != null)
+                            {
+                                float d = Vector3.Distance(Flat(player.transform.position), Flat(transform.position));
+                                if (Mathf.Abs(d - r) < 0.9f) hitDone = player.TakeDamage(damage * 0.9f, transform.position);
+                            }
+                            yield return null;
+                        }
+                        yield return new WaitForSeconds(0.35f);
+                    }
+                    break;
+                case BossMove.ArrowRain: // Babil: a rain of burning arrows over the processional way
+                    if (player != null)
+                    {
+                        Vector3 c = player.transform.position;
+                        for (int i = 0; i < 14; i++)
+                        {
+                            Vector2 o = Random.insideUnitCircle * 6f;
+                            StartCoroutine(Strike(c + new Vector3(o.x, 0f, o.y), 1.3f, Random.Range(0.7f, 1.4f), 0.55f, MoveColor(special)));
+                        }
+                        yield return new WaitForSeconds(1.4f);
+                    }
+                    break;
+                case BossMove.RootLines: // Diyala: roots tear out of the orchard in four lines
+                    if (player != null)
+                    {
+                        Vector3 baseDir = Flat(player.transform.position - transform.position).normalized;
+                        for (int i = 1; i <= 8; i++)
+                        {
+                            for (int k = 0; k < 4; k++)
+                            {
+                                Vector3 d = Quaternion.Euler(0f, k * 90f + 45f * (i % 2 == 0 ? 0f : 0f), 0f) * baseDir;
+                                StartCoroutine(Strike(transform.position + d * (i * 1.6f), 1.1f, 0.5f, 0.7f, MoveColor(special)));
+                            }
+                            yield return new WaitForSeconds(0.09f);
+                        }
+                    }
+                    break;
                 case BossMove.ShadowStep: // Adapa: dissolves into smoke and strikes from behind
                 {
                     if (player == null) break;
@@ -477,6 +639,45 @@ namespace Rafidain
 
             yield return new WaitForSeconds(recovery);
             if (state == State.Attack) state = State.Chase;
+        }
+
+        static Color MoveColor(BossMove m)
+        {
+            switch (m)
+            {
+                case BossMove.RockFall: return new Color(0.6f, 0.58f, 0.55f);
+                case BossMove.SandStorm: return new Color(0.9f, 0.72f, 0.45f);
+                case BossMove.SunBeams: return new Color(1f, 0.85f, 0.4f);
+                case BossMove.SaltPillars: return new Color(0.92f, 0.94f, 1f);
+                case BossMove.Furrow: return new Color(0.55f, 0.4f, 0.25f);
+                case BossMove.TripleLeap: return new Color(0.95f, 0.6f, 0.25f);
+                case BossMove.Whirlpool: return new Color(0.3f, 0.65f, 0.75f);
+                case BossMove.ReedSpikes: return new Color(0.55f, 0.7f, 0.3f);
+                case BossMove.MoonFall: return new Color(0.8f, 0.85f, 1f);
+                case BossMove.Quake: return new Color(0.6f, 0.45f, 0.3f);
+                case BossMove.ArrowRain: return new Color(1f, 0.45f, 0.12f);
+                case BossMove.RootLines: return new Color(0.35f, 0.6f, 0.25f);
+                default: return new Color(1f, 0.9f, 0.5f);
+            }
+        }
+
+        /// <summary>A marked circle on the ground that flashes, then strikes: get out before it lands.</summary>
+        IEnumerator Strike(Vector3 at, float radius, float delay, float damageMul, Color c)
+        {
+            if (Physics.Raycast(at + Vector3.up * 4f, Vector3.down, out var hit, 12f, ~0, QueryTriggerInteraction.Ignore)
+                && hit.collider.GetComponentInParent<PlayerStats>() == null && hit.collider.GetComponentInParent<EnemyAI>() == null)
+                at = hit.point;
+            Color warn = c; warn.a = 0.55f;
+            for (float t = 0f; t < delay; t += 0.2f)
+            {
+                HitFX.Ring(at + Vector3.up * 0.08f, radius, warn, Mathf.Clamp(Mathf.RoundToInt(radius * 10f), 12, 48));
+                yield return new WaitForSeconds(Mathf.Min(0.2f, delay - t));
+            }
+            HitFX.Hit(at + Vector3.up * 0.4f, true, c);
+            HitFX.Dust(at, 18);
+            if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.hit, at, 0.7f, 0.2f);
+            if (player != null && !player.IsDead && Vector3.Distance(Flat(player.transform.position), Flat(at)) < radius)
+                player.TakeDamage(damage * damageMul, at + Vector3.up * 3f);
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
