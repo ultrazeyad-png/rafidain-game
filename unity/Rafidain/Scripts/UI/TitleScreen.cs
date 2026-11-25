@@ -46,7 +46,7 @@ namespace Rafidain
         void Load(string scene)
         {
             if (!Application.CanStreamedLevelBeLoaded(scene)) scene = firstScene;
-            SceneManager.LoadScene(scene);
+            SceneLoader.Load(scene);
         }
 
         void Quit()

@@ -47,7 +47,7 @@ namespace Rafidain
             d.hasLostEmbers = false;   // embers left behind are lost on the road
             d.lostEmbersAmount = 0;
             SaveSystem.Save();
-            SceneManager.LoadScene(targetScene);
+            SceneLoader.Load(targetScene);
         }
     }
 }

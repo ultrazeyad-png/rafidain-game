@@ -114,7 +114,7 @@ namespace Rafidain
             SetPaused(false);
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            SceneLoader.Load("MainMenu");
         }
 
         void Quit()
