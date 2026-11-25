@@ -1721,6 +1721,20 @@ namespace Rafidain.EditorTools
                 }
             }
 
+            // Feral dogs: packs of 2-3 on the outskirts — fast, fragile, they circle in and bite
+            var dogFur = RafidainSceneBuilder.Mat("DogFur", new Color(0.36f, 0.29f, 0.22f), 0.05f);
+            var dogDark = RafidainSceneBuilder.Mat("DogFurDark", new Color(0.14f, 0.11f, 0.09f), 0.05f);
+            Vector3[] packs = { OnRoad(td, 190f, 13f, 0f), OnRoad(td, 500f, -14f, 0f), OnRoad(td, 730f, 12f, 0f) };
+            for (int p = 0; p < packs.Length; p++)
+            {
+                int count = Random.Range(2, 4);
+                for (int k = 0; k < count; k++)
+                {
+                    Vector2 off = Random.insideUnitCircle * 3f;
+                    MakeDog(enemies, Ground(td, packs[p].x + off.x, packs[p].z + off.y, 0.55f), dogFur, dogDark);
+                }
+            }
+
             // Bridge guards
             var brute = RafidainSceneBuilder.MakeEnemy(enemies, "Bridge Brute", OnRoad(td, BridgeZ + 50f, 0f, 1.4f), hollow, steel, 1.35f, 3);
             brute.maxHealth = 180f; brute.damage = 30f; brute.windup = 1.0f; brute.moveSpeed = 2.3f; brute.emberReward = 180;
@@ -2183,6 +2197,74 @@ namespace Rafidain.EditorTools
             l.intensity = 2.5f;
             RafidainSceneBuilder.MakeEmbers(root.transform, new Vector3(0f, 0.6f, 0f), 10f);
             root.AddComponent<MapPiece>().pieceId = id;
+        }
+
+        static EnemyAI MakeDog(Transform parent, Vector3 pos, Material fur, Material dark)
+        {
+            var go = new GameObject("Feral Dog");
+            go.transform.SetParent(parent);
+            go.transform.position = pos;
+            go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            var cc = go.AddComponent<CharacterController>();
+            cc.height = 1.0f; cc.radius = 0.35f; cc.center = Vector3.zero;
+
+            var body = new GameObject("Body").transform;
+            body.SetParent(go.transform, false);
+            var torso = RafidainSceneBuilder.Prim(PrimitiveType.Capsule, "Torso", body, new Vector3(0f, 0.05f, 0f), new Vector3(0.36f, 0.42f, 0.36f), fur, keepCollider: false);
+            torso.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var head = new GameObject("Head").transform;
+            head.SetParent(body, false);
+            head.localPosition = new Vector3(0f, 0.22f, 0.5f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Skull", head, Vector3.zero, new Vector3(0.26f, 0.24f, 0.3f), fur, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Snout", head, new Vector3(0f, -0.04f, 0.2f), new Vector3(0.12f, 0.1f, 0.2f), dark, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "EarL", head, new Vector3(-0.08f, 0.14f, -0.02f), new Vector3(0.05f, 0.12f, 0.04f), dark, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "EarR", head, new Vector3(0.08f, 0.14f, -0.02f), new Vector3(0.05f, 0.12f, 0.04f), dark, keepCollider: false);
+            var eyes = RafidainSceneBuilder.Mat("DogEyes", new Color(1f, 0.4f, 0.1f), 0.6f);
+            eyes.EnableKeyword("_EMISSION");
+            eyes.SetColor("_EmissionColor", new Color(1f, 0.35f, 0.05f) * 2f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "EyeL", head, new Vector3(-0.06f, 0.04f, 0.13f), Vector3.one * 0.04f, eyes, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "EyeR", head, new Vector3(0.06f, 0.04f, 0.13f), Vector3.one * 0.04f, eyes, keepCollider: false);
+
+            Transform Leg(string n, float x, float z)
+            {
+                var hip = new GameObject(n).transform;
+                hip.SetParent(body, false);
+                hip.localPosition = new Vector3(x, -0.05f, z);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Shin", hip, new Vector3(0f, -0.2f, 0f), new Vector3(0.08f, 0.4f, 0.08f), dark, keepCollider: false);
+                return hip;
+            }
+            var rig = go.AddComponent<DogRig>();
+            rig.body = body;
+            rig.head = head;
+            rig.legFL = Leg("LegFL", -0.12f, 0.3f);
+            rig.legFR = Leg("LegFR", 0.12f, 0.3f);
+            rig.legBL = Leg("LegBL", -0.12f, -0.3f);
+            rig.legBR = Leg("LegBR", 0.12f, -0.3f);
+            var tail = new GameObject("Tail").transform;
+            tail.SetParent(body, false);
+            tail.localPosition = new Vector3(0f, 0.12f, -0.45f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "TailMesh", tail, new Vector3(0f, 0f, -0.15f), new Vector3(0.05f, 0.05f, 0.32f), fur, keepCollider: false);
+            rig.tail = tail;
+
+            var ai = go.AddComponent<EnemyAI>();
+            ai.displayName = "كلب سائب";
+            ai.maxHealth = 38f;
+            ai.moveSpeed = 6.2f;
+            ai.turnSpeed = 10f;
+            ai.detectRange = 16f;
+            ai.leashRange = 34f;
+            ai.attackRange = 1.9f;
+            ai.attackReach = 2.1f;
+            ai.attackAngle = 55f;
+            ai.damage = 11f;
+            ai.windup = 0.38f;
+            ai.activeTime = 0.14f;
+            ai.recovery = 0.75f;
+            ai.lungeSpeed = 9f;
+            ai.poise = 18f;
+            ai.staggerTime = 1.1f;
+            ai.emberReward = 35;
+            return ai;
         }
 
         static void PlaceTutorialTablets(TerrainData td)
