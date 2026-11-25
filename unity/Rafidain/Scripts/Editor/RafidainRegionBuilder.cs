@@ -274,7 +274,7 @@ namespace Rafidain.EditorTools
             "ننورتا", EnemyAI.BossMove.Furrow, MoodOrchard,
             "فلاح عند الساقية", new[] { "الارض هنا تعطي من يصبر", "والشلب يحب الماء الراكد", "ابحث بين الحقول حيث لا يصل المحراث" },
             "مختار القرية", new[] { "القادسية شهدت معركة كبيرة", "والارض ما زالت تتذكر", "شرقا عند التل القديم" }),
-            r => { r.bossEpithet = "فلاح الحرب وحارس الحقول";  r.river = true; });
+            r => { r.bossEpithet = "فلاح الحرب وحارس الحقول";  r.river = true; r.landmark = "paddies"; });
 
         static readonly RegionDef Muthanna = With(Gov("muthanna", "المثنى", "Muthanna_Region", 1399, 7700f, 8100f, 4.8f, 0.25f, 11,
             "Qadisiyah_Region", "القادسية", "Basra_Region", "البصرة",
@@ -290,7 +290,7 @@ namespace Rafidain.EditorTools
             "تيامات", EnemyAI.BossMove.Whirlpool, MoodSouth,
             "بحار عند المرفأ", new[] { "السندباد خرج من هنا", "ورجع بحكايات لا تصدق", "ابحث حيث تتكئ الشناشيل على الماء" },
             "صاحب البستان", new[] { "النخيل هنا لا يعد", "لكن واحدة منها تعرف السر", "شرقا عند اطراف الغابة" }),
-            r => { r.bossEpithet = "ام البحار المالحة";  r.river = true; });
+            r => { r.bossEpithet = "ام البحار المالحة";  r.river = true; r.landmark = "boats"; });
 
         static readonly RegionDef Maysan = With(Gov("maysan", "ميسان", "Maysan_Region", 1627, 9500f, 4900f, 1.6f, 0.1f, 13,
             "Basra_Region", "البصرة", "DhiQar_Region", "ذي قار",
@@ -314,7 +314,7 @@ namespace Rafidain.EditorTools
             "انليل", EnemyAI.BossMove.Quake, MoodSouth,
             "حارس السدة القديمة", new[] { "دجلة هنا يلتف كالقوس", "والمدينة في قلب القوس", "ابحث في الزقاق حيث يسمع صوت الماء" },
             "صياد في القارب", new[] { "واسط كانت مدينة الحجاج", "ولم يبق منها الا التراب", "شرقا عند التل المنسي" }),
-            r => { r.bossEpithet = "سيد الهواء والسدة";  r.river = true; });
+            r => { r.bossEpithet = "سيد الهواء والسدة";  r.river = true; r.landmark = "barrage"; });
 
         static readonly RegionDef Babil = With(Gov("babil", "بابل", "Babil_Region", 1973, 3100f, 2700f, 4.1f, 0.15f, 16,
             "Wasit_Region", "واسط", "Diyala_Region", "ديالى",
@@ -330,7 +330,7 @@ namespace Rafidain.EditorTools
             "ننخرساك", EnemyAI.BossMove.RootLines, MoodOrchard,
             "بائع البرتقال", new[] { "البرتقال هنا احلى من العسل", "لكن البستان القديم مر", "ابحث في الزقاق حيث تسقط الثمار" },
             "حارس حمرين", new[] { "بغداد قريبة... تشم رائحتها", "لكن الطريق الاخير اصعب", "شرقا عند سفوح حمرين" }),
-            r => { r.bossEpithet = "ام الجبال والبساتين";  r.river = true; });
+            r => { r.bossEpithet = "ام الجبال والبساتين";  r.river = true; r.landmark = "orchard"; });
 
         static RegionDef With(RegionDef d, System.Action<RegionDef> tweak) { tweak(d); return d; }
 
@@ -1967,6 +1967,10 @@ namespace Rafidain.EditorTools
                 case "dome": BuildGoldenDome(root, td, lime, glow); break;
                 case "marsh": BuildMarsh(root, td, mud); break;
                 case "noria": BuildNorias(root, td); break;
+                case "paddies": BuildPaddies(root, td); break;
+                case "boats": BuildBoats(root, td, mud); break;
+                case "barrage": BuildBarrage(root, td, stone); break;
+                case "orchard": BuildOrchard(root, td); break;
             }
         }
 
@@ -2078,6 +2082,97 @@ namespace Rafidain.EditorTools
                 RafidainSceneBuilder.Prim(PrimitiveType.Cube, "WallL", house, new Vector3(-3.3f, 2f, 0f), new Vector3(0.4f, 4f, 20f), reed).isStatic = true;
                 RafidainSceneBuilder.Prim(PrimitiveType.Cube, "WallR", house, new Vector3(3.3f, 2f, 0f), new Vector3(0.4f, 4f, 20f), reed).isStatic = true;
             }
+        }
+
+        // Qadisiyah: flooded rice paddies (shilb) in neat squares with low mud banks
+        static void BuildPaddies(Transform root, TerrainData td)
+        {
+            var water = RafidainSceneBuilder.Mat("PaddyWater", new Color(0.25f, 0.33f, 0.3f), 0.95f);
+            var rice = RafidainSceneBuilder.Mat("Rice", new Color(0.45f, 0.62f, 0.28f), 0.1f);
+            var bank = RafidainSceneBuilder.Mat("PaddyBank", new Color(0.42f, 0.33f, 0.24f), 0.1f);
+            for (int gx = 0; gx < 5; gx++)
+                for (int gz = 0; gz < 4; gz++)
+                {
+                    float x = RoadX(460f) + 40f + gx * 22f, z = 420f + gz * 22f;
+                    if (!IsFreeGround(x, z, 4f)) continue;
+                    var g = Ground(td, x, z, 0f);
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Paddy", root, g + new Vector3(0f, 0.12f, 0f), new Vector3(19f, 0.1f, 19f), water, keepCollider: false);
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "BankN", root, g + new Vector3(0f, 0.3f, 10f), new Vector3(21f, 0.5f, 1.2f), bank).isStatic = true;
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "BankE", root, g + new Vector3(10f, 0.3f, 0f), new Vector3(1.2f, 0.5f, 21f), bank).isStatic = true;
+                    for (int k = 0; k < 10; k++)
+                        RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Shoots", root, g + new Vector3(Random.Range(-8f, 8f), 0.45f, Random.Range(-8f, 8f)), new Vector3(1.6f, 0.6f, 0.2f), rice, keepCollider: false)
+                            .transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 180f), 0f);
+                }
+        }
+
+        // Basra: wooden boats moored along the Shatt al-Arab and a row of shanasheel facing the water
+        static void BuildBoats(Transform root, TerrainData td, Material mud)
+        {
+            var hull = RafidainSceneBuilder.Mat("BoatWood", new Color(0.33f, 0.22f, 0.14f), 0.25f);
+            var shan = RafidainSceneBuilder.Mat("ShanasheelWood", new Color(0.4f, 0.27f, 0.16f), 0.2f);
+            for (int k = 0; k < 9; k++)
+            {
+                float x = RoadX(BridgeZ) - 120f + k * 26f + Random.Range(-4f, 4f);
+                if (Mathf.Abs(x - RoadX(BridgeZ)) < 18f) continue;
+                float z = RiverZ(x) + Random.Range(-8f, 8f);
+                var boat = new GameObject("Boat").transform;
+                boat.SetParent(root);
+                boat.position = new Vector3(x, WaterLevel + 0.15f, z);
+                boat.rotation = Quaternion.Euler(0f, 90f + Random.Range(-15f, 15f), 0f);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Hull", boat, new Vector3(0f, 0.25f, 0f), new Vector3(1.6f, 0.6f, 7f), hull, keepCollider: false);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Prow", boat, new Vector3(0f, 0.6f, 3.8f), new Vector3(0.4f, 1.2f, 1.2f), hull, keepCollider: false)
+                    .transform.localRotation = Quaternion.Euler(-30f, 0f, 0f);
+            }
+            // shanasheel houses on the near bank
+            for (int k = 0; k < 8; k++)
+            {
+                float x = RoadX(BridgeZ) + 30f + k * 13f;
+                float z = RiverZ(x) - 30f;
+                if (!IsFreeGround(x, z, 3f)) continue;
+                var g = Ground(td, x, z, 0f);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "House", root, g + new Vector3(0f, 4f, 0f), new Vector3(11f, 8f, 9f), mud).isStatic = true;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Shanasheel", root, g + new Vector3(0f, 5.5f, 5f), new Vector3(8f, 3f, 1.4f), shan, keepCollider: false);
+            }
+        }
+
+        // Wasit: the Kut barrage — a long row of arches holding back the Tigris
+        static void BuildBarrage(Transform root, TerrainData td, Material stone)
+        {
+            float z0 = RiverZ(RoadX(BridgeZ) + 140f);
+            float xStart = RoadX(BridgeZ) + 70f;
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Deck", root, new Vector3(xStart + 60f, WaterLevel + 7f, z0), new Vector3(124f, 1.2f, 7f), stone).isStatic = true;
+            for (int k = 0; k <= 12; k++)
+            {
+                float x = xStart + k * 10f;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Pier", root, new Vector3(x, WaterLevel + 2f, z0), new Vector3(2.4f, 10f, 8f), stone).isStatic = true;
+                if (k < 12)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Gate", root, new Vector3(x + 5f, WaterLevel + 4.6f, z0 + 2.5f), new Vector3(7.4f, 3.2f, 0.4f), stone, keepCollider: false);
+            }
+        }
+
+        // Diyala: orange orchards in rows, golden fruit glowing in the low sun
+        static void BuildOrchard(Transform root, TerrainData td)
+        {
+            var bark = RafidainSceneBuilder.Mat("OrangeBark", new Color(0.3f, 0.22f, 0.15f), 0.1f);
+            var leaf = RafidainSceneBuilder.Mat("OrangeLeaf", new Color(0.16f, 0.32f, 0.12f), 0.3f);
+            var fruit = RafidainSceneBuilder.Mat("Orange", new Color(1f, 0.55f, 0.08f), 0.5f);
+            for (int gx = 0; gx < 9; gx++)
+                for (int gz = 0; gz < 7; gz++)
+                {
+                    float x = RoadX(500f) - 60f - gx * 9f, z = 440f + gz * 9f + (gx % 2) * 4.5f;
+                    if (!IsFreeGround(x, z, 2f)) continue;
+                    var g = Ground(td, x, z, 0f);
+                    var tree = new GameObject("Orange Tree").transform;
+                    tree.SetParent(root);
+                    tree.position = g;
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Trunk", tree, new Vector3(0f, 0.9f, 0f), new Vector3(0.3f, 0.9f, 0.3f), bark).isStatic = true;
+                    RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Crown", tree, new Vector3(0f, 2.6f, 0f), new Vector3(3.2f, 2.6f, 3.2f), leaf, keepCollider: false);
+                    for (int f = 0; f < 6; f++)
+                    {
+                        Vector3 d = Random.onUnitSphere; d.y = Mathf.Abs(d.y) * 0.6f;
+                        RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Fruit", tree, new Vector3(0f, 2.5f, 0f) + Vector3.Scale(d, new Vector3(1.55f, 1.2f, 1.55f)), Vector3.one * 0.22f, fruit, keepCollider: false);
+                    }
+                }
         }
 
         // Anbar: great wooden waterwheels (norias) turning on the Euphrates
