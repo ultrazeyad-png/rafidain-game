@@ -1431,6 +1431,31 @@ namespace Rafidain.EditorTools
                 archer.emberReward = 70;
             }
 
+            // Spearmen: long, narrow thrusts with a fast lunge — step to the side, don't back away
+            float[] spearZ = { 300f, 640f, 860f };
+            foreach (var sz in spearZ)
+            {
+                var spear = RafidainSceneBuilder.MakeEnemy(enemies, "Hollow Spearman", OnRoad(td, sz, Random.Range(-3f, 3f), 1.05f), hollow, steel, 1.05f);
+                spear.maxHealth = 95f;
+                spear.damage = 24f;
+                spear.attackRange = 3.6f;
+                spear.attackReach = 4.3f;
+                spear.attackAngle = 22f;
+                spear.windup = 0.85f;
+                spear.lungeSpeed = 11f;
+                spear.recovery = 1.1f;
+                spear.emberReward = 90;
+                foreach (var t in spear.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name != "Blade") continue;
+                    t.localScale = new Vector3(0.045f, 0.045f, 2.6f);
+                    t.localPosition = new Vector3(0f, 0f, 1.1f);
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "SpearHead", t.parent, new Vector3(0f, 0f, 2.45f), new Vector3(0.12f, 0.03f, 0.35f), steel, keepCollider: false)
+                        .transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
+                    break;
+                }
+            }
+
             // Bridge guards
             var brute = RafidainSceneBuilder.MakeEnemy(enemies, "Bridge Brute", OnRoad(td, BridgeZ + 50f, 0f, 1.4f), hollow, steel, 1.35f, 3);
             brute.maxHealth = 180f; brute.damage = 30f; brute.windup = 1.0f; brute.moveSpeed = 2.3f; brute.emberReward = 180;
