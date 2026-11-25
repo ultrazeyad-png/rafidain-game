@@ -353,7 +353,7 @@ namespace Rafidain
                 Row("ذكريات دجلة", Mathf.Min(d.keys.Count, Regions.Memories.Length) + " / " + Regions.Memories.Length),
                 Row("قطع الخريطة", d.mapPieces.Count + " / " + Regions.Count * 2),
                 Row("جرار الزيت المقدس", d.sacredOils.Count + " / " + Regions.Count),
-                Row("الاسلحة", (d.weapons != null ? d.weapons.Count : 1) + " / 3"),
+                Row("الاسلحة", (d.weapons != null ? d.weapons.Count : 1) + " / " + Weapons.All.Length),
                 Row("الشعلات المشتعلة", d.discoveredBonfires.Count.ToString()),
                 Row("مرات الهلاك", d.deaths.ToString()),
                 Row("وقت الرحلة", time),

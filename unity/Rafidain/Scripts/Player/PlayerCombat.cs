@@ -73,21 +73,33 @@ namespace Rafidain
                 blade.localScale = new Vector3(Current.bladeWidth, Current.maceHead ? Current.bladeWidth : 0.12f, Current.bladeLength);
                 blade.localPosition = new Vector3(0f, 0f, Current.bladeLength * 0.5f);
             }
-            if (Current.maceHead && maceHead == null && blade != null)
+            // the head on the end of the shaft (mace ball, axe blade, spear point, sickle hook)
+            if (maceHead != null) { Destroy(maceHead.gameObject); maceHead = null; }
+            var shape = Current.head;
+            if (shape == Weapons.Head.None && Current.maceHead) shape = Weapons.Head.Mace;
+            if (shape != Weapons.Head.None && blade != null)
             {
-                var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                var go = GameObject.CreatePrimitive(shape == Weapons.Head.Mace ? PrimitiveType.Sphere : PrimitiveType.Cube);
                 Destroy(go.GetComponent<Collider>());
-                go.name = "MaceHead";
+                go.name = "WeaponHead";
                 maceHead = go.transform;
                 maceHead.SetParent(weaponPivot, false);
                 var r = blade.GetComponent<Renderer>();
                 if (r != null) go.GetComponent<Renderer>().sharedMaterial = r.sharedMaterial;
-            }
-            if (maceHead != null)
-            {
-                maceHead.gameObject.SetActive(Current.maceHead);
-                maceHead.localPosition = new Vector3(0f, 0f, Current.bladeLength);
-                maceHead.localScale = Vector3.one * 0.3f;
+                float L = Current.bladeLength;
+                switch (shape)
+                {
+                    case Weapons.Head.Mace:
+                        maceHead.localPosition = new Vector3(0f, 0f, L); maceHead.localScale = Vector3.one * 0.3f; break;
+                    case Weapons.Head.Axe:
+                        maceHead.localPosition = new Vector3(0f, 0.16f, L * 0.88f); maceHead.localScale = new Vector3(0.04f, 0.38f, 0.26f); break;
+                    case Weapons.Head.Spear:
+                        maceHead.localPosition = new Vector3(0f, 0f, L + 0.15f); maceHead.localScale = new Vector3(0.1f, 0.03f, 0.34f);
+                        maceHead.localRotation = Quaternion.Euler(0f, 45f, 0f); break;
+                    case Weapons.Head.Sickle:
+                        maceHead.localPosition = new Vector3(0f, 0.18f, L + 0.12f); maceHead.localScale = new Vector3(0.04f, 0.1f, 0.5f);
+                        maceHead.localRotation = Quaternion.Euler(-55f, 0f, 0f); break;
+                }
             }
         }
 

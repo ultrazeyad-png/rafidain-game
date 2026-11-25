@@ -17,6 +17,10 @@ namespace Rafidain.EditorTools
 
         public static AudioClip Get(string name)
         {
+            // real recordings dropped in Assets/Rafidain/Sounds/<name> win over the generated placeholder
+            var real = RealAssets.Clips(name);
+            if (real.Length > 0) return real[0];
+
             string path = $"{Folder}/{name}.wav";
             var existing = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
             if (existing != null) return existing;

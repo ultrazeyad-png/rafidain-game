@@ -109,7 +109,7 @@ namespace Rafidain
                         attacker.Parried();
                         OnParry?.Invoke();
                         Haptics.Pulse();
-                        if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.block, transform.position, 1f, 0.3f);
+                        if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.parry != null ? AudioManager.Instance.parry : AudioManager.Instance.block, transform.position, 1f, 0.1f);
                         HitFX.Hit(transform.position + transform.forward * 0.6f + Vector3.up * 0.4f, true, new Color(1f, 0.95f, 0.7f));
                         HitFX.Ring(transform.position + Vector3.up * 0.1f, 1.6f, new Color(1f, 0.9f, 0.6f));
                         if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.15f);

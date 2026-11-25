@@ -549,6 +549,15 @@ namespace Rafidain.EditorTools
             am.death = ProceduralAudio.Get("death");
             am.wind = ProceduralAudio.Get("wind");
             am.boss = ProceduralAudio.Get("boss");
+            am.parry = ProceduralAudio.Get("parry");
+
+            // every real sound folder with more than one file becomes a set of random variations
+            am.variations.Clear();
+            foreach (var n in new[] { "swing", "hit", "block", "step", "roll", "pickup", "death", "parry" })
+            {
+                var clips = RealAssets.Clips(n);
+                if (clips.Length > 1) am.variations.Add(new AudioManager.ClipSet { key = clips[0], clips = clips });
+            }
         }
 
         // ---------- particles ----------

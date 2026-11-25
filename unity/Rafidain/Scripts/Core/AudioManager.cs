@@ -12,7 +12,21 @@ namespace Rafidain
     {
         public static AudioManager Instance { get; private set; }
 
-        public AudioClip swing, hit, block, step, roll, pickup, death, wind, boss;
+        public AudioClip swing, hit, block, step, roll, pickup, death, wind, boss, parry;
+
+        /// <summary>Several real recordings of one sound: a random one plays each time (key = the clip assigned above).</summary>
+        [System.Serializable]
+        public class ClipSet { public AudioClip key; public AudioClip[] clips; }
+        public System.Collections.Generic.List<ClipSet> variations = new System.Collections.Generic.List<ClipSet>();
+
+        static AudioClip Vary(AudioClip clip)
+        {
+            if (clip == null || Instance == null) return clip;
+            foreach (var set in Instance.variations)
+                if (set != null && set.key == clip && set.clips != null && set.clips.Length > 0)
+                    return set.clips[Random.Range(0, set.clips.Length)];
+            return clip;
+        }
         [Range(0f, 1f)] public float masterVolume = 1f;
 
         AudioSource windSource, bossSource, uiSource;
@@ -47,6 +61,7 @@ namespace Rafidain
 
         public static void At(AudioClip clip, Vector3 pos, float volume = 1f, float pitchJitter = 0.08f)
         {
+            clip = Vary(clip);
             if (clip == null) return;
             var go = new GameObject("SFX");
             go.transform.position = pos;
@@ -64,6 +79,7 @@ namespace Rafidain
 
         public void Ui(AudioClip clip, float volume = 1f)
         {
+            clip = Vary(clip);
             if (clip != null) uiSource.PlayOneShot(clip, volume);
         }
 

@@ -614,6 +614,7 @@ namespace Rafidain.EditorTools
 
         static void BuildRegion(RegionDef def, bool firstScene)
         {
+            RealAssets.ClearCache();
             R = def;
             if (!quiet && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             RafidainURPSetup.EnsureURP();
@@ -884,7 +885,8 @@ namespace Rafidain.EditorTools
         // Wild grass tufts on grassy ground (terrain details, wave in the wind)
         static void PaintGrass(TerrainData td, float[,,] maps)
         {
-            var grassTex = GrassBladeTexture();
+            var realGrass = RealAssets.Textures("Grass");
+            var grassTex = realGrass.Length > 0 ? realGrass[0] : GrassBladeTexture();
             if (grassTex == null) return;
 
             var proto = new DetailPrototype
@@ -1193,8 +1195,21 @@ namespace Rafidain.EditorTools
             sun.shadowStrength = 0.9f;
             sun.transform.rotation = Quaternion.Euler(m.sunPitch, m.sunYaw, 0f);
 
+            var hdri = RealAssets.Sky();
+            var panoShader = Shader.Find("Skybox/Panoramic");
+            if (hdri != null && panoShader != null)
+            {
+                // a real photographed sky (Poly Haven HDRI), tinted to the governorate's mood
+                var sky = new Material(panoShader);
+                sky.SetTexture("_MainTex", hdri);
+                sky.SetColor("_Tint", Color.Lerp(Color.gray, m.skyTint * 2f, 0.35f));
+                sky.SetFloat("_Exposure", 1.0f);
+                sky.SetFloat("_Rotation", m.sunYaw + 180f);
+                AssetDatabase.CreateAsset(sky, $"{Gen}/{R.id}_Sky.mat");
+                RenderSettings.skybox = sky;
+            }
             var skyShader = Shader.Find("Skybox/Procedural");
-            if (skyShader != null)
+            if (RenderSettings.skybox == null || hdri == null) if (skyShader != null)
             {
                 var sky = new Material(skyShader);
                 sky.SetFloat("_SunSize", 0.035f);
@@ -1501,6 +1516,7 @@ namespace Rafidain.EditorTools
                 if (!IsFreeGround(x, z, 14f)) continue;
 
                 float s = Random.Range(0.8f, 1.4f);
+                if (RealAssets.Place("Trees", forest, new Vector3(x, h - 0.3f, z), Random.Range(0f, 360f), s) != null) { placed++; continue; }
                 var tree = new GameObject("Oak").transform;
                 tree.SetParent(forest);
                 tree.position = new Vector3(x, h - 0.3f, z);
@@ -1529,6 +1545,7 @@ namespace Rafidain.EditorTools
                 if (!IsFreeGround(x, z, 10f)) continue;
                 float h = td.GetInterpolatedHeight(x / Size, z / Size);
                 float s = Random.Range(1.5f, h > 60f ? 10f : 4.5f);
+                if (RealAssets.Place("Rocks", rocks, new Vector3(x, h - s * 0.1f, z), Random.Range(0f, 360f), s * 0.5f) != null) { placed++; continue; }
                 var r = MeshObj("Rock", rocks, ProceduralMeshes.Rock(Random.Range(0, 10)), rock,
                     new Vector3(x, h + s * 0.05f, z), new Vector3(s, s * Random.Range(0.7f, 1.2f), s),
                     Quaternion.Euler(Random.Range(-8f, 8f), Random.Range(0f, 360f), Random.Range(-8f, 8f)), true);
@@ -1566,6 +1583,7 @@ namespace Rafidain.EditorTools
                 if (h < WaterLevel + 1f || h > 50f) continue;
                 if (Mathf.Abs(x - RoadX(z)) < 16f) continue;
 
+                if (RealAssets.Place("Palms", grove, new Vector3(x, h - 0.2f, z), Random.Range(0f, 360f), Random.Range(0.85f, 1.2f)) != null) { placed++; continue; }
                 var palm = new GameObject("Palm").transform;
                 palm.SetParent(grove);
                 palm.position = new Vector3(x, h - 0.2f, z);
@@ -1791,6 +1809,7 @@ namespace Rafidain.EditorTools
                 if (h < WaterLevel + 1f || h > 110f || td.GetSteepness(u, v) > 32f) continue;
                 if (!IsFreeGround(x, z, 3f)) continue;
                 float sz = Random.Range(1.2f, 2.8f);
+                if (RealAssets.Place("Bushes", bushes, new Vector3(x, h - 0.05f, z), Random.Range(0f, 360f), sz * 0.6f) != null) { placed++; continue; }
                 var b = MeshObj("Bush", bushes, ProceduralMeshes.Canopy(Random.Range(0, 6)), Random.value < 0.5f ? leaves : dark,
                     new Vector3(x, h + sz * 0.25f, z), new Vector3(sz, sz * 0.7f, sz), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), false);
                 b.isStatic = true;
@@ -2674,8 +2693,9 @@ namespace Rafidain.EditorTools
             ol.type = LightType.Point; ol.color = new Color(1f, 0.75f, 0.35f); ol.range = 5f; ol.intensity = 2f;
             oil.AddComponent<SacredOil>().oilId = R.id + "_oil";
 
-            // --- a new weapon waits in Mosul (khanjar) and Kirkuk (mace), on the eastern slopes
-            string weaponId = R.id == "mosul" ? "khanjar" : R.id == "kirkuk" ? "mace" : null;
+            // --- a weapon waits in some governorates (see Weapons.cs), on the eastern slopes
+            var wdef = Weapons.InRegion(R.id);
+            string weaponId = wdef != null ? wdef.id : null;
             if (weaponId != null)
             {
                 Vector2 wSpot = new Vector2(760f, 520f);
@@ -2690,16 +2710,23 @@ namespace Rafidain.EditorTools
                 }
                 var wp = new GameObject("Weapon - " + weaponId);
                 wp.transform.position = Ground(td, wSpot.x, wSpot.y, 0f);
-                var metal = RafidainSceneBuilder.Mat(weaponId == "mace" ? "MaceStone" : "KhanjarSteel",
-                    weaponId == "mace" ? new Color(0.32f, 0.26f, 0.22f) : new Color(0.78f, 0.74f, 0.66f), 0.7f, 0.8f);
+                var metal = RafidainSceneBuilder.Mat(weaponId == "mace" ? "MaceStone" : weaponId == "staff" ? "StaffOak" : "WeaponSteel_" + weaponId,
+                    weaponId == "mace" ? new Color(0.32f, 0.26f, 0.22f) : weaponId == "staff" ? new Color(0.35f, 0.24f, 0.14f) : new Color(0.78f, 0.74f, 0.66f), 0.7f, weaponId == "staff" ? 0f : 0.8f);
                 var vis = new GameObject("Visual").transform;
                 vis.SetParent(wp.transform, false);
                 vis.localPosition = new Vector3(0f, 0.35f, 0f);
                 vis.localRotation = Quaternion.Euler(-70f, 0f, 0f);    // planted in the ground
-                float len = weaponId == "mace" ? 1.0f : 0.55f;
-                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Blade", vis, new Vector3(0f, 0f, len * 0.3f), new Vector3(0.07f, 0.1f, len), metal, keepCollider: false);
-                if (weaponId == "mace")
+                float len = wdef.bladeLength;
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Blade", vis, new Vector3(0f, 0f, len * 0.3f), new Vector3(wdef.bladeWidth, 0.1f, len), metal, keepCollider: false);
+                if (wdef.head == Weapons.Head.Mace)
                     RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Head", vis, new Vector3(0f, 0f, len * 0.8f), Vector3.one * 0.3f, metal, keepCollider: false);
+                else if (wdef.head == Weapons.Head.Axe)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Head", vis, new Vector3(0f, 0.16f, len * 0.7f), new Vector3(0.04f, 0.38f, 0.26f), metal, keepCollider: false);
+                else if (wdef.head == Weapons.Head.Spear)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Head", vis, new Vector3(0f, 0f, len * 0.8f + 0.15f), new Vector3(0.1f, 0.03f, 0.34f), metal, keepCollider: false);
+                else if (wdef.head == Weapons.Head.Sickle)
+                    RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Head", vis, new Vector3(0f, 0.18f, len * 0.8f + 0.1f), new Vector3(0.04f, 0.1f, 0.5f), metal, keepCollider: false)
+                        .transform.localRotation = Quaternion.Euler(-55f, 0f, 0f);
                 var wl = new GameObject("Glow").AddComponent<Light>();
                 wl.transform.SetParent(wp.transform, false);
                 wl.transform.localPosition = new Vector3(0f, 1.2f, 0f);
