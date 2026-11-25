@@ -47,7 +47,7 @@ namespace Rafidain
 
         public void Toggle()
         {
-            if ((PauseMenu.IsPaused || LevelUpUI.IsOpen) && !open) return;
+            if ((PauseMenu.IsPaused || LevelUpUI.IsOpen || MerchantUI.IsOpen) && !open) return;
             open = !open;
             IsOpen = open;
             panel.SetActive(open);

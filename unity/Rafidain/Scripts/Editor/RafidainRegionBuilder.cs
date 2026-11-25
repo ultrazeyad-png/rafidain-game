@@ -2715,6 +2715,9 @@ namespace Rafidain.EditorTools
             MakeSage(td, R.sageTown, R.riddleTown, new Vector2(sageSpot.x, sageSpot.z), wood, glow);
             MakeSage(td, R.sageWild, R.riddleWild, PlazaCenter + new Vector2(6f, -9f), wood, glow);
 
+            // --- the merchant in the square
+            MakeMerchant(td, PlazaCenter + new Vector2(-8f, 7f), wood, glow);
+
             // --- tutorial tablets on the first stretch of road (Zakho only)
             if (R.id == "zakho") PlaceTutorialTablets(td);
 
@@ -3012,6 +3015,39 @@ namespace Rafidain.EditorTools
                 gm.body = m.body;
                 gm.glow = l;
             }
+        }
+
+        static readonly string[] MerchantLines =
+        {
+            "الجمر عندك... والزيت عندي",
+            "كل شي له ثمن يا غريب، حتى الذكرى",
+            "الحراس اقوى كلما مشيت جنوبا... تجهز",
+            "سيفك اعمى... دعني اشحذه",
+            "لا تسالني من اين جئت بهذا... ادفع وامش",
+        };
+
+        static void MakeMerchant(TerrainData td, Vector2 at, Material wood, Material glow)
+        {
+            var npc = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            npc.name = "Merchant";
+            Object.DestroyImmediate(npc.GetComponent<CapsuleCollider>());
+            npc.transform.position = Ground(td, at.x, at.y, 1.0f);
+            RafidainSceneBuilder.BuildHumanoid(npc, 1);
+            var helm = npc.transform.Find("Body/Helm");
+            if (helm != null) Object.DestroyImmediate(helm.gameObject);
+            var cloth = RafidainSceneBuilder.Mat("Merchant_Cloth", new Color(0.2f, 0.28f, 0.36f), 0.1f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Turban", npc.transform.Find("Body"), new Vector3(0f, 0.95f, 0f), new Vector3(0.34f, 0.2f, 0.34f), cloth, keepCollider: false);
+            // his stall: a rug, jars and a lamp
+            var rug = RafidainSceneBuilder.Mat("Merchant_Rug", new Color(0.5f, 0.12f, 0.08f), 0.05f);
+            var jar = RafidainSceneBuilder.Mat("OilJar", new Color(0.55f, 0.38f, 0.2f), 0.5f);
+            var g = Ground(td, at.x, at.y, 0f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Rug", null, g + new Vector3(0f, 0.03f, 1.6f), new Vector3(2.6f, 0.04f, 1.8f), rug, keepCollider: false);
+            for (int k = 0; k < 5; k++)
+                RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Jar", null, g + new Vector3(-1f + k * 0.5f, 0.25f, 2.1f), new Vector3(0.35f, 0.45f, 0.35f), jar, keepCollider: false);
+            MakeLantern(npc.transform.parent, Ground(td, at.x - 1.6f, at.y, 0f), wood, glow);
+            var m = npc.AddComponent<Merchant>();
+            m.merchantName = "عطار " + R.name;
+            m.greeting = MerchantLines[Mathf.Abs(R.seed) % MerchantLines.Length];
         }
 
         static void MakeSage(TerrainData td, string speaker, string[] lines, Vector2 at, Material wood, Material glow)

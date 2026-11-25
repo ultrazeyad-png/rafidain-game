@@ -91,7 +91,7 @@ namespace Rafidain
         void Update()
         {
             var input = PlayerInputReader.Instance;
-            if (input != null && input.PausePressed && !WorldMapUI.IsOpen && !LevelUpUI.IsOpen)
+            if (input != null && input.PausePressed && !WorldMapUI.IsOpen && !LevelUpUI.IsOpen && !MerchantUI.IsOpen)
             {
                 if (controlsPanel != null && controlsPanel.activeSelf) controlsPanel.SetActive(false);
                 else if (statsPanel != null && statsPanel.activeSelf) statsPanel.SetActive(false);

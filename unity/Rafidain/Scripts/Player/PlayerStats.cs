@@ -59,6 +59,10 @@ namespace Rafidain
             maxStamina = BaseStamina + d.endurance * 5f;
             DamageMultiplier = 1f + d.strength * 0.045f;
             maxFlasks = 4 + (d.sacredOils != null ? d.sacredOils.Count : 0);
+            // merchant upgrades
+            flaskHealPercent = 0.45f * (1f + 0.12f * d.flaskPotency);
+            DamageMultiplier *= 1f + 0.06f * d.sharpness;
+            blockStaminaPerDamage = 1.1f * (1f - 0.08f * d.guard);
         }
 
         public static int LevelCost(int level) => Mathf.RoundToInt(260f * Mathf.Pow(1.13f, level - 1));

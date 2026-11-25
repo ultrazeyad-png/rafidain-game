@@ -143,7 +143,7 @@ namespace Rafidain
 
         void Stop(float seconds)
         {
-            if (PauseMenu.IsPaused || WorldMapUI.IsOpen || LevelUpUI.IsOpen) return;
+            if (PauseMenu.IsPaused || WorldMapUI.IsOpen || LevelUpUI.IsOpen || MerchantUI.IsOpen) return;
             if (stopCo != null) StopCoroutine(stopCo);
             stopCo = StartCoroutine(StopRoutine(seconds));
         }
@@ -152,7 +152,7 @@ namespace Rafidain
         {
             Time.timeScale = 0.06f;
             yield return new WaitForSecondsRealtime(seconds);
-            if (!PauseMenu.IsPaused && !WorldMapUI.IsOpen && !LevelUpUI.IsOpen) Time.timeScale = 1f;
+            if (!PauseMenu.IsPaused && !WorldMapUI.IsOpen && !LevelUpUI.IsOpen && !MerchantUI.IsOpen) Time.timeScale = 1f;
             stopCo = null;
         }
 

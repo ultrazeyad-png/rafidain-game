@@ -24,7 +24,8 @@ namespace Rafidain
         public string equippedWeapon = "sword";
         public List<string> bossIntrosSeen = new List<string>();
         public List<string> visitedRegions = new List<string>();
-        public int ngCycle;   // 0 = first journey, 1 = journey+ ...
+        public int ngCycle;
+        public int flaskPotency, sharpness, guard;   // bought from the merchants (0..5 each)   // 0 = first journey, 1 = journey+ ...
         public float playTimeSeconds;
         public int deaths;
         public bool hasLostEmbers;
