@@ -104,6 +104,15 @@ namespace Rafidain
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
 
+        void ToTitle()
+        {
+            if (GameManager.Instance != null) GameManager.Instance.SaveNow();
+            SetPaused(false);
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+        }
+
         void Quit()
         {
             if (GameManager.Instance != null) GameManager.Instance.SaveNow();
@@ -183,7 +192,10 @@ namespace Rafidain
 
             MakeButton(panel.transform, ArabicText.Fix("مسح التقدم والبدء من جديد"), new Vector2(0.5f, 0.5f), new Vector2(0, -245), new Vector2(520, 64), 24)
                 .onClick.AddListener(DeleteProgress);
-            MakeButton(panel.transform, ArabicText.Fix("خروج"), new Vector2(0.5f, 0.5f), new Vector2(0, -325), new Vector2(520, 70), 32)
+            if (Application.CanStreamedLevelBeLoaded("MainMenu"))
+                MakeButton(panel.transform, ArabicText.Fix("القائمة الرئيسية"), new Vector2(0.5f, 0.5f), new Vector2(0, -320), new Vector2(520, 64), 28)
+                    .onClick.AddListener(ToTitle);
+            MakeButton(panel.transform, ArabicText.Fix("خروج"), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(520, 70), 32)
                 .onClick.AddListener(Quit);
 
             BuildControlsPage(canvasGo.transform);

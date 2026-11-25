@@ -37,7 +37,7 @@ namespace Rafidain
         {
             if (!Application.CanStreamedLevelBeLoaded(targetScene))
             {
-                HUD.Instance.ShowMessage(ArabicText.Fix("هذه المحافظة لم تبن بعد"), 2.5f);
+                if (HUD.Instance != null) HUD.Instance.ShowMessage(ArabicText.Fix("هذه المحافظة لم تبن بعد"), 2.5f);
                 return;
             }
             if (GameManager.Instance != null) GameManager.Instance.SaveNow();
