@@ -275,6 +275,7 @@ namespace Rafidain
                         state = State.Idle;
                         health = maxHealth;
                         phase2 = false;
+                        if (rageAura != null) { Destroy(rageAura.gameObject); rageAura = null; }
                         transform.rotation = homeRotation;
                     }
                     else
@@ -287,6 +288,7 @@ namespace Rafidain
         }
 
         float introHoldUntil;
+        Transform rageAura;
 
         void Engage()
         {
@@ -641,6 +643,19 @@ namespace Rafidain
             if (state == State.Attack) state = State.Chase;
         }
 
+        Color RageColor()
+        {
+            switch (special)
+            {
+                case BossMove.Wave: return new Color(0.3f, 0.6f, 1f);
+                case BossMove.WingGust: return new Color(0.9f, 0.85f, 0.7f);
+                case BossMove.FireTrail: return new Color(1f, 0.4f, 0.05f);
+                case BossMove.ShadowStep: return new Color(0.55f, 0.25f, 0.9f);
+                case BossMove.None: case BossMove.ShieldCharge: case BossMove.Spin: return new Color(1f, 0.35f, 0.1f);
+                default: return MoveColor(special);
+            }
+        }
+
         static Color MoveColor(BossMove m)
         {
             switch (m)
@@ -811,6 +826,12 @@ namespace Rafidain
             {
                 phase2 = true;
                 if (HUD.Instance != null) HUD.Instance.ShowMessage(ArabicText.Fix(displayName + " يستشيط غضبا"), 2f);
+                if (rageAura == null)
+                {
+                    HitFX.Aura(transform, RageColor());
+                    rageAura = transform.Find("Rage Aura");
+                }
+                if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.5f);
             }
 
             if (health <= 0f) Die();
@@ -878,6 +899,7 @@ namespace Rafidain
             if (cc != null) cc.enabled = true;
             health = maxHealth;
             phase2 = false;
+            if (rageAura != null) { Destroy(rageAura.gameObject); rageAura = null; }
             verticalVelocity = 0f;
             state = State.Idle;
             SetTint(0f, Color.red);

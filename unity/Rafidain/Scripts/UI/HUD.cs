@@ -48,6 +48,7 @@ namespace Rafidain
 
         void Start()
         {
+            StartCoroutine(Arrival());
             if (player == null) player = FindAnyObjectByType<PlayerStats>();
             if (Camera.main != null)
             {
@@ -228,6 +229,25 @@ namespace Rafidain
         public Coroutine FadeBlack(float to, float seconds)
         {
             return StartCoroutine(Fade(blackGroup, to, seconds));
+        }
+
+        /// <summary>Souls-style area name when a governorate loads, and Dijla's whisper on the first visit.</summary>
+        IEnumerator Arrival()
+        {
+            string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            int index = Regions.IndexOf(scene);
+            if (index < 0) yield break;
+            // let the opening story finish first (only Zakho has one)
+            while (!SaveSystem.Data.introSeen && FindAnyObjectByType<IntroSequence>() != null) yield return null;
+            yield return new WaitForSeconds(1.2f);
+            ShowBossTitle(ArabicText.Fix(Regions.Names[index]),
+                (index + 1) + " / " + Regions.Count + "   " + ArabicText.Fix("على الطريق الى بغداد"));
+
+            var visited = SaveSystem.Data.visitedRegions;
+            if (visited == null || visited.Contains(scene)) yield break;
+            visited.Add(scene);
+            yield return new WaitForSeconds(3.6f);
+            ShowDialog(ArabicText.Fix("دجلة"), ArabicText.Fix(Regions.Whispers[index]), 6f);
         }
 
         Coroutine titleCo;

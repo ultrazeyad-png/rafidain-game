@@ -62,7 +62,41 @@ namespace Rafidain
                 m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
                 m.renderQueue = 3000;
                 GetComponent<ParticleSystemRenderer>().sharedMaterial = m;
+                additive = m;
             }
+        }
+
+        static Material additive;
+
+        /// <summary>A guardian in his second phase burns with rising embers in his own colour.</summary>
+        public static void Aura(Transform owner, Color color)
+        {
+            Get();
+            var go = new GameObject("Rage Aura");
+            go.transform.SetParent(owner, false);
+            go.transform.localPosition = Vector3.down * 0.6f;
+            go.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 1.6f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.8f, 2.2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.12f);
+            main.startColor = new ParticleSystem.MinMaxGradient(color, Color.Lerp(color, Color.white, 0.4f));
+            main.maxParticles = 220;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var em = ps.emission; em.rateOverTime = 90f;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Circle; shape.radius = 0.7f;
+            var noise = ps.noise; noise.enabled = true; noise.strength = 0.6f; noise.frequency = 0.8f;
+            var col = ps.colorOverLifetime; col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            if (additive != null) r.sharedMaterial = additive;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var l = go.AddComponent<Light>();
+            l.type = LightType.Point; l.color = color; l.range = 6f; l.intensity = 2.5f; l.shadows = LightShadows.None;
         }
 
         /// <summary>Call when a blow lands. heavy = bigger stop, more sparks, stronger kick.</summary>

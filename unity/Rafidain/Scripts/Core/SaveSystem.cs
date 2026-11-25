@@ -23,6 +23,7 @@ namespace Rafidain
         public List<string> weapons = new List<string> { "sword" };
         public string equippedWeapon = "sword";
         public List<string> bossIntrosSeen = new List<string>();
+        public List<string> visitedRegions = new List<string>();
         public float playTimeSeconds;
         public int deaths;
         public bool hasLostEmbers;
