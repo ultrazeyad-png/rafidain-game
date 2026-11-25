@@ -106,7 +106,8 @@ namespace Rafidain
         {
             SaveSystem.DeleteSave();
             SetPaused(false);
-            UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            // a fresh journey starts from the title screen (or Zakho when there is none)
+            SceneLoader.Load(Application.CanStreamedLevelBeLoaded("MainMenu") ? "MainMenu" : "Zakho_Region");
         }
 
         void ToTitle()
