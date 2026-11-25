@@ -121,5 +121,56 @@ namespace Rafidain
             if (!PauseMenu.IsPaused && !WorldMapUI.IsOpen && !LevelUpUI.IsOpen) Time.timeScale = 1f;
             stopCo = null;
         }
+
+        // ---------------------------------------------------------------- blood pools
+
+        static Material bloodMat;
+
+        /// <summary>A dark pool spreads where an enemy fell, then slowly sinks into the ground and disappears.</summary>
+        public static void BloodPool(Vector3 at, float size = 1f)
+        {
+            if (!Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out var hit, 4f, ~0, QueryTriggerInteraction.Ignore)) return;
+            if (hit.collider.GetComponentInParent<EnemyAI>() != null || hit.collider.GetComponentInParent<PlayerStats>() != null) return;
+            if (bloodMat == null)
+            {
+                var sh = Shader.Find("Universal Render Pipeline/Lit");
+                if (sh == null) return;
+                bloodMat = new Material(sh);
+                bloodMat.color = new Color(0.18f, 0.02f, 0.015f);
+                if (bloodMat.HasProperty("_Smoothness")) bloodMat.SetFloat("_Smoothness", 0.85f);   // looks wet
+            }
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            go.name = "Blood";
+            Object.Destroy(go.GetComponent<Collider>());
+            var r = go.GetComponent<Renderer>();
+            r.sharedMaterial = bloodMat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            go.transform.position = hit.point + hit.normal * 0.012f;
+            go.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            Get().StartCoroutine(Get().BloodRoutine(go.transform, size * Random.Range(0.8f, 1.25f)));
+        }
+
+        IEnumerator BloodRoutine(Transform t, float size)
+        {
+            Vector3 full = new Vector3(size * 1.3f, 0.006f, size);
+            Vector3 start = t.position;
+            float k = 0f;
+            while (k < 1f && t != null)   // spread
+            {
+                k += Time.deltaTime / 1.6f;
+                t.localScale = Vector3.Lerp(new Vector3(0.1f, 0.006f, 0.1f), full, 1f - (1f - k) * (1f - k));
+                yield return null;
+            }
+            yield return new WaitForSeconds(20f);
+            k = 0f;
+            while (k < 1f && t != null)   // sink away
+            {
+                k += Time.deltaTime / 4f;
+                t.position = start - t.up * 0.03f * k;
+                t.localScale = full * (1f - 0.5f * k);
+                yield return null;
+            }
+            if (t != null) Destroy(t.gameObject);
+        }
     }
 }

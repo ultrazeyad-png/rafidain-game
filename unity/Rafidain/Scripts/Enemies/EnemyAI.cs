@@ -579,6 +579,7 @@ namespace Rafidain
         {
             StopAllCoroutines();
             state = State.Dead;
+            HitFX.BloodPool(transform.position, Mathf.Clamp(transform.lossyScale.x, 0.6f, 2.5f));
             health = 0f;
             CurrentSpeed = 0f;
             OnDied?.Invoke();

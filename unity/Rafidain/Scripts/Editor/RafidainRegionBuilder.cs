@@ -2168,6 +2168,15 @@ namespace Rafidain.EditorTools
             // --- tutorial tablets on the first stretch of road (Zakho only)
             if (R.id == "zakho") PlaceTutorialTablets(td);
 
+            // --- shafts of light and floating dust in the old town and the guardian's arena
+            var shafts = new GameObject("Light Shafts").transform;
+            Vector2[] shaftSpots =
+            {
+                PlazaCenter, PlazaCenter + new Vector2(14f, 9f), PlazaCenter + new Vector2(-12f, 16f),
+                TownCenter + new Vector2(-40f, -30f), TownCenter + new Vector2(35f, 45f), ArenaCenter,
+            };
+            foreach (var sp in shaftSpots) MakeLightShafts(shafts, Ground(td, sp.x, sp.y, 0f), R.mood != null ? R.mood.sun : new Color(1f, 0.64f, 0.4f));
+
             // --- painted map + region info
             var info = new GameObject("_Region").AddComponent<RegionInfo>();
             info.regionId = R.id;
@@ -2197,6 +2206,64 @@ namespace Rafidain.EditorTools
             l.intensity = 2.5f;
             RafidainSceneBuilder.MakeEmbers(root.transform, new Vector3(0f, 0.6f, 0f), 10f);
             root.AddComponent<MapPiece>().pieceId = id;
+        }
+
+        static void MakeLightShafts(Transform parent, Vector3 groundPos, Color sun)
+        {
+            var go = new GameObject("Shafts");
+            go.transform.SetParent(parent, false);
+            go.transform.position = groundPos + Vector3.up * 7f;
+
+            // soft vertical beams that slowly fade in and out
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(9f, 14f);
+            main.startSpeed = 0f;
+            main.startSize3D = true;
+            main.startSizeX = new ParticleSystem.MinMaxCurve(1.2f, 2.6f);
+            main.startSizeY = new ParticleSystem.MinMaxCurve(12f, 18f);
+            main.startSizeZ = 1f;
+            Color beam = Color.Lerp(sun, Color.white, 0.35f); beam.a = 0.07f;
+            main.startColor = beam;
+            main.maxParticles = 8;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.prewarm = true;
+            main.loop = true;
+            var em = ps.emission; em.rateOverTime = 0.5f;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = new Vector3(8f, 0.5f, 8f);
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.35f), new GradientAlphaKey(1f, 0.65f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.renderMode = ParticleSystemRenderMode.VerticalBillboard;
+            r.sharedMaterial = RafidainSceneBuilder.ParticleMat("LightShaft", true);
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+
+            // dust motes drifting inside the light
+            var dgo = new GameObject("Dust");
+            dgo.transform.SetParent(go.transform, false);
+            dgo.transform.localPosition = new Vector3(0f, -4f, 0f);
+            var dps = dgo.AddComponent<ParticleSystem>();
+            var dm = dps.main;
+            dm.startLifetime = new ParticleSystem.MinMaxCurve(5f, 9f);
+            dm.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.12f);
+            dm.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.03f);
+            Color mote = Color.Lerp(sun, Color.white, 0.5f); mote.a = 0.7f;
+            dm.startColor = mote;
+            dm.gravityModifier = -0.004f;
+            dm.maxParticles = 120;
+            dm.simulationSpace = ParticleSystemSimulationSpace.World;
+            dm.prewarm = true;
+            var dem = dps.emission; dem.rateOverTime = 14f;
+            var dsh = dps.shape; dsh.shapeType = ParticleSystemShapeType.Box; dsh.scale = new Vector3(7f, 6f, 7f);
+            var dn = dps.noise; dn.enabled = true; dn.strength = 0.15f; dn.frequency = 0.25f;
+            var dr = dgo.GetComponent<ParticleSystemRenderer>();
+            dr.sharedMaterial = RafidainSceneBuilder.ParticleMat("DustMote", true);
+            dr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         static EnemyAI MakeDog(Transform parent, Vector3 pos, Material fur, Material dark)
