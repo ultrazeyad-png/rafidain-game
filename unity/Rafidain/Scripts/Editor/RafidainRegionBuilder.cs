@@ -2116,6 +2116,9 @@ namespace Rafidain.EditorTools
             MakeSage(td, R.sageTown, R.riddleTown, new Vector2(sageSpot.x, sageSpot.z), wood, glow);
             MakeSage(td, R.sageWild, R.riddleWild, PlazaCenter + new Vector2(6f, -9f), wood, glow);
 
+            // --- tutorial tablets on the first stretch of road (Zakho only)
+            if (R.id == "zakho") PlaceTutorialTablets(td);
+
             // --- painted map + region info
             var info = new GameObject("_Region").AddComponent<RegionInfo>();
             info.regionId = R.id;
@@ -2145,6 +2148,45 @@ namespace Rafidain.EditorTools
             l.intensity = 2.5f;
             RafidainSceneBuilder.MakeEmbers(root.transform, new Vector3(0f, 0.6f, 0f), 10f);
             root.AddComponent<MapPiece>().pieceId = id;
+        }
+
+        static void PlaceTutorialTablets(TerrainData td)
+        {
+            var clay = RafidainSceneBuilder.Mat("MessageClay", new Color(0.62f, 0.48f, 0.32f), 0.15f);
+            clay.EnableKeyword("_EMISSION");
+            clay.SetColor("_EmissionColor", new Color(1f, 0.55f, 0.25f) * 0.6f);
+            var root = new GameObject("Tutorial Tablets").transform;
+            (float z, float side, string body)[] msgs =
+            {
+                (60f, -4f, "امش بهدوء يا فرات... اركض اذا ضغطت Shift\nلكن الركض يأكل من صبرك (الطاقة)"),
+                (74f, -4f, "الشعلة بيت المسافر\nاسترح عندها: ترجع صحتك وقواريرك... ويرجع اعداؤك ايضا"),
+                (104f, 4f, "اذا رأيت الضربة قادمة فتدحرج (Space)\nفي لحظة التدحرج لا يمسك شيء"),
+                (128f, -4f, "ضربة خفيفة (كلك يسار) سريعة\nوالثقيلة (F) تكسر توازن العدو... لكنها بطيئة"),
+                (156f, 4f, "ارفع درعك (كلك يمين) لتصد\nوان رفعته في اخر لحظة قبل الضربة... ترنح عدوك فاعدمه"),
+                (186f, -4f, "ثبت عينك على عدوك (Q)\nوحرك الماوس يمينا او يسارا لتنتقل الى غيره"),
+                (214f, 4f, "القارورة (R) تشفي جراحك\nلكنها لا تكفي الا قليلا... فاشرب حين تبتعد"),
+                (250f, -4f, "اذا هلكت سقط جمرك مكانك\nارجع اليه قبل ان تهلك ثانية... والا ضاع الى الابد"),
+                (300f, 4f, "قطع الخريطة مخبأة بعيدا عن الطريق\nاضغط M لترى ما كشفت من الارض"),
+            };
+            foreach (var m in msgs)
+            {
+                var go = new GameObject("Tablet");
+                go.transform.SetParent(root, false);
+                go.transform.position = OnRoad(td, m.z, m.side, 0.05f);
+                go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                RafidainSceneBuilder.Prim(PrimitiveType.Cube, "Clay", go.transform, new Vector3(0f, 0.04f, 0f), new Vector3(0.55f, 0.07f, 0.4f), clay, keepCollider: false);
+                var l = new GameObject("Glow").AddComponent<Light>();
+                l.transform.SetParent(go.transform, false);
+                l.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+                l.type = LightType.Point;
+                l.color = new Color(1f, 0.6f, 0.3f);
+                l.range = 3.5f;
+                l.intensity = 1.6f;
+                l.shadows = LightShadows.None;
+                var gm = go.AddComponent<GroundMessage>();
+                gm.body = m.body;
+                gm.glow = l;
+            }
         }
 
         static void MakeSage(TerrainData td, string speaker, string[] lines, Vector2 at, Material wood, Material glow)
