@@ -85,6 +85,7 @@ namespace Rafidain
                         amount *= blockDamageTaken;
                         OnBlocked?.Invoke();
                         if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.block, transform.position, 1f);
+                        HitFX.Hit(transform.position + transform.forward * 0.5f + Vector3.up * 0.3f, false, new Color(1f, 0.85f, 0.45f));
                         if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.08f);
                         controller.ApplyHitStagger(sourcePosition, 0.12f, 1.5f);
                         Health -= amount;
@@ -107,6 +108,7 @@ namespace Rafidain
             Health -= amount;
             OnDamaged?.Invoke();
             if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.hit, transform.position, 0.9f);
+            HitFX.Hit(transform.position + Vector3.up * 0.3f, amount >= 30f, new Color(0.7f, 0.12f, 0.08f));
             if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.15f);
             if (controller != null) controller.ApplyHitStagger(sourcePosition);
 

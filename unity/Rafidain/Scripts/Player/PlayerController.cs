@@ -120,6 +120,7 @@ namespace Rafidain
                 CurrentSpeed = 0f;
                 OnDodge?.Invoke();
                 if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.roll, transform.position, 0.8f);
+                HitFX.Dust(transform.position + Vector3.down * 0.9f, 10);
                 return;
             }
 

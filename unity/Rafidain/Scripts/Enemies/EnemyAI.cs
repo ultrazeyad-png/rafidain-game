@@ -266,6 +266,7 @@ namespace Rafidain
             if (player != null && Vector3.Distance(player.transform.position, transform.position) < 3.8f * transform.lossyScale.x)
                 player.TakeDamage(damage * 1.4f, transform.position);
             if (HUD.Instance != null) HUD.Instance.Shake(0.35f);
+            HitFX.Dust(transform.position + Vector3.down * 0.9f * transform.lossyScale.y, 40);
 
             yield return new WaitForSeconds(recovery * 1.3f);
             if (state == State.Attack) state = State.Chase;
@@ -277,6 +278,8 @@ namespace Rafidain
             health -= amount;
             StartCoroutine(HitFlash());
             if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.hit, transform.position + Vector3.up, 0.9f);
+            Vector3 impact = transform.position + Vector3.up * 0.4f * transform.lossyScale.y + (sourcePosition - transform.position).normalized * 0.4f;
+            HitFX.Hit(impact, amount >= 40f, new Color(1f, 0.75f, 0.4f));
             OnHitTaken?.Invoke();
 
             if (state == State.Idle || state == State.Return) Engage();
