@@ -103,6 +103,27 @@ namespace Rafidain
             if (HUD.Instance != null && isBoss) HUD.Instance.ShowMessage(ArabicText.Fix("ترنح الحارس... اضرب الان"), 1.5f);
         }
 
+        /// <summary>The player's shield caught this attack at the last moment (parry).</summary>
+        public void Parried()
+        {
+            if (state == State.Dead || state == State.Staggered) return;
+            lastPoiseHit = Time.time;
+            if (isBoss)
+            {
+                poiseLeft -= MaxPoise * 0.5f;     // two parries break a guardian
+                if (poiseLeft > 0f) { StopAllCoroutines(); SetTint(0f, Color.red); state = State.Chase; return; }
+            }
+            EnterStagger();
+        }
+
+        /// <summary>Finds the enemy whose attack came from exactly this point (melee attacks pass their own position).</summary>
+        public static EnemyAI AttackerAt(Vector3 source)
+        {
+            foreach (var e in All)
+                if (e != null && e.state != State.Dead && (e.transform.position - source).sqrMagnitude < 0.36f) return e;
+            return null;
+        }
+
         /// <summary>Visceral / riposte damage — ends the stagger.</summary>
         public void TakeRiposte(float amount, Vector3 from)
         {

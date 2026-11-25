@@ -30,6 +30,8 @@ namespace Rafidain
         public bool IsSprinting { get; private set; }
         public bool IsHealing { get; private set; }
         public bool IsBlocking { get; private set; }
+        /// <summary>Time the shield was last raised (for the parry window).</summary>
+        public float BlockStartTime { get; private set; } = -10f;
         public float blockMoveMultiplier = 0.5f;
         public bool IsStaggered => staggerTimer > 0f;
         public float CurrentSpeed { get; private set; }
@@ -145,7 +147,13 @@ namespace Rafidain
 
             // --- Normal movement ---
             bool attacking = combat != null && combat.IsAttacking;
+            bool wasBlocking = IsBlocking;
             IsBlocking = input.BlockHeld && !attacking && !IsHealing && stats.Stamina > 0.5f;
+            if (IsBlocking && !wasBlocking)
+            {
+                BlockStartTime = Time.time;
+                stats.DrainStamina(6f);   // raising the shield costs a little, so parry spam isn't free
+            }
             IsSprinting = input.SprintHeld && !IsBlocking && moveDir.sqrMagnitude > 0.01f && !attacking && !IsHealing && stats.Stamina > 0.5f;
             if (IsSprinting) stats.DrainStamina(sprintStaminaPerSecond * dt);
 

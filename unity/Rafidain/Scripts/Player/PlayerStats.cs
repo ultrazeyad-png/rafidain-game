@@ -33,6 +33,9 @@ namespace Rafidain
         [Range(0f, 1f)] public float blockDamageTaken = 0.1f;
         public float blockStaminaPerDamage = 1.1f;
         public float blockAngle = 70f;
+        [Tooltip("Raise the shield this close to a melee hit to parry it: no damage, the attacker staggers.")]
+        public float parryWindow = 0.18f;
+        public event Action OnParry;
 
         float lastStaminaUse = -10f;
         PlayerController controller;
@@ -95,6 +98,20 @@ namespace Rafidain
                 toSource.y = 0f;
                 if (Vector3.Angle(transform.forward, toSource) <= blockAngle)
                 {
+                    // parry: shield raised at the very last moment against a melee attack
+                    var attacker = Time.time - controller.BlockStartTime <= parryWindow ? EnemyAI.AttackerAt(sourcePosition) : null;
+                    if (attacker != null)
+                    {
+                        attacker.Parried();
+                        OnParry?.Invoke();
+                        if (AudioManager.Instance != null) AudioManager.At(AudioManager.Instance.block, transform.position, 1f, 0.3f);
+                        HitFX.Hit(transform.position + transform.forward * 0.6f + Vector3.up * 0.4f, true, new Color(1f, 0.95f, 0.7f));
+                        HitFX.Ring(transform.position + Vector3.up * 0.1f, 1.6f, new Color(1f, 0.9f, 0.6f));
+                        if (ThirdPersonCamera.Instance != null) ThirdPersonCamera.Instance.Shake(0.15f);
+                        if (HUD.Instance != null) HUD.Instance.ShowMessage(ArabicText.Fix("صد متقن"), 0.9f);
+                        return false;
+                    }
+
                     float cost = amount * blockStaminaPerDamage;
                     if (Stamina >= cost)
                     {

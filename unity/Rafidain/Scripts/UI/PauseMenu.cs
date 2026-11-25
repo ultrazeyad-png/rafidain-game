@@ -220,6 +220,7 @@ namespace Rafidain
                 { "ضربة خفيفة / إعدام", "زر الماوس الأيسر", "RB" },
                 { "ضربة ثقيلة", "F", "RT" },
                 { "صد بالدرع", "زر الماوس الأيمن", "LB" },
+                { "صد متقن (بلحظة الضربة)", "زر الماوس الأيمن", "LB" },
                 { "تثبيت على العدو", "Q / زر العجلة", "R3" },
                 { "تفاعل / كلام", "E", "Y" },
                 { "شرب الدواء", "R", "X" },
@@ -227,13 +228,13 @@ namespace Rafidain
                 { "إيقاف", "Esc", "Start" },
             };
 
-            float y = 300;
+            float y = 320;
             MakeColumnRow(ArabicText.Fix("الفعل"), ArabicText.Fix("كيبورد"), ArabicText.Fix("يد تحكم"), y, new Color(0.95f, 0.8f, 0.5f));
             y -= 52;
             for (int i = 0; i < rows.GetLength(0); i++)
             {
                 MakeColumnRow(ArabicText.Fix(rows[i, 0]), ArabicText.Fix(rows[i, 1]), ArabicText.Fix(rows[i, 2]), y, new Color(0.92f, 0.88f, 0.8f));
-                y -= 46;
+                y -= 44;
             }
 
             MakeText(controlsPanel.transform, ArabicText.Fix("بالموبايل: العصا يسار للحركة، اسحب يمين للكاميرا، والأزرار على اليمين"), new Vector2(0, y - 10), 24, new Color(0.8f, 0.75f, 0.65f));
