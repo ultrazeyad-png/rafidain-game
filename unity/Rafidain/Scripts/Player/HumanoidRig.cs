@@ -108,6 +108,14 @@ namespace Rafidain
                 if (k >= 1f) rollT = -1f;
             }
 
+            // staggered enemy: sinks to one knee, open for execution
+            if (ai != null && ai.IsStaggered)
+            {
+                body.localRotation = Quaternion.Euler(28f, 0f, 0f);
+                body.localPosition = bodyBase + Vector3.down * 0.35f;
+                return;
+            }
+
             Quaternion flinch = Quaternion.identity;
             if (hitT > 0f)
             {

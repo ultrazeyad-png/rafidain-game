@@ -54,8 +54,40 @@ namespace Rafidain
             if (input == null || stats.IsDead || IsAttacking) return;
             if (controller != null && (controller.IsDodging || controller.IsHealing || controller.IsStaggered)) return;
 
+            // a staggered enemy in reach can be executed (Bloodborne visceral)
+            var victim = EnemyAI.RiposteTarget(transform.position, 2.6f);
+            if (victim != null)
+            {
+                if (HUD.Instance != null) HUD.Instance.SetPrompt(ArabicText.Fix("اعدام") + "   [LMB]");
+                if (input.Consume(GameAction.Attack) || input.Consume(GameAction.HeavyAttack))
+                {
+                    StartCoroutine(Riposte(victim));
+                    return;
+                }
+            }
+
             if (input.Consume(GameAction.HeavyAttack)) TryAttack(heavyAttack);
             else if (input.Consume(GameAction.Attack)) TryAttack(lightAttack);
+        }
+
+        [Header("Visceral")]
+        public float riposteDamage = 140f;
+
+        IEnumerator Riposte(EnemyAI victim)
+        {
+            IsAttacking = true;
+            OnAttack?.Invoke(true);
+            Vector3 to = victim.transform.position - transform.position; to.y = 0f;
+            if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(to);
+            float t = 0f;
+            while (t < 0.3f) { t += Time.deltaTime; SetSwing(Mathf.Lerp(0f, -1f, t / 0.3f)); yield return null; }
+            float dmg = riposteDamage + (victim.isBoss ? victim.maxHealth * 0.12f : victim.maxHealth * 0.6f);
+            victim.TakeRiposte(dmg, transform.position);
+            HitFX.Hit(victim.transform.position + Vector3.up * 0.5f, true, new Color(0.8f, 0.1f, 0.06f));
+            t = 0f;
+            while (t < 0.15f) { t += Time.deltaTime; SetSwing(Mathf.Lerp(-1f, 1f, t / 0.15f)); yield return null; }
+            yield return new WaitForSeconds(0.45f);
+            EndAttack();
         }
 
         void TryAttack(AttackData a)

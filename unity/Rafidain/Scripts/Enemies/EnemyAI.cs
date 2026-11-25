@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Rafidain
@@ -44,7 +45,57 @@ namespace Rafidain
         [Range(0f, 1f)] public float phase2Threshold = 0.5f;
         public float phase2SpeedMultiplier = 1.35f;
 
-        enum State { Idle, Chase, Attack, Return, Dead }
+        [Header("Poise (stagger)")]
+        [Tooltip("Damage soaked before the enemy staggers and can be executed. 0 = auto (bosses get more).")]
+        public float poise = 0f;
+        public float staggerTime = 1.6f;
+
+        enum State { Idle, Chase, Attack, Return, Dead, Staggered }
+
+        public static readonly List<EnemyAI> All = new List<EnemyAI>();
+        float poiseLeft;
+        float lastPoiseHit;
+        float staggerLeft;
+        public bool IsStaggered => state == State.Staggered;
+
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        void OnDisable() => All.Remove(this);
+
+        /// <summary>Nearest staggered enemy Furat can execute (front or back), or null.</summary>
+        public static EnemyAI RiposteTarget(Vector3 from, float range)
+        {
+            EnemyAI best = null;
+            float bestD = range;
+            foreach (var e in All)
+            {
+                if (e == null || !e.IsStaggered) continue;
+                float d = Vector3.Distance(from, e.transform.position) - 0.5f * e.transform.lossyScale.x;
+                if (d < bestD) { bestD = d; best = e; }
+            }
+            return best;
+        }
+
+        float MaxPoise => poise > 0f ? poise : (isBoss ? maxHealth * 0.22f : maxHealth * 0.55f);
+
+        void EnterStagger()
+        {
+            StopAllCoroutines();
+            SetTint(0f, Color.red);
+            state = State.Staggered;
+            staggerLeft = isBoss ? staggerTime * 1.4f : staggerTime;
+            poiseLeft = MaxPoise;
+            if (HUD.Instance != null && isBoss) HUD.Instance.ShowMessage(ArabicText.Fix("ترنح الحارس... اضرب الان"), 1.5f);
+        }
+
+        /// <summary>Visceral / riposte damage — ends the stagger.</summary>
+        public void TakeRiposte(float amount, Vector3 from)
+        {
+            if (state != State.Staggered) return;
+            state = State.Chase;
+            poiseLeft = MaxPoise + amount;   // can't be stun-locked straight back into a stagger
+            lastPoiseHit = Time.time;
+            TakeDamage(amount, from);
+        }
 
         State state;
         float health;
@@ -94,6 +145,13 @@ namespace Rafidain
             if (state == State.Dead) return;
             CurrentSpeed = 0f;
             ApplyGravity();
+            if (Time.time - lastPoiseHit > 3f) poiseLeft = MaxPoise;
+            if (state == State.Staggered)
+            {
+                staggerLeft -= Time.deltaTime;
+                if (staggerLeft <= 0f) state = State.Chase;
+                return;
+            }
 
             if (player == null || player.IsDead)
             {
@@ -283,6 +341,12 @@ namespace Rafidain
             OnHitTaken?.Invoke();
 
             if (state == State.Idle || state == State.Return) Engage();
+
+            // poise: enough damage in a short time staggers (bosses need much more)
+            if (poiseLeft <= 0f) poiseLeft = MaxPoise;
+            poiseLeft -= amount;
+            lastPoiseHit = Time.time;
+            if (poiseLeft <= 0f && state != State.Staggered && health > 0f) EnterStagger();
 
             if (isBoss && !phase2 && HealthRatio <= phase2Threshold)
             {
