@@ -1814,6 +1814,29 @@ namespace Rafidain.EditorTools
             MakePiece(td, pieces[0].id, townSpot, clay);
             MakePiece(td, pieces[1].id, wildSpot, clay);
 
+            // --- sacred oil: one jar per governorate, tucked away on the western slopes
+            Vector2 oilSpot = new Vector2(240f, 420f);
+            for (int k = 0; k < 2000; k++)
+            {
+                float x = Random.Range(120f, 380f), z = Random.Range(260f, 760f);
+                float h = td.GetInterpolatedHeight(x / Size, z / Size);
+                if (h < WaterLevel + 3f || h > 85f || td.GetSteepness(x / Size, z / Size) > 22f) continue;
+                if (!IsFreeGround(x, z, 6f)) continue;
+                oilSpot = new Vector2(x, z);
+                break;
+            }
+            var oil = new GameObject("Sacred Oil");
+            oil.transform.position = Ground(td, oilSpot.x, oilSpot.y, 0.6f);
+            var jarMat = RafidainSceneBuilder.Mat("OilJar", new Color(0.55f, 0.38f, 0.2f), 0.5f);
+            jarMat.EnableKeyword("_EMISSION");
+            jarMat.SetColor("_EmissionColor", new Color(1f, 0.75f, 0.3f) * 1.2f);
+            RafidainSceneBuilder.Prim(PrimitiveType.Sphere, "Jar", oil.transform, Vector3.zero, new Vector3(0.45f, 0.55f, 0.45f), jarMat, keepCollider: false);
+            RafidainSceneBuilder.Prim(PrimitiveType.Cylinder, "Neck", oil.transform, new Vector3(0f, 0.32f, 0f), new Vector3(0.18f, 0.1f, 0.18f), jarMat, keepCollider: false);
+            var ol = new GameObject("Glow").AddComponent<Light>();
+            ol.transform.SetParent(oil.transform, false);
+            ol.type = LightType.Point; ol.color = new Color(1f, 0.75f, 0.35f); ol.range = 5f; ol.intensity = 2f;
+            oil.AddComponent<SacredOil>().oilId = R.id + "_oil";
+
             // --- riddle givers
             // stand on the road edge (the gate is in a narrow canyon, the slopes are too steep)
             Vector3 sageSpot = OnRoad(td, 84f, -4.5f, 0f);

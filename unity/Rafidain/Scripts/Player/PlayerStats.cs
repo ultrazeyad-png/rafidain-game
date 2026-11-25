@@ -55,6 +55,7 @@ namespace Rafidain
             maxHealth = BaseHealth + d.vigor * 8f;
             maxStamina = BaseStamina + d.endurance * 5f;
             DamageMultiplier = 1f + d.strength * 0.045f;
+            maxFlasks = 4 + (d.sacredOils != null ? d.sacredOils.Count : 0);
         }
 
         public static int LevelCost(int level) => Mathf.RoundToInt(260f * Mathf.Pow(1.13f, level - 1));

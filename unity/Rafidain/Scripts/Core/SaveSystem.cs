@@ -11,6 +11,7 @@ namespace Rafidain
         public bool introSeen;
         public int level = 1;
         public int vigor, endurance, strength;
+        public List<string> sacredOils = new List<string>();
         public string currentScene = "";
         public bool underworldOpened;
         public bool endingSeen;
