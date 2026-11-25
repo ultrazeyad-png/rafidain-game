@@ -24,6 +24,7 @@ namespace Rafidain
         public string equippedWeapon = "sword";
         public List<string> bossIntrosSeen = new List<string>();
         public List<string> visitedRegions = new List<string>();
+        public int ngCycle;   // 0 = first journey, 1 = journey+ ...
         public float playTimeSeconds;
         public int deaths;
         public bool hasLostEmbers;
@@ -62,6 +63,24 @@ namespace Rafidain
         {
             try { File.WriteAllText(FilePath, JsonUtility.ToJson(Data, true)); }
             catch (System.Exception e) { Debug.LogWarning("[Rafidain] Could not save: " + e.Message); }
+        }
+
+        /// <summary>Begin the journey again from Zakho, keeping Furat's strength, weapons and oils; the guardians return stronger.</summary>
+        public static void StartNewGamePlus()
+        {
+            var d = Data;
+            d.ngCycle++;
+            d.defeatedBosses.Clear();
+            d.keys.Clear();
+            d.mapPieces.Clear();
+            d.discoveredBonfires.Clear();
+            d.lastBonfireId = "";
+            d.currentScene = "Zakho_Region";
+            d.underworldOpened = false;
+            d.endingSeen = false;
+            d.hasLostEmbers = false;
+            d.lostEmbersAmount = 0;
+            Save();
         }
 
         public static void DeleteSave()

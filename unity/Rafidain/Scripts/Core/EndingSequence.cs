@@ -66,6 +66,39 @@ namespace Rafidain
             for (float t = 0; t < 1.5f; t += Time.deltaTime) { var c = text.color; c.a = t / 1.5f; text.color = c; yield return null; }
             SaveSystem.Data.endingSeen = true;
             SaveSystem.Save();
+
+            yield return new WaitForSeconds(2f);
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            int next = SaveSystem.Data.ngCycle + 1;
+            MakeButton(go.transform, ArabicText.Fix("رحلة جديدة") + " +" + next + "   " + ArabicText.Fix("(من زاخو بقوتك الحالية)"), new Vector2(0, -260), () =>
+            {
+                SaveSystem.StartNewGamePlus();
+                Destroy(go);
+                SceneLoader.Load("Zakho_Region");
+            });
+            if (Application.CanStreamedLevelBeLoaded("MainMenu"))
+                MakeButton(go.transform, ArabicText.Fix("القائمة الرئيسية"), new Vector2(0, -360), () => { Destroy(go); SceneLoader.Load("MainMenu"); });
+        }
+
+        void MakeButton(Transform parent, string label, Vector2 pos, UnityEngine.Events.UnityAction action)
+        {
+            if (parent.GetComponent<GraphicRaycaster>() == null) parent.gameObject.AddComponent<GraphicRaycaster>();
+            var rt = new GameObject("Button", typeof(RectTransform)).GetComponent<RectTransform>();
+            rt.SetParent(parent, false);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = new Vector2(760, 80);
+            rt.gameObject.AddComponent<Image>().color = new Color(0.25f, 0.18f, 0.1f, 0.95f);
+            var b = rt.gameObject.AddComponent<Button>();
+            b.onClick.AddListener(action);
+            var trt = new GameObject("Label", typeof(RectTransform)).GetComponent<RectTransform>();
+            trt.SetParent(rt, false);
+            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.sizeDelta = Vector2.zero;
+            var t = trt.gameObject.AddComponent<Text>();
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.text = label; t.fontSize = 30; t.color = new Color(0.96f, 0.9f, 0.78f);
+            t.alignment = TextAnchor.MiddleCenter;
+            t.raycastTarget = false;
         }
     }
 }

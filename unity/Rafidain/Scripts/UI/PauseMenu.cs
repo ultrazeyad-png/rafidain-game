@@ -286,6 +286,7 @@ namespace Rafidain
             var lines = new[]
             {
                 Row("المستوى", d.level.ToString()),
+                Row("الرحلة", d.ngCycle == 0 ? ArabicText.Fix("الاولى") : "+" + d.ngCycle),
                 Row("الحيوية / التحمل / القوة", d.vigor + " / " + d.endurance + " / " + d.strength),
                 Row("السلاح", ArabicText.Fix(Weapons.Get(d.equippedWeapon).name)),
                 Row("الحراس الذين سقطوا", d.defeatedBosses.Count + " / " + Regions.Count),

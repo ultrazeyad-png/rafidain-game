@@ -188,6 +188,14 @@ namespace Rafidain
             for (int i = 0; i < renderers.Length; i++)
                 baseColors[i] = renderers[i].material.HasProperty("_BaseColor") || renderers[i].material.HasProperty("_Color")
                     ? renderers[i].material.color : Color.white;
+            // journey+: every cycle the road is harsher
+            int ng = SaveSystem.Data.ngCycle;
+            if (ng > 0)
+            {
+                maxHealth *= 1f + 0.4f * ng;
+                damage *= 1f + 0.25f * ng;
+                emberReward = Mathf.RoundToInt(emberReward * (1f + 0.5f * ng));
+            }
             health = maxHealth;
         }
 
