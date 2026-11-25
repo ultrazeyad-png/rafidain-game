@@ -259,7 +259,50 @@ namespace Rafidain.EditorTools
                 for (int i = AllRegions.Length - 1; i >= 0; i--) BuildRegion(AllRegions[i], AllRegions[i] == Zakho);
             }
             finally { quiet = false; }
-            EditorUtility.DisplayDialog("Rafidain", "All 7 governorates are built, from Zakho to Baghdad.\n\nZakho is open: press Play.", "OK");
+            BuildTitleScene(openAfter: false);
+            EditorSceneManager.OpenScene(Zakho.ScenePath);
+            EditorUtility.DisplayDialog("Rafidain", "All 7 governorates and the title screen are built, from Zakho to Baghdad.\n\nZakho is open: press Play (or open MainMenu to start from the title screen).", "OK");
+        }
+
+        [MenuItem("Rafidain/Build Title Screen")]
+        public static void BuildTitleMenu() => BuildTitleScene(openAfter: true);
+
+        static void BuildTitleScene(bool openAfter)
+        {
+            if (openAfter && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            RafidainSceneBuilder.EnsureFolder("Assets/Rafidain/Scenes");
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            var cam = Camera.main;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.02f, 0.015f, 0.012f);
+            cam.transform.position = new Vector3(0f, 1.2f, -5f);
+            cam.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+            var sun = Object.FindAnyObjectByType<Light>();
+            if (sun != null) sun.intensity = 0.05f;
+            RenderSettings.fog = false;
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.03f, 0.025f, 0.02f);
+
+            // a lone flame with a planted sword
+            var stone = RafidainSceneBuilder.Mat("AncientStone", new Color(0.62f, 0.55f, 0.44f), 0.25f);
+            var ember = RafidainSceneBuilder.Mat("Ember", new Color(1f, 0.45f, 0.1f), 0.5f);
+            RafidainSceneBuilder.MakeBonfire("title_flame", "", new Vector3(0f, 0f, 0f), ember, stone);
+            RafidainSceneBuilder.Prim(PrimitiveType.Plane, "Ground", null, Vector3.zero, Vector3.one * 3f, stone);
+            RafidainSceneBuilder.CreatePostVolume();
+
+            var go = new GameObject("_Title");
+            go.AddComponent<TitleScreen>();
+            var es = new GameObject("EventSystem");
+            es.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            es.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            var am = new GameObject("_Audio");
+            RafidainSceneBuilder.AddAudioManager(am);
+
+            string path = "Assets/Rafidain/Scenes/MainMenu.unity";
+            EditorSceneManager.SaveScene(scene, path);
+            RafidainSceneBuilder.AddSceneToBuild(path, true);
+            if (!openAfter) return;
+            EditorUtility.DisplayDialog("Rafidain", "Title screen built and set as the first scene.\n\nPress Play.", "OK");
         }
 
         static bool quiet;
