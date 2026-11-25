@@ -21,28 +21,15 @@ namespace Rafidain
             "الكلاب السائبة سريعة لكنها هشة... لا تهرب منها، واجهها",
             "الرماة يخافون من يقترب... تدحرج نحوهم لا بعيدا عنهم",
             "قطع الخريطة لا تكون على الطريق ابدا",
+            "من زاخو الى بغداد... ثماني عشرة محافظة، ولكل واحدة حارس",
             "في كل محافظة جرة زيت مقدس... تزيد قواريرك واحدة",
             "الخنجر سريع والاعدام به قاتل... والمكوار بطيء لكنه يكسر التوازن",
-            "خمسة مفاتيح تفتح الباب تحت بغداد... وخلفه دجلة تنتظر",
+            "مفاتيح الحراس الثمانية عشر تفتح الباب تحت بغداد... وخلفه دجلة تنتظر",
             "كل حارس يغضب حين ينتصف عمره... احذر ضرباته المزدوجة",
             "اقرأ الالواح المضيئة على الارض... تركها من مشى الطريق قبلك",
         };
 
-        public static string RegionName(string scene)
-        {
-            switch (scene)
-            {
-                case "Zakho_Region": return "زاخو";
-                case "Duhok_Region": return "دهوك";
-                case "Mosul_Region": return "الموصل";
-                case "Erbil_Region": return "اربيل";
-                case "Kirkuk_Region": return "كركوك";
-                case "Samarra_Region": return "سامراء";
-                case "Baghdad_Region": return "بغداد";
-                case "MainMenu": return "وادي الرافدين";
-                default: return scene;
-            }
-        }
+        public static string RegionName(string scene) => Regions.NameOf(scene);
 
         public static void Load(string scene)
         {

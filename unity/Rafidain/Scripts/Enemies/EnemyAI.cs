@@ -638,7 +638,7 @@ namespace Rafidain
                     if (HUD.Instance != null)
                         HUD.Instance.ShowDialog(ArabicText.Fix("مفتاح الحارس"),
                             ArabicText.Fix("سقط من يد الحارس مفتاح من برونز قديم") + "\n" +
-                            SaveSystem.Data.keys.Count + " / 5  " + ArabicText.Fix("مفاتيح باب العالم السفلي"), 6f);
+                            SaveSystem.Data.keys.Count + " / " + Regions.KeysNeeded + "  " + ArabicText.Fix("مفاتيح باب العالم السفلي"), 6f);
                 }
                 if (HUD.Instance != null)
                 {

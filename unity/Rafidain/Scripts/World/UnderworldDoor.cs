@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Rafidain
 {
     /// <summary>
-    /// The gate of the underworld beneath Baghdad. Needs the five guardian keys.
+    /// The gate of the underworld beneath Baghdad. Needs the keys of all the guardians before Baghdad.
     /// Opening it sinks the door and wakes Adapa; Ereshkigal speaks from below.
     /// </summary>
     public class UnderworldDoor : MonoBehaviour
@@ -11,7 +11,7 @@ namespace Rafidain
         public GameObject boss;
         public Transform door;
         public float range = 6f;
-        public int keysNeeded = 5;
+        public int keysNeeded = Regions.KeysNeeded;
 
         PlayerStats player;
         bool sinking;
@@ -41,7 +41,7 @@ namespace Rafidain
             int have = SaveSystem.Data.keys.Count;
             if (have < keysNeeded)
             {
-                HUD.Instance?.SetPrompt(have + " / " + keysNeeded + "  " + ArabicText.Fix("الباب يطلب مفاتيح الحراس الخمسة"));
+                HUD.Instance?.SetPrompt(have + " / " + keysNeeded + "  " + ArabicText.Fix("الباب يطلب مفاتيح كل الحراس"));
                 return;
             }
             HUD.Instance?.SetPrompt(ArabicText.Fix("افتح باب العالم السفلي") + "   [E]");
